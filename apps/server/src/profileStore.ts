@@ -18,6 +18,7 @@ export interface MatchHistoryEntry {
   result: "win" | "loss" | "draw";
   ratingBefore: number;
   ratingAfter: number;
+  ranked: boolean;
   createdAt: string;
 }
 
@@ -31,7 +32,8 @@ export interface ProfileStore {
     matchId: string,
     playerIds: string[],
     loserId: string | undefined,
-    draw: boolean
+    draw: boolean,
+    ranked?: boolean
   ): Promise<PlayerProgress[]>;
   close(): Promise<void>;
 }
@@ -85,14 +87,15 @@ export class MemoryProfileStore implements ProfileStore {
     matchId: string,
     playerIds: string[],
     loserId: string | undefined,
-    draw: boolean
+    draw: boolean,
+    ranked = true
   ): Promise<PlayerProgress[]> {
     if (this.processedMatches.has(matchId)) {
       return Promise.all(playerIds.map((id) => this.getProfile(id)));
     }
 
     const current = await Promise.all(playerIds.map((id) => this.getProfile(id)));
-    const updated = applyMatchProgress(current, { playerIds, loserId, draw });
+    const updated = applyMatchProgress(current, { playerIds, loserId, draw, ranked });
     const before = new Map(current.map((profile) => [profile.playerId, profile]));
 
     for (const profile of updated) {
@@ -110,6 +113,7 @@ export class MemoryProfileStore implements ProfileStore {
         result,
         ratingBefore: before.get(profile.playerId)?.rating ?? 1000,
         ratingAfter: profile.rating,
+        ranked,
         createdAt: new Date().toISOString()
       });
       this.history.set(profile.playerId, entries);
@@ -194,9 +198,13 @@ export class PostgresProfileStore implements ProfileStore {
         result TEXT NOT NULL CHECK (result IN ('win', 'loss', 'draw')),
         rating_before NUMERIC(8,1) NOT NULL,
         rating_after NUMERIC(8,1) NOT NULL,
+        ranked BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (match_id, player_id)
       );
+
+      ALTER TABLE match_results
+        ADD COLUMN IF NOT EXISTS ranked BOOLEAN NOT NULL DEFAULT TRUE;
 
       CREATE INDEX IF NOT EXISTS match_results_player_created_idx
         ON match_results(player_id, created_at DESC);
@@ -268,7 +276,7 @@ export class PostgresProfileStore implements ProfileStore {
   async getHistory(playerId: string, limit: number): Promise<MatchHistoryEntry[]> {
     const safeLimit = Math.max(1, Math.min(100, limit));
     const result = await this.pool.query(
-      `SELECT match_id, result, rating_before, rating_after, created_at
+      `SELECT match_id, result, rating_before, rating_after, ranked, created_at
        FROM match_results
        WHERE player_id = $1
        ORDER BY created_at DESC
@@ -281,6 +289,7 @@ export class PostgresProfileStore implements ProfileStore {
       result: row.result as MatchHistoryEntry["result"],
       ratingBefore: Number(row.rating_before),
       ratingAfter: Number(row.rating_after),
+      ranked: row.ranked !== false,
       createdAt: new Date(row.created_at as string | Date).toISOString()
     }));
   }
@@ -289,7 +298,8 @@ export class PostgresProfileStore implements ProfileStore {
     matchId: string,
     playerIds: string[],
     loserId: string | undefined,
-    draw: boolean
+    draw: boolean,
+    ranked = true
   ): Promise<PlayerProgress[]> {
     const client = await this.pool.connect();
 
@@ -312,7 +322,7 @@ export class PostgresProfileStore implements ProfileStore {
       }
 
       const current = await this.loadProfiles(client, playerIds, true);
-      const updated = applyMatchProgress(current, { playerIds, loserId, draw });
+      const updated = applyMatchProgress(current, { playerIds, loserId, draw, ranked });
       const before = new Map(current.map((profile) => [profile.playerId, profile]));
 
       for (const profile of updated) {
@@ -351,14 +361,15 @@ export class PostgresProfileStore implements ProfileStore {
 
         await client.query(
           `INSERT INTO match_results
-             (match_id, player_id, result, rating_before, rating_after)
-           VALUES ($1, $2, $3, $4, $5)`,
+             (match_id, player_id, result, rating_before, rating_after, ranked)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
           [
             matchId,
             profile.playerId,
             result,
             before.get(profile.playerId)?.rating ?? 1000,
-            profile.rating
+            profile.rating,
+            ranked
           ]
         );
       }
