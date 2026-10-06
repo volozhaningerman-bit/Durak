@@ -72,6 +72,50 @@ interface GameView {
   draw: boolean;
 }
 
+type HandMotion = "deal" | "draw" | "take";
+type TableMotion = "self" | "opponent";
+type OpponentMotion = "deal" | "draw" | "take" | "play";
+
+interface ClearedTableMotion {
+  token: number;
+  kind: "discard" | "take";
+  cards: Card[];
+  targetSeat: number;
+  toSelf: boolean;
+}
+
+interface GameMotionState {
+  hand: Record<string, HandMotion>;
+  attack: Record<string, TableMotion>;
+  defense: Record<string, TableMotion>;
+  opponents: Record<number, OpponentMotion>;
+  cleared?: ClearedTableMotion;
+  transfer?: { token: number; reverse: boolean; direction: 1 | -1 };
+  deckPulse: boolean;
+  discardPulse: boolean;
+}
+
+function tableCards(game: GameView): Card[] {
+  return game.table.flatMap((pair) =>
+    pair.defense ? [pair.attack, pair.defense] : [pair.attack]
+  );
+}
+
+function initialGameMotion(game: GameView): GameMotionState {
+  return {
+    hand: Object.fromEntries(game.self.hand.map((card) => [card.id, "deal" as const])),
+    attack: {},
+    defense: {},
+    opponents: Object.fromEntries(
+      game.players
+        .filter((player) => player.seat !== game.self.seat)
+        .map((player) => [player.seat, "deal" as const])
+    ),
+    deckPulse: false,
+    discardPulse: false
+  };
+}
+
 type ConnectionState = "connecting" | "online" | "offline";
 type LobbyTab = "play" | "profile" | "rating" | "shop";
 
@@ -1220,6 +1264,122 @@ function GameScreen(props: {
     ? RPG_CLASS_DESCRIPTIONS[game.self.classId]
     : undefined;
   const controlsDisabled = props.connection !== "online" || props.actionPending;
+  const [motion, setMotion] = useState<GameMotionState>(() => initialGameMotion(game));
+  const previousGameRef = useRef<GameView>(game);
+  const motionTimerRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const previous = previousGameRef.current;
+    previousGameRef.current = game;
+
+    if (previous.id !== game.id) {
+      setMotion(initialGameMotion(game));
+      window.clearTimeout(motionTimerRef.current);
+      motionTimerRef.current = window.setTimeout(() => {
+        setMotion({
+          hand: {},
+          attack: {},
+          defense: {},
+          opponents: {},
+          deckPulse: false,
+          discardPulse: false
+        });
+      }, 950);
+      return;
+    }
+
+    const previousSelfIds = new Set(previous.self.hand.map((card) => card.id));
+    const previousTable = tableCards(previous);
+    const previousTableIds = new Set(previousTable.map((card) => card.id));
+    const nextTableIds = new Set(tableCards(game).map((card) => card.id));
+    const hand: Record<string, HandMotion> = {};
+    const attack: Record<string, TableMotion> = {};
+    const defense: Record<string, TableMotion> = {};
+    const opponents: Record<number, OpponentMotion> = {};
+
+    for (const card of game.self.hand) {
+      if (previousSelfIds.has(card.id)) continue;
+      hand[card.id] = previousTableIds.has(card.id) ? "take" : "draw";
+    }
+
+    for (const pair of game.table) {
+      if (!previousTableIds.has(pair.attack.id)) {
+        attack[pair.attack.id] = previousSelfIds.has(pair.attack.id)
+          ? "self"
+          : "opponent";
+      }
+      if (pair.defense && !previousTableIds.has(pair.defense.id)) {
+        defense[pair.defense.id] = previousSelfIds.has(pair.defense.id)
+          ? "self"
+          : "opponent";
+      }
+    }
+
+    for (const player of game.players) {
+      if (player.seat === game.self.seat) continue;
+      const before = previous.players.find((candidate) => candidate.seat === player.seat);
+      if (!before) {
+        opponents[player.seat] = "deal";
+        continue;
+      }
+      if (player.handCount > before.handCount) {
+        opponents[player.seat] =
+          previous.defenderTaking && previous.defenderSeat === player.seat
+            ? "take"
+            : "draw";
+      } else if (player.handCount < before.handCount) {
+        opponents[player.seat] = "play";
+      }
+    }
+
+    let cleared: ClearedTableMotion | undefined;
+    if (previous.table.length > 0 && game.table.length === 0) {
+      cleared = {
+        token: Date.now(),
+        kind: previous.defenderTaking ? "take" : "discard",
+        cards: previousTable,
+        targetSeat: previous.defenderSeat,
+        toSelf: previous.defenderSeat === previous.self.seat
+      };
+    }
+
+    const defenderChanged = previous.defenderSeat !== game.defenderSeat;
+    const directionChanged = previous.direction !== game.direction;
+    const transfer =
+      defenderChanged && game.table.length > 0
+        ? {
+            token: Date.now() + 1,
+            reverse: directionChanged,
+            direction: game.direction
+          }
+        : undefined;
+
+    setMotion({
+      hand,
+      attack,
+      defense,
+      opponents,
+      cleared,
+      transfer,
+      deckPulse: game.deckCount < previous.deckCount,
+      discardPulse: game.discardCount > previous.discardCount
+    });
+
+    window.clearTimeout(motionTimerRef.current);
+    motionTimerRef.current = window.setTimeout(() => {
+      setMotion({
+        hand: {},
+        attack: {},
+        defense: {},
+        opponents: {},
+        deckPulse: false,
+        discardPulse: false
+      });
+    }, cleared ? 720 : 560);
+
+    return () => window.clearTimeout(motionTimerRef.current);
+  }, [game]);
+
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
     game.table.find((pair) => !pair.defense);
@@ -1348,7 +1508,8 @@ function GameScreen(props: {
                 "opponent",
                 player.seat === game.turnSeat ? "turn" : "",
                 player.seat === game.defenderSeat ? "defender" : "",
-                player.finished ? "finished" : ""
+                player.finished ? "finished" : "",
+                motion.opponents[player.seat] ? `motion-${motion.opponents[player.seat]}` : ""
               ].join(" ")}
             >
               <div className="avatar">
@@ -1380,6 +1541,60 @@ function GameScreen(props: {
       )}
 
       <section className="tableArea">
+        <div className={`deckPile ${motion.deckPulse ? "pulseDraw" : ""}`} aria-label={`Колода: ${game.deckCount}`}>
+          <span className="pileCard backOne" />
+          <span className="pileCard backTwo" />
+          {game.trumpCard && game.deckCount > 0 && (
+            <span className={`trumpPeek ${isRed(game.trumpCard) ? "red" : ""}`}>
+              {game.trumpCard.kind === "standard"
+                ? `${game.trumpCard.rank}${suitSymbol[game.trumpCard.suit]}`
+                : "★"}
+            </span>
+          )}
+          <em>{game.deckCount}</em>
+        </div>
+
+        <div className={`discardPile ${motion.discardPulse ? "pulseDiscard" : ""}`} aria-label={`Бито: ${game.discardCount}`}>
+          <span className="pileCard discardOne" />
+          <span className="pileCard discardTwo" />
+          <em>{game.discardCount}</em>
+        </div>
+
+        {motion.cleared && (
+          <div
+            key={motion.cleared.token}
+            className={[
+              "clearMotion",
+              motion.cleared.kind === "discard" ? "toDiscard" : "",
+              motion.cleared.kind === "take" && motion.cleared.toSelf ? "toSelf" : "",
+              motion.cleared.kind === "take" && !motion.cleared.toSelf ? "toOpponent" : ""
+            ].join(" ")}
+            aria-hidden="true"
+          >
+            {motion.cleared.cards.slice(0, 8).map((card, index) => (
+              <div
+                className="motionGhost"
+                key={card.id}
+                style={{
+                  "--ghost-index": index
+                } as React.CSSProperties}
+              >
+                <CardFace card={card} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {motion.transfer && (
+          <div
+            key={motion.transfer.token}
+            className={`transferMotion ${motion.transfer.reverse ? "reverse" : ""}`}
+            aria-hidden="true"
+          >
+            <span>{motion.transfer.reverse ? "↶" : motion.transfer.direction === 1 ? "⇢" : "⇠"}</span>
+          </div>
+        )}
+
         {game.table.length === 0 ? (
           <div className="emptyTable">
             {game.phase === "finished"
@@ -1403,8 +1618,28 @@ function GameScreen(props: {
                   }
                 }}
               >
-                <CardFace card={pair.attack} />
-                {pair.defense && <div className="defenseCard"><CardFace card={pair.defense} /></div>}
+                <div
+                  className={[
+                    "attackCardSlot",
+                    motion.attack[pair.attack.id]
+                      ? `enter-${motion.attack[pair.attack.id]}`
+                      : ""
+                  ].join(" ")}
+                >
+                  <CardFace card={pair.attack} />
+                </div>
+                {pair.defense && (
+                  <div
+                    className={[
+                      "defenseCard",
+                      motion.defense[pair.defense.id]
+                        ? `enter-${motion.defense[pair.defense.id]}`
+                        : ""
+                    ].join(" ")}
+                  >
+                    <CardFace card={pair.defense} />
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -1475,8 +1710,12 @@ function GameScreen(props: {
               className={[
                 "handCard",
                 card.id === props.selectedHandId ? "selected" : "",
-                isRed(card) ? "red" : ""
+                isRed(card) ? "red" : "",
+                motion.hand[card.id] ? `motion-${motion.hand[card.id]}` : ""
               ].join(" ")}
+              style={{
+                "--hand-index": game.self.hand.findIndex((candidate) => candidate.id === card.id)
+              } as React.CSSProperties}
               onClick={() => clickHandCard(card)}
               disabled={
                 game.phase === "finished" ||
