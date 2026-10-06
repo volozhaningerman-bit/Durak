@@ -26,8 +26,9 @@ type ClientGameAction =
 
 type ClientMessage =
   | { type: "ping" }
-  | { type: "join_queue"; settings: GameSettings }
+  | { type: "join_queue"; settings: unknown }
   | { type: "leave_queue" }
+  | { type: "leave_room" }
   | { type: "game_action"; action: ClientGameAction };
 
 interface Session {
@@ -75,6 +76,41 @@ function send(socket: WebSocket, payload: unknown) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(payload));
   }
+}
+
+function normalizeSettings(input: unknown): GameSettings | undefined {
+  if (!input || typeof input !== "object") return undefined;
+
+  const value = input as Record<string, unknown>;
+  const mode = value.mode;
+  const playerCount = value.playerCount;
+  const variant = value.variant;
+  const throwInPolicy = value.throwInPolicy;
+
+  if (mode !== "classic" && mode !== "rpg") return undefined;
+  if (
+    playerCount !== 2 &&
+    playerCount !== 3 &&
+    playerCount !== 4 &&
+    playerCount !== 5 &&
+    playerCount !== 6
+  ) {
+    return undefined;
+  }
+  if (variant !== "throw-in" && variant !== "transfer") return undefined;
+  if (throwInPolicy !== "all" && throwInPolicy !== "neighbors") return undefined;
+
+  const ranked = value.ranked === true;
+
+  return {
+    mode,
+    playerCount,
+    variant: mode === "rpg" ? "transfer" : variant,
+    throwInPolicy,
+    handSize: 6,
+    ranked,
+    gameplayItemsEnabled: ranked ? false : value.gameplayItemsEnabled === true
+  };
 }
 
 function sameQueue(a: GameSettings, b: GameSettings): boolean {
@@ -146,7 +182,7 @@ function gameViewForSeat(game: GameState, seat: number) {
 
 function broadcastRoom(room: Room, event = "game_state") {
   for (const member of room.members) {
-    if (member.seat === undefined) continue;
+    if (member.roomId !== room.id || member.seat === undefined) continue;
     send(member.socket, {
       type: event,
       roomId: room.id,
@@ -266,6 +302,34 @@ function handleGameAction(session: Session, action: ClientGameAction) {
   }
 }
 
+function leaveFinishedRoom(session: Session) {
+  if (!session.roomId) {
+    send(session.socket, { type: "error", code: "NOT_IN_ROOM" });
+    return;
+  }
+
+  const room = rooms.get(session.roomId);
+  if (!room) {
+    session.roomId = undefined;
+    session.seat = undefined;
+    send(session.socket, { type: "room_left" });
+    return;
+  }
+
+  if (room.game.phase !== "finished") {
+    send(session.socket, { type: "error", code: "GAME_NOT_FINISHED" });
+    return;
+  }
+
+  const roomId = room.id;
+  session.roomId = undefined;
+  session.seat = undefined;
+  send(session.socket, { type: "room_left" });
+
+  const hasMembers = room.members.some((member) => member.roomId === roomId);
+  if (!hasMembers) rooms.delete(roomId);
+}
+
 wss.on("connection", (socket) => {
   const session: Session = { id: randomUUID(), socket };
   sessions.set(socket, session);
@@ -289,8 +353,14 @@ wss.on("connection", (socket) => {
         return;
       }
 
-      session.queuedSettings = message.settings;
-      send(socket, { type: "queue_joined", settings: message.settings });
+      const settings = normalizeSettings(message.settings);
+      if (!settings) {
+        send(socket, { type: "error", code: "INVALID_SETTINGS" });
+        return;
+      }
+
+      session.queuedSettings = settings;
+      send(socket, { type: "queue_joined", settings });
       tryMatchmake();
       return;
     }
@@ -301,6 +371,11 @@ wss.on("connection", (socket) => {
       return;
     }
 
+    if (message.type === "leave_room") {
+      leaveFinishedRoom(session);
+      return;
+    }
+
     if (message.type === "game_action") {
       handleGameAction(session, message.action);
     }
@@ -308,6 +383,19 @@ wss.on("connection", (socket) => {
 
   socket.on("close", () => {
     session.queuedSettings = undefined;
+
+    if (session.roomId) {
+      const room = rooms.get(session.roomId);
+      if (room?.game.phase === "finished") {
+        const roomId = room.id;
+        session.roomId = undefined;
+        session.seat = undefined;
+        if (!room.members.some((member) => member.roomId === roomId)) {
+          rooms.delete(roomId);
+        }
+      }
+    }
+
     sessions.delete(socket);
   });
 });
