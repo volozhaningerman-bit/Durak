@@ -7,7 +7,7 @@
     "dev:web": "npm run dev -w @durak/web",
     "dev:server": "npm run dev -w @durak/server",
     "build": "npm run build -w @durak/game-core && npm run build -w @durak/server && npm run build -w @durak/web",
-    "test": "npm run test -w @durak/game-core",
+    "test": "npm run test -ws --if-present",
     "typecheck": "npm run typecheck -ws --if-present"
   }
 }
