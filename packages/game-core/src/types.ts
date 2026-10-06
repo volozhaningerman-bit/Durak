@@ -62,6 +62,7 @@ export interface GameState {
   players: PlayerState[];
   deck: StandardCard[];
   trumpSuits: Suit[];
+  trumpCard?: StandardCard;
   table: AttackPair[];
   attackerSeat: number;
   defenderSeat: number;
@@ -79,5 +80,6 @@ export interface TransferValidation {
   ok: boolean;
   consumesWildTransfer: boolean;
   nextDefenderSeat?: number;
+  nextDirection?: 1 | -1;
   reason?: string;
 }
