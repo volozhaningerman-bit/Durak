@@ -38,6 +38,16 @@ function normalizeSeat(state: GameState, seat: number): number {
   return ((seat % count) + count) % count;
 }
 
+export function attackLimitForPlayer(state: GameState, playerSeat: number): number {
+  const defender = state.players.find((p) => p.seat === playerSeat);
+  if (!defender) return 0;
+
+  const classLimit =
+    state.settings.mode === "rpg" && defender.classId === "five-limit" ? 5 : 6;
+
+  return Math.min(classLimit, defender.hand.length);
+}
+
 export function canBeat(
   attack: Card,
   defense: Card,
@@ -82,6 +92,9 @@ export function validateTransfer(
   if (intent.playerSeat !== state.defenderSeat) {
     return { ok: false, consumesWildTransfer: false, reason: "NOT_DEFENDER" };
   }
+  if (state.table.some((pair) => pair.defense)) {
+    return { ok: false, consumesWildTransfer: false, reason: "ALREADY_DEFENDED" };
+  }
 
   const attackRanks = state.table
     .map((pair) => pair.attack)
@@ -97,7 +110,8 @@ export function validateTransfer(
   const canUseWild =
     state.settings.mode === "rpg" &&
     player.classId === "wild-transfer" &&
-    player.ability.wildTransfersLeft > 0;
+    player.ability.wildTransfersLeft > 0 &&
+    intent.card.kind === "standard";
 
   if (!standardTransfer && !canUseWild) {
     return { ok: false, consumesWildTransfer: false, reason: "RANK_MISMATCH" };
@@ -122,9 +136,9 @@ export function validateTransfer(
     return { ok: false, consumesWildTransfer: false, reason: "NO_NEXT_DEFENDER" };
   }
 
-  const nextPlayer = state.players.find((p) => p.seat === nextDefenderSeat);
   const resultingAttackCount = state.table.length + 1;
-  if (!nextPlayer || nextPlayer.hand.length < resultingAttackCount) {
+  const targetLimit = attackLimitForPlayer(state, nextDefenderSeat);
+  if (resultingAttackCount > targetLimit) {
     return {
       ok: false,
       consumesWildTransfer: false,
@@ -141,13 +155,8 @@ export function validateTransfer(
 }
 
 export function maxAttackCardsForDefender(state: GameState): number {
-  const defender = state.players.find((p) => p.seat === state.defenderSeat);
-  if (!defender) return 0;
-
-  const classLimit =
-    state.settings.mode === "rpg" && defender.classId === "five-limit" ? 5 : 6;
-
-  return Math.min(classLimit, defender.hand.length);
+  if (state.roundAttackLimit > 0) return state.roundAttackLimit;
+  return attackLimitForPlayer(state, state.defenderSeat);
 }
 
 export function getThrowInOrder(state: GameState): number[] {
