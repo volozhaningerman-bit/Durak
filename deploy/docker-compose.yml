@@ -29,6 +29,7 @@ services:
       WEBAPP_URL: https://${DOMAIN}
       DATABASE_URL: postgresql://${POSTGRES_USER:-durak}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-durak}
       RECONNECT_GRACE_MS: ${RECONNECT_GRACE_MS:-60000}
+      PRIVATE_LOBBY_TTL_MS: ${PRIVATE_LOBBY_TTL_MS:-3600000}
     expose:
       - "3001"
     healthcheck:
