@@ -75,7 +75,7 @@ interface GameView {
 
 type HandMotion = "deal" | "draw" | "take";
 type TableMotion = "self" | "opponent";
-type OpponentMotion = "deal" | "draw" | "take" | "play";
+type OpponentMotion = "deal" | "draw" | "take" | "play" | "finish";
 
 interface ClearedTableMotion {
   token: number;
@@ -95,6 +95,9 @@ interface GameMotionState {
   transfer?: { token: number; reverse: boolean; direction: 1 | -1 };
   deckPulse: boolean;
   discardPulse: boolean;
+  takeDeclared: boolean;
+  trumpReveal: boolean;
+  selfFinished: boolean;
 }
 
 function tableCards(game: GameView): Card[] {
@@ -113,8 +116,11 @@ function initialGameMotion(game: GameView): GameMotionState {
         .filter((player) => player.seat !== game.self.seat)
         .map((player) => [player.seat, "deal" as const])
     ),
-    deckPulse: false,
-    discardPulse: false
+    deckPulse: true,
+    discardPulse: false,
+    takeDeclared: false,
+    trumpReveal: false,
+    selfFinished: false
   };
 }
 
@@ -1280,7 +1286,10 @@ function GameScreen(props: {
     Object.keys(motion.defense).length > 0 ||
     Object.keys(motion.opponents).length > 0 ||
     Boolean(motion.cleared) ||
-    Boolean(motion.transfer);
+    Boolean(motion.transfer) ||
+    motion.takeDeclared ||
+    motion.trumpReveal ||
+    motion.selfFinished;
   const controlsDisabled =
     props.connection !== "online" ||
     props.actionPending ||
@@ -1310,7 +1319,10 @@ function GameScreen(props: {
           defense: {},
           opponents: {},
           deckPulse: false,
-          discardPulse: false
+          discardPulse: false,
+          takeDeclared: false,
+          trumpReveal: false,
+          selfFinished: false
         });
       }, 950);
       return;
@@ -1325,7 +1337,10 @@ function GameScreen(props: {
         defense: {},
         opponents: {},
         deckPulse: false,
-        discardPulse: false
+        discardPulse: false,
+        takeDeclared: false,
+        trumpReveal: false,
+        selfFinished: false
       });
       return;
     }
@@ -1340,7 +1355,10 @@ function GameScreen(props: {
           defense: {},
           opponents: {},
           deckPulse: false,
-          discardPulse: false
+          discardPulse: false,
+          takeDeclared: false,
+          trumpReveal: false,
+          selfFinished: false
         });
       }, 950);
       return;
@@ -1379,7 +1397,9 @@ function GameScreen(props: {
         opponents[player.seat] = "deal";
         continue;
       }
-      if (player.handCount > before.handCount) {
+      if (!before.finished && player.finished) {
+        opponents[player.seat] = "finish";
+      } else if (player.handCount > before.handCount) {
         opponents[player.seat] =
           previous.defenderTaking && previous.defenderSeat === player.seat
             ? "take"
@@ -1429,7 +1449,17 @@ function GameScreen(props: {
       cleared,
       transfer,
       deckPulse: game.deckCount < previous.deckCount,
-      discardPulse: game.discardCount > previous.discardCount
+      discardPulse: game.discardCount > previous.discardCount,
+      takeDeclared:
+        !previous.defenderTaking &&
+        game.defenderTaking &&
+        game.table.length > 0,
+      trumpReveal:
+        previous.trumpSuits.length === 0 &&
+        game.trumpSuits.length > 0,
+      selfFinished:
+        !previous.self.finished &&
+        game.self.finished
     });
 
     window.clearTimeout(motionTimerRef.current);
@@ -1440,7 +1470,10 @@ function GameScreen(props: {
         defense: {},
         opponents: {},
         deckPulse: false,
-        discardPulse: false
+        discardPulse: false,
+        takeDeclared: false,
+        trumpReveal: false,
+        selfFinished: false
       });
     }, cleared ? 720 : 560);
 
@@ -1594,30 +1627,16 @@ function GameScreen(props: {
           ))}
       </section>
 
-      {game.phase === "awaiting-trump" && isMyTurn && (
-        <section className="trumpChoice">
-          <h2>Выбери козырь</h2>
-          <div className="suitButtons">
-            {(["clubs", "diamonds", "hearts", "spades"] as Suit[]).map((suit) => (
-              <button
-                key={suit}
-                className={suit === "hearts" || suit === "diamonds" ? "redSuit" : ""}
-                disabled={controlsDisabled}
-                onClick={() => props.onAction({ type: "choose_trump", suit })}
-              >
-                {suitSymbol[suit]}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="tableArea">
+      <section className={`tableArea ${motion.takeDeclared ? "takingDeclared" : ""}`}>
         <div className={`deckPile ${motion.deckPulse ? "pulseDraw" : ""}`} aria-label={`Колода: ${game.deckCount}`}>
           <span className="pileCard backOne" />
           <span className="pileCard backTwo" />
           {game.trumpCard && game.deckCount > 0 && (
-            <span className={`trumpPeek ${isRed(game.trumpCard) ? "red" : ""}`}>
+            <span className={[
+              "trumpPeek",
+              isRed(game.trumpCard) ? "red" : "",
+              motion.trumpReveal ? "revealTrump" : ""
+            ].join(" ")}>
               {game.trumpCard.kind === "standard"
                 ? `${game.trumpCard.rank}${suitSymbol[game.trumpCard.suit]}`
                 : "★"}
@@ -1631,6 +1650,10 @@ function GameScreen(props: {
           <span className="pileCard discardTwo" />
           <em>{game.discardCount}</em>
         </div>
+
+        {motion.takeDeclared && (
+          <div className="takeAnnounce" aria-hidden="true">ЗАБИРАЕТ</div>
+        )}
 
         {motion.cleared && (
           <div
@@ -1685,7 +1708,24 @@ function GameScreen(props: {
           </div>
         )}
 
-        {game.table.length === 0 ? (
+        {game.phase === "awaiting-trump" && isMyTurn ? (
+          <section className="trumpChoice tableTrumpChoice">
+            <span className="modeEyebrow">КОЗЫРНИК</span>
+            <h2>Выбери козырь</h2>
+            <div className="suitButtons">
+              {(["clubs", "diamonds", "hearts", "spades"] as Suit[]).map((suit) => (
+                <button
+                  key={suit}
+                  className={suit === "hearts" || suit === "diamonds" ? "redSuit" : ""}
+                  disabled={controlsDisabled}
+                  onClick={() => props.onAction({ type: "choose_trump", suit })}
+                >
+                  {suitSymbol[suit]}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : game.table.length === 0 ? (
           <div className="emptyTable">
             {game.phase === "finished"
               ? resultText
@@ -1785,7 +1825,10 @@ function GameScreen(props: {
         </section>
       )}
 
-      <section className="myHand">
+      <section className={`myHand ${motion.selfFinished ? "motion-finish" : ""}`}>
+        {motion.selfFinished && game.self.place && (
+          <div className="selfFinishBadge">ВЫШЕЛ #{game.self.place}</div>
+        )}
         <div className="handHeader">
           <span>Твои карты</span>
           <b>{game.self.hand.length}</b>
