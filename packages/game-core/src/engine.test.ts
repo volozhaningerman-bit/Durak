@@ -52,8 +52,29 @@ function state(overrides: Partial<GameState>): GameState {
 
 
 
+function assertCardConservation(game: GameState): void {
+  const cards = [
+    ...game.deck,
+    ...game.discard,
+    ...game.players.flatMap((player) => player.hand),
+    ...game.table.flatMap((pair) => pair.defense ? [pair.attack, pair.defense] : [pair.attack])
+  ];
+
+  const standardIds = cards
+    .filter((card): card is StandardCard => card.kind === "standard")
+    .map((card) => card.id);
+
+  expect(standardIds).toHaveLength(36);
+  expect(new Set(standardIds).size).toBe(36);
+
+  const jokerCards = cards.filter((card) => card.kind === "joker");
+  const hasJokerClass = game.players.some((player) => player.classId === "joker");
+  expect(jokerCards).toHaveLength(hasJokerClass ? 1 : 0);
+}
+
 function autoPlay(initial: GameState): GameState {
   let game = initial;
+  assertCardConservation(game);
 
   for (let step = 0; step < 10000 && game.phase !== "finished"; step += 1) {
     if (game.phase === "awaiting-trump") {
@@ -62,6 +83,7 @@ function autoPlay(initial: GameState): GameState {
         playerSeat: game.turnSeat!,
         suit: "hearts"
       });
+      assertCardConservation(game);
       continue;
     }
 
@@ -77,6 +99,7 @@ function autoPlay(initial: GameState): GameState {
         playerSeat: seat,
         cardId: card.id
       });
+      assertCardConservation(game);
       continue;
     }
 
@@ -134,6 +157,7 @@ function autoPlay(initial: GameState): GameState {
     throw new Error("AUTO_PLAY_DID_NOT_FINISH");
   }
 
+  assertCardConservation(game);
   return game;
 }
 
