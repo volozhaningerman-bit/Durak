@@ -5,7 +5,7 @@ import {
   chooseTrumpForMaster,
   refillPlayerHand
 } from "./classes.js";
-import { canBeat, getThrowInOrder, validateTransfer } from "./rules.js";
+import { canBeat, getThrowInOrder, maxAttackCardsForDefender, validateTransfer } from "./rules.js";
 import type { GameState, PlayerState, StandardCard } from "./types.js";
 
 const c = (rank: StandardCard["rank"], suit: StandardCard["suit"]): StandardCard => ({
@@ -38,13 +38,20 @@ function state(overrides: Partial<GameState> = {}): GameState {
       ranked: false,
       gameplayItemsEnabled: true
     },
+    phase: "defending",
     players: [player(0), player(1), player(2)],
     deck: [],
+    discard: [],
     trumpSuits: ["hearts"],
     table: [{ attack: c("8", "spades") }],
     attackerSeat: 0,
     defenderSeat: 1,
+    turnSeat: 1,
     direction: 1,
+    roundAttackLimit: 6,
+    throwInPassedSeats: [],
+    defenderTaking: false,
+    draw: false,
     ...overrides
   };
 }
@@ -57,6 +64,7 @@ describe("RPG classes", () => {
 
   it("trump master chooses one suit and moves a card of that suit to deck bottom", () => {
     const s = state({
+      phase: "awaiting-trump",
       players: [
         player(0, { classId: "trump-master" }),
         player(1),
@@ -72,6 +80,23 @@ describe("RPG classes", () => {
     expect(result.deck.at(-1)?.suit).toBe("hearts");
   });
 
+  it("trump master can choose a suit even when only another suit remains in deck", () => {
+    const s = state({
+      phase: "awaiting-trump",
+      players: [
+        player(0, { classId: "trump-master", hand: [c("7", "hearts")] }),
+        player(1),
+        player(2)
+      ],
+      deck: [c("6", "clubs")]
+    });
+
+    const result = chooseTrumpForMaster(s, 0, "hearts");
+
+    expect(result.deck.at(-1)?.suit).toBe("hearts");
+    expect(result.players[0].hand[0]).toEqual(c("6", "clubs"));
+  });
+
   it("five-limit class only refills to five cards", () => {
     const p = player(0, {
       classId: "five-limit",
@@ -85,6 +110,22 @@ describe("RPG classes", () => {
 
     expect(result.player.hand).toHaveLength(5);
     expect(result.deck).toHaveLength(2);
+  });
+
+  it("five-limit attack limit stays fixed during the round", () => {
+    const s = state({
+      players: [
+        player(0),
+        player(1, {
+          classId: "five-limit",
+          hand: [c("6", "clubs"), c("7", "clubs"), c("8", "clubs")]
+        }),
+        player(2)
+      ],
+      roundAttackLimit: 5
+    });
+
+    expect(maxAttackCardsForDefender(s)).toBe(5);
   });
 
   it("joker class starts with a seventh joker card", () => {
