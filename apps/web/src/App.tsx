@@ -89,7 +89,15 @@ const errorMessages: Record<string, string> = {
   ALREADY_DEFENDED: "После начала отбоя переводить уже нельзя",
   NEXT_PLAYER_NOT_ENOUGH_CARDS: "Следующему игроку нельзя перевести столько карт",
   GAME_FINISHED: "Партия уже закончена",
-  NOT_WAITING_FOR_TRUMP: "Сейчас нельзя выбирать козырь"
+  NOT_WAITING_FOR_TRUMP: "Сейчас нельзя выбирать козырь",
+  AUTH_REQUIRED: "Открой игру через Telegram",
+  AUTH_INVALID: "Telegram не подтвердил авторизацию",
+  AUTH_EXPIRED: "Сессия Telegram устарела — переоткрой игру",
+  AUTH_HASH_MISSING: "Telegram не передал данные авторизации",
+  AUTH_DATE_INVALID: "Некорректная дата авторизации",
+  AUTH_USER_MISSING: "Telegram не передал профиль пользователя",
+  AUTH_USER_INVALID: "Не удалось прочитать профиль Telegram",
+  ALREADY_CONNECTED: "Этот Telegram-аккаунт уже открыт в другой игровой сессии"
 };
 
 function readableError(code?: string): string {
@@ -134,8 +142,17 @@ export function App() {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      setConnection("online");
+      setConnection("connecting");
       setError(null);
+
+      const telegram = window.Telegram?.WebApp;
+      telegram?.ready();
+      telegram?.expand();
+
+      socket.send(JSON.stringify({
+        type: "auth",
+        initData: telegram?.initData ?? ""
+      }));
     };
 
     socket.onclose = () => {
@@ -154,6 +171,18 @@ export function App() {
           code?: string;
           state?: GameView;
         };
+
+        if (message.type === "auth_ok") {
+          setConnection("online");
+          setError(null);
+          return;
+        }
+
+        if (message.type === "auth_error") {
+          setConnection("offline");
+          setError(readableError(message.code));
+          return;
+        }
 
         if (message.type === "queue_joined") {
           setQueueing(true);
