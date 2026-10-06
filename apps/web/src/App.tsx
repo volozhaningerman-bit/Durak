@@ -100,6 +100,22 @@ interface MatchHistoryEntry {
   createdAt: string;
 }
 
+interface PrivateLobbyView {
+  code: string;
+  settings: GameSettings;
+  members: Array<{
+    index: number;
+    name: string;
+    username?: string;
+    photoUrl?: string;
+    isSelf: boolean;
+    isHost: boolean;
+  }>;
+  currentPlayers: number;
+  requiredPlayers: number;
+  isHost: boolean;
+}
+
 const errorMessages: Record<string, string> = {
   BAD_MESSAGE: "Некорректная команда",
   INVALID_SETTINGS: "Некорректные настройки игры",
@@ -132,7 +148,11 @@ const errorMessages: Record<string, string> = {
   AUTH_USER_INVALID: "Не удалось прочитать профиль Telegram",
   ALREADY_CONNECTED: "Этот Telegram-аккаунт уже открыт в другой игровой сессии",
   RATE_LIMITED: "Слишком много команд подряд. Переподключаемся…",
-  SERVER_MISCONFIGURED: "Игровой сервер временно настроен неправильно"
+  SERVER_MISCONFIGURED: "Игровой сервер временно настроен неправильно",
+  PRIVATE_ROOM_NOT_FOUND: "Комната с таким кодом не найдена",
+  PRIVATE_ROOM_FULL: "Комната уже заполнена",
+  ALREADY_IN_PRIVATE_ROOM: "Ты уже находишься в приватной комнате",
+  NOT_IN_PRIVATE_ROOM: "Ты не находишься в приватной комнате"
 };
 
 function readableError(code?: string): string {
@@ -165,6 +185,9 @@ export function App() {
   const [activeTab, setActiveTab] = useState<LobbyTab>("play");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [history, setHistory] = useState<MatchHistoryEntry[]>([]);
+  const [privateLobby, setPrivateLobby] = useState<PrivateLobbyView | null>(null);
+  const [privateCodeInput, setPrivateCodeInput] = useState("");
+  const [copyNotice, setCopyNotice] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
   const settings = mode === "classic" ? classic : rpg;
@@ -233,6 +256,12 @@ export function App() {
             state?: GameView;
             profile?: PlayerProgress;
             entries?: unknown[];
+            code?: string;
+            settings?: GameSettings;
+            members?: PrivateLobbyView["members"];
+            currentPlayers?: number;
+            requiredPlayers?: number;
+            isHost?: boolean;
           };
 
           if (message.type === "auth_ok") {
@@ -280,6 +309,33 @@ export function App() {
             return;
           }
 
+          if (
+            message.type === "private_room" &&
+            message.code &&
+            message.settings &&
+            message.members &&
+            typeof message.currentPlayers === "number" &&
+            typeof message.requiredPlayers === "number"
+          ) {
+            setQueueing(false);
+            setPrivateLobby({
+              code: message.code,
+              settings: message.settings,
+              members: message.members,
+              currentPlayers: message.currentPlayers,
+              requiredPlayers: message.requiredPlayers,
+              isHost: message.isHost === true
+            });
+            setError(null);
+            return;
+          }
+
+          if (message.type === "private_room_left") {
+            setPrivateLobby(null);
+            setError(null);
+            return;
+          }
+
           if (message.type === "room_left") {
             setGame(null);
             setSelectedAttackId(null);
@@ -295,6 +351,7 @@ export function App() {
             setActionPending(false);
             setGame(message.state);
             setQueueing(false);
+            setPrivateLobby(null);
             setSelectedAttackId(null);
             setSelectedHandId(null);
             setError(null);
@@ -351,6 +408,40 @@ export function App() {
 
   function leaveQueue() {
     send({ type: "leave_queue" });
+  }
+
+
+  function createPrivateRoom() {
+    setError(null);
+    setQueueing(false);
+    send({ type: "create_private_room", settings });
+  }
+
+  function joinPrivateRoom() {
+    const code = privateCodeInput.trim().toUpperCase();
+    if (!code) {
+      setError("Введи код комнаты");
+      return;
+    }
+    setError(null);
+    setQueueing(false);
+    send({ type: "join_private_room", code });
+  }
+
+  function leavePrivateRoom() {
+    send({ type: "leave_private_room" });
+  }
+
+  async function copyPrivateCode() {
+    if (!privateLobby) return;
+    try {
+      await navigator.clipboard.writeText(privateLobby.code);
+      setCopyNotice(true);
+      window.setTimeout(() => setCopyNotice(false), 1400);
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+    } catch {
+      setError(`Код комнаты: ${privateLobby.code}`);
+    }
   }
 
   function gameAction(action: Record<string, unknown>) {
@@ -585,6 +676,75 @@ export function App() {
         </button>
 
         {queueing && <div className="searchingPulse">Ищем игроков с такими же настройками…</div>}
+
+        {!queueing && !privateLobby && (
+          <div className="privateRoomTools">
+            <button
+              className="secondaryGameButton"
+              disabled={connection !== "online"}
+              onClick={createPrivateRoom}
+            >
+              Создать комнату
+            </button>
+            <div className="joinPrivateRow">
+              <input
+                value={privateCodeInput}
+                maxLength={6}
+                placeholder="КОД"
+                aria-label="Код приватной комнаты"
+                onChange={(event) =>
+                  setPrivateCodeInput(
+                    event.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z2-9]/g, "")
+                      .slice(0, 6)
+                  )
+                }
+              />
+              <button
+                className="secondaryGameButton"
+                disabled={connection !== "online" || privateCodeInput.length !== 6}
+                onClick={joinPrivateRoom}
+              >
+                Войти
+              </button>
+            </div>
+          </div>
+        )}
+
+        {privateLobby && (
+          <div className="privateLobbyCard">
+            <div className="privateLobbyHead">
+              <div>
+                <span>Приватная комната</span>
+                <strong>{privateLobby.currentPlayers}/{privateLobby.requiredPlayers}</strong>
+              </div>
+              <button onClick={copyPrivateCode}>
+                {copyNotice ? "Скопировано" : privateLobby.code}
+              </button>
+            </div>
+            <div className="privateMembers">
+              {privateLobby.members.map((member) => (
+                <div className="privateMember" key={`${member.index}-${member.name}`}>
+                  <div className="avatar">
+                    {member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.index + 1}
+                  </div>
+                  <span>
+                    {member.name}
+                    {member.isHost ? <small> хозяин</small> : null}
+                    {member.isSelf ? <small> · ты</small> : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="searchingPulse">
+              Ждём ещё {Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers)} игрок(а)…
+            </div>
+            <button className="secondaryGameButton dangerOutline" onClick={leavePrivateRoom}>
+              Выйти из комнаты
+            </button>
+          </div>
+        )}
       </section>
 
       <nav className="bottomNav">
