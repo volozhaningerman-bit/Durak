@@ -445,9 +445,11 @@ function createRoom(entries: QueueEntry[]): Room {
     { id: roomId, random: secureRandom }
   );
 
-  void profileStore.touchContacts(playerIds).catch((error) => {
-    console.error("Failed to remember room contacts", error);
-  });
+  void profileStore.touchContacts(playerIds)
+    .then(() => Promise.all(members.map((member) => sendRecentPlayers(member, 8))))
+    .catch((error) => {
+      console.error("Failed to remember room contacts", error);
+    });
 
   const room: Room = {
     id: roomId,
@@ -639,9 +641,11 @@ function joinPrivateLobby(session: Session, rawCode: string) {
   const lobbyPlayerIds = lobby.members
     .map((member) => member.playerId)
     .filter((playerId): playerId is string => Boolean(playerId));
-  void profileStore.touchContacts(lobbyPlayerIds).catch((error) => {
-    console.error("Failed to remember private lobby contacts", error);
-  });
+  void profileStore.touchContacts(lobbyPlayerIds)
+    .then(() => Promise.all(lobby.members.map((member) => sendRecentPlayers(member, 8))))
+    .catch((error) => {
+      console.error("Failed to remember private lobby contacts", error);
+    });
   startPrivateLobbyIfReady(lobby);
 }
 
