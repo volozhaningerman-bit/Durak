@@ -135,6 +135,14 @@ export function App() {
           return;
         }
 
+        if (message.type === "room_left") {
+          setGame(null);
+          setSelectedAttackId(null);
+          setSelectedHandId(null);
+          setError(null);
+          return;
+        }
+
         if ((message.type === "match_found" || message.type === "game_state") && message.state) {
           setGame(message.state);
           setQueueing(false);
@@ -194,6 +202,10 @@ export function App() {
     send({ type: "game_action", action });
   }
 
+  function leaveRoom() {
+    send({ type: "leave_room" });
+  }
+
   if (game) {
     return (
       <GameScreen
@@ -206,6 +218,7 @@ export function App() {
         selectedHandId={selectedHandId}
         setSelectedHandId={setSelectedHandId}
         onAction={gameAction}
+        onLeaveRoom={leaveRoom}
       />
     );
   }
@@ -377,6 +390,7 @@ function GameScreen(props: {
   selectedHandId: string | null;
   setSelectedHandId: (value: string | null) => void;
   onAction: (action: Record<string, unknown>) => void;
+  onLeaveRoom: () => void;
 }) {
   const { game } = props;
   const isMyTurn = game.turnSeat === game.self.seat;
@@ -552,6 +566,12 @@ function GameScreen(props: {
       {game.phase === "throwing" && isMyTurn && (
         <section className="gameActions single">
           <button onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
+        </section>
+      )}
+
+      {game.phase === "finished" && (
+        <section className="gameActions single">
+          <button onClick={props.onLeaveRoom}>В меню</button>
         </section>
       )}
 
