@@ -444,3 +444,709 @@ input[type="range"] { width:100%; accent-color:var(--accent); }
 
 .app[data-theme="light"] .rpgNote { background:rgba(255,255,255,.42); }
 .app[data-theme="light"] .tabOverlay { box-shadow:0 24px 80px rgba(63,57,45,.16); }
+
+
+/* 2026 game-shell redesign: lobby behaves like a game screen, not a long web page. */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+.lobbyApp {
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding:
+    max(76px, env(safe-area-inset-top), var(--tg-content-safe-area-inset-top, 0px))
+    14px
+    calc(76px + max(env(safe-area-inset-bottom), var(--tg-content-safe-area-inset-bottom, 0px)));
+}
+
+.lobbyApp[data-mode="classic"] {
+  --accent: #5c9a67;
+  --accentText: #07130a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(74, 126, 82, .23), transparent 38%),
+    var(--bg);
+}
+
+.lobbyApp[data-mode="rpg"] {
+  --accent: #e3b85a;
+  --accentText: #17120a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(154, 96, 201, .12), transparent 28%),
+    radial-gradient(circle at 72% 12%, rgba(227, 184, 90, .15), transparent 32%),
+    var(--bg);
+}
+
+.lobbyApp[data-theme="light"][data-mode="classic"] {
+  --accent: #3f7f50;
+  --accentText: #fff;
+}
+
+.lobbyApp[data-theme="light"][data-mode="rpg"] {
+  --accent: #b8862c;
+  --accentText: #fff;
+}
+
+.lobbyApp .topbar {
+  width: 100%;
+  max-width: 760px;
+  flex: 0 0 auto;
+  margin: 0 auto 8px;
+  min-height: 46px;
+}
+
+.lobbyApp .brand { font-size: 18px; }
+.lobbyApp .subtitle {
+  max-width: 330px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screenBody {
+  width: min(100%, 760px);
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.tabPage {
+  height: 100%;
+  min-height: 0;
+}
+
+.playPage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.compactStats {
+  grid-template-columns: repeat(4, 1fr);
+  flex: 0 0 auto;
+  margin: 0;
+  gap: 5px;
+}
+
+.compactStats div {
+  min-height: 43px;
+  padding: 6px 4px;
+}
+
+.compactStats span { font-size: 8px; }
+.compactStats b { font-size: 13px; }
+
+.lobbyApp .modeSwitch {
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 0;
+  min-height: 46px;
+  border-radius: 16px;
+}
+
+.lobbyApp .modeSwitch button {
+  min-height: 38px;
+  font-weight: 800;
+}
+
+.lobbyApp .modeSwitch button.active {
+  background: var(--accent);
+  color: var(--accentText);
+}
+
+.modeHero {
+  flex: 0 0 128px;
+  width: 100%;
+  min-height: 128px;
+  margin: 0;
+  padding: 22px 100px 14px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+
+.modeHero h1 {
+  margin: 3px 0;
+  font-size: clamp(20px, 5vw, 28px);
+}
+
+.modeHero p {
+  max-width: 390px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.modeEyebrow {
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.modeHero .crest {
+  width: 43px;
+  height: 43px;
+  font-size: 21px;
+  margin: 0 0 2px;
+}
+
+.modeHero .playingCard {
+  top: 17px;
+  width: 56px;
+  height: 82px;
+  padding: 8px;
+  font-size: 16px;
+}
+
+.modeHero .playingCard.left { left: 28px; transform: rotate(-10deg); }
+.modeHero .playingCard.right { right: 28px; transform: rotate(10deg); }
+
+.modeHero.classic {
+  background:
+    radial-gradient(circle at 50% 80%, rgba(255,255,255,.08), transparent 42%),
+    linear-gradient(145deg, rgba(37, 92, 49, .38), rgba(9, 36, 17, .14));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.modeHero.rpg {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(227,184,90,.12), transparent 32%),
+    radial-gradient(circle at 18% 10%, rgba(119,71,157,.14), transparent 28%),
+    linear-gradient(145deg, var(--panelStrong), transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+}
+
+.compactSettings {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 10px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.compactSettings .settingRow + .settingRow {
+  margin-top: 7px;
+  padding-top: 7px;
+}
+
+.compactSettings .settingTitle {
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+
+.compactSettings .rangeLabels {
+  font-size: 8px;
+  padding-top: 0;
+}
+
+.compactSettings input[type="range"] { height: 18px; }
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 7px 0;
+}
+
+.settingsGrid .settingRow {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--panelStrong) 45%, transparent);
+}
+
+.settingsGrid .settingRow + .settingRow {
+  margin-top: 0;
+  padding-top: 7px;
+}
+
+.compactSettings .segmented {
+  gap: 3px;
+  padding: 3px;
+  border-radius: 11px;
+}
+
+.compactSettings .segmented button {
+  min-height: 34px;
+  padding: 0 5px;
+  font-size: 10px;
+}
+
+.compactSettings .settingHint {
+  margin-top: 4px;
+  font-size: 8.5px;
+  line-height: 1.25;
+}
+
+.rpgRuleCard {
+  min-width: 0;
+  min-height: 75px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 13px;
+  background:
+    radial-gradient(circle at 90% 15%, rgba(227,184,90,.12), transparent 35%),
+    var(--panel);
+}
+
+.rpgRuleCard span, .rpgRuleCard small { color: var(--muted); font-size: 8.5px; }
+.rpgRuleCard b { color: var(--accent); font-size: 11px; }
+
+.primaryActions {
+  display: grid;
+  grid-template-columns: 1fr 112px;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.primaryActions .findGame,
+.primaryActions .secondaryGameButton {
+  min-height: 44px;
+  margin: 0;
+  border-radius: 13px;
+  font-size: 11px;
+}
+
+.createRoomCompact {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+}
+
+.compactJoin {
+  grid-template-columns: 1fr 86px;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.compactJoin input,
+.compactJoin button {
+  min-height: 38px;
+  font-size: 10px;
+}
+
+.recentBlock {
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.recentBlock.compact { margin-top: auto; }
+
+.recentHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.recentHead span { font-size: 9px; font-weight: 800; }
+.recentHead small { color: var(--muted); font-size: 7px; }
+
+.recentPlayers {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.recentPlayers::-webkit-scrollbar { display: none; }
+
+.recentPlayer {
+  min-width: 72px;
+  max-width: 86px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 8px;
+}
+
+.recentPlayer .avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 9px;
+}
+
+.recentPlayer > span:not(.avatar) {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentPlayer small { color: var(--accent); font-size: 7px; }
+.recentPlayer.passive { cursor: default; }
+
+/* Search replaces the settings screen instead of stacking below it. */
+.searchStage,
+.privateLobbyStage {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 28%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 36%),
+    var(--panel);
+  overflow: hidden;
+}
+
+.searchStage h2 {
+  margin: 12px 0 4px;
+  font-size: 24px;
+}
+
+.searchStage p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.searchCards {
+  position: relative;
+  width: 122px;
+  height: 112px;
+  margin-bottom: 8px;
+}
+
+.searchCard {
+  position: absolute;
+  left: 34px;
+  top: 8px;
+  width: 58px;
+  height: 84px;
+  display: grid;
+  place-items: start;
+  padding: 8px;
+  border-radius: 10px;
+  background: #f5f1e7;
+  color: #151515;
+  font: 800 17px Georgia, serif;
+  box-shadow: 0 16px 34px rgba(0,0,0,.28);
+}
+
+.cardOne { animation: shuffleLeft 1.45s ease-in-out infinite; }
+.cardTwo { color: #b52c31; animation: shuffleRight 1.45s ease-in-out infinite; }
+.cardThree {
+  display: grid;
+  place-items: center;
+  color: #8a6824;
+  animation: shuffleCenter 1.45s ease-in-out infinite;
+}
+
+.searchDots {
+  display: flex;
+  gap: 6px;
+  margin: 18px 0;
+}
+
+.searchDots i,
+.waitingDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: searchBlink 1.1s ease-in-out infinite;
+}
+
+.searchDots i:nth-child(2) { animation-delay: .18s; }
+.searchDots i:nth-child(3) { animation-delay: .36s; }
+
+.cancelSearch {
+  width: min(100%, 340px);
+  margin-top: 12px;
+}
+
+/* Private room becomes its own waiting scene. */
+.privateLobbyStage {
+  justify-content: flex-start;
+  align-items: stretch;
+  text-align: left;
+}
+
+.privateLobbyStage .privateLobbyHead {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.waitingTable {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin: 10px 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 12%, transparent), transparent 62%);
+}
+
+.waitingDeck {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 66px;
+  transform: translate(-50%, -50%);
+}
+
+.waitingDeck span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(145deg, var(--panelStrong), var(--panel));
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.waitingDeck span:first-child {
+  transform: translate(-5px, 3px) rotate(-7deg);
+}
+
+.waitingDeck span:last-child {
+  transform: translate(4px, -2px) rotate(6deg);
+  animation: deckBreath 1.7s ease-in-out infinite;
+}
+
+.waitingSeats {
+  width: 100%;
+  height: 100%;
+  padding: 18px 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  align-content: space-between;
+  gap: 12px;
+}
+
+.waitingSeat {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.waitingSeat b {
+  max-width: 90px;
+  color: var(--text);
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waitingSeat small { font-size: 7px; }
+
+.waitingSeat .avatar,
+.emptySeatPulse {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.waitingSeat .avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.emptySeatPulse {
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line));
+  color: var(--accent);
+  font-size: 18px;
+  animation: emptySeat 1.6s ease-in-out infinite;
+}
+
+.waitingCaption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.lobbyActions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.lobbyActions button {
+  min-height: 42px;
+  margin: 0;
+}
+
+.inviteMain {
+  background: var(--accent);
+  color: var(--accentText);
+  border-color: transparent;
+}
+
+.invitePulse {
+  animation: inviteGlow 1.8s ease-in-out infinite;
+}
+
+/* Bottom tabs are pages now, not overlays. */
+.contentPage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--panel);
+}
+
+.pageHead {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pageHead span {
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.pageHead h2 {
+  margin: 2px 0 0;
+  font-size: 23px;
+}
+
+.pageHead > strong {
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.pageHead > strong small { font-size: 9px; }
+
+.contentPage h3 {
+  flex: 0 0 auto;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.innerScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.innerScroll::-webkit-scrollbar { display: none; }
+
+.ratingRuleCard {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+}
+
+.ratingRuleCard b { font-size: 11px; }
+.ratingRuleCard > span { color: var(--muted); font-size: 9px; line-height: 1.35; }
+
+.ratingExamples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ratingExamples small {
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--panelStrong);
+  color: var(--text);
+  font-size: 7.5px;
+}
+
+/* Old overlay styles are deliberately neutralized; tabs no longer float over Play. */
+.tabOverlay { display: none !important; }
+
+@keyframes shuffleLeft {
+  0%,100% { transform: translateX(-24px) rotate(-13deg); }
+  50% { transform: translateX(8px) rotate(7deg) translateY(-5px); }
+}
+@keyframes shuffleRight {
+  0%,100% { transform: translateX(24px) rotate(13deg); }
+  50% { transform: translateX(-8px) rotate(-7deg) translateY(5px); }
+}
+@keyframes shuffleCenter {
+  0%,100% { transform: translateY(7px) scale(.92); opacity: .66; }
+  50% { transform: translateY(-8px) scale(1.03); opacity: 1; }
+}
+@keyframes searchBlink {
+  0%,100% { opacity:.28; transform:scale(.8); }
+  50% { opacity:1; transform:scale(1.18); }
+}
+@keyframes emptySeat {
+  0%,100% { transform:scale(.92); opacity:.45; }
+  50% { transform:scale(1.06); opacity:1; }
+}
+@keyframes deckBreath {
+  0%,100% { transform:translate(4px,-2px) rotate(6deg); }
+  50% { transform:translate(6px,-6px) rotate(10deg); }
+}
+@keyframes inviteGlow {
+  0%,100% { box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+  50% { box-shadow:0 0 0 5px color-mix(in srgb, var(--accent) 14%, transparent); }
+}
+
+@media (max-height: 800px) {
+  .modeHero { flex-basis: 108px; min-height: 108px; padding-top: 14px; padding-bottom: 10px; }
+  .modeHero p { display: none; }
+  .recentBlock:not(.compact) { display: none; }
+  .compactSettings .settingHint { display: none; }
+}
+
+@media (max-width: 390px) {
+  .lobbyApp {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .modeHero { padding-left: 76px; padding-right: 76px; }
+  .modeHero .playingCard.left { left: 18px; }
+  .modeHero .playingCard.right { right: 18px; }
+  .settingsGrid { gap: 5px; }
+  .compactSettings { padding: 8px; }
+  .compactSettings .segmented button { font-size: 9px; }
+}
