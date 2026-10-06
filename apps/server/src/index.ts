@@ -60,6 +60,9 @@ type ClientMessage =
   | { type: "ping" }
   | { type: "join_queue"; settings: unknown }
   | { type: "leave_queue" }
+  | { type: "create_private_room"; settings: unknown }
+  | { type: "join_private_room"; code: string }
+  | { type: "leave_private_room" }
   | { type: "leave_room" }
   | { type: "get_leaderboard"; limit?: number }
   | { type: "get_history"; limit?: number }
@@ -74,6 +77,7 @@ interface Session {
   queuedSettings?: GameSettings;
   roomId?: string;
   seat?: number;
+  privateLobbyCode?: string;
   messageWindowStartedAt: number;
   messageCount: number;
 }
@@ -91,8 +95,16 @@ interface Room {
   disconnectTimers: Map<number, ReturnType<typeof setTimeout>>;
 }
 
+interface PrivateLobby {
+  code: string;
+  settings: GameSettings;
+  members: Session[];
+  createdAt: number;
+}
+
 const sessions = new Map<WebSocket, Session>();
 const rooms = new Map<string, Room>();
+const privateLobbies = new Map<string, PrivateLobby>();
 const aliveSockets = new WeakSet<WebSocket>();
 
 function secureRandom(): number {
@@ -116,7 +128,8 @@ app.get("/health", (_req, res) => {
     ok: true,
     service: "durak-rpg-server",
     connections: sessions.size,
-    rooms: rooms.size
+    rooms: rooms.size,
+    privateLobbies: privateLobbies.size
   });
 });
 
@@ -303,6 +316,7 @@ function createRoom(entries: QueueEntry[]): Room {
 
   members.forEach((session, seat) => {
     session.queuedSettings = undefined;
+    session.privateLobbyCode = undefined;
     session.roomId = roomId;
     session.seat = seat;
   });
@@ -349,6 +363,156 @@ function tryMatchmake() {
 
     if (!created) break;
   }
+}
+
+
+const PRIVATE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function generatePrivateCode(): string {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    let code = "";
+    for (let i = 0; i < 6; i += 1) {
+      code += PRIVATE_CODE_ALPHABET[randomInt(0, PRIVATE_CODE_ALPHABET.length)];
+    }
+    if (!privateLobbies.has(code)) return code;
+  }
+  throw new Error("PRIVATE_ROOM_CODE_EXHAUSTED");
+}
+
+function privateLobbyPayload(lobby: PrivateLobby, session: Session) {
+  return {
+    type: "private_room",
+    code: lobby.code,
+    settings: lobby.settings,
+    members: lobby.members.map((member, index) => ({
+      index,
+      name: member.telegramUser?.first_name ?? `Игрок ${index + 1}`,
+      username: member.telegramUser?.username,
+      photoUrl: member.telegramUser?.photo_url,
+      isSelf: member === session,
+      isHost: index === 0
+    })),
+    currentPlayers: lobby.members.length,
+    requiredPlayers: lobby.settings.playerCount,
+    isHost: lobby.members[0] === session
+  };
+}
+
+function broadcastPrivateLobby(lobby: PrivateLobby) {
+  for (const member of lobby.members) {
+    send(member.socket, privateLobbyPayload(lobby, member));
+  }
+}
+
+function leavePrivateLobby(session: Session, sendConfirmation = true) {
+  const code = session.privateLobbyCode;
+  if (!code) {
+    if (sendConfirmation) {
+      send(session.socket, { type: "error", code: "NOT_IN_PRIVATE_ROOM" });
+    }
+    return;
+  }
+
+  const lobby = privateLobbies.get(code);
+  session.privateLobbyCode = undefined;
+
+  if (!lobby) {
+    if (sendConfirmation) send(session.socket, { type: "private_room_left" });
+    return;
+  }
+
+  lobby.members = lobby.members.filter((member) => member !== session);
+
+  if (lobby.members.length === 0) {
+    privateLobbies.delete(code);
+  } else {
+    broadcastPrivateLobby(lobby);
+  }
+
+  if (sendConfirmation) send(session.socket, { type: "private_room_left" });
+}
+
+function startPrivateLobbyIfReady(lobby: PrivateLobby) {
+  if (lobby.members.length < lobby.settings.playerCount) {
+    broadcastPrivateLobby(lobby);
+    return;
+  }
+
+  privateLobbies.delete(lobby.code);
+  const entries: QueueEntry[] = lobby.members.map((session) => ({
+    session,
+    settings: lobby.settings
+  }));
+  const room = createRoom(entries);
+  broadcastRoom(room, "match_found");
+}
+
+function createPrivateLobby(session: Session, input: unknown) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+  if (session.roomId) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_ROOM" });
+    return;
+  }
+  if (session.privateLobbyCode) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_PRIVATE_ROOM" });
+    return;
+  }
+
+  const settings = normalizeSettings(input);
+  if (!settings) {
+    send(session.socket, { type: "error", code: "INVALID_SETTINGS" });
+    return;
+  }
+
+  session.queuedSettings = undefined;
+  const code = generatePrivateCode();
+  const lobby: PrivateLobby = {
+    code,
+    settings,
+    members: [session],
+    createdAt: Date.now()
+  };
+  session.privateLobbyCode = code;
+  privateLobbies.set(code, lobby);
+  broadcastPrivateLobby(lobby);
+}
+
+function joinPrivateLobby(session: Session, rawCode: string) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+  if (session.roomId) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_ROOM" });
+    return;
+  }
+  if (session.privateLobbyCode) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_PRIVATE_ROOM" });
+    return;
+  }
+
+  const code = String(rawCode ?? "").trim().toUpperCase();
+  const lobby = privateLobbies.get(code);
+  if (!lobby) {
+    send(session.socket, { type: "error", code: "PRIVATE_ROOM_NOT_FOUND" });
+    return;
+  }
+  if (lobby.members.length >= lobby.settings.playerCount) {
+    send(session.socket, { type: "error", code: "PRIVATE_ROOM_FULL" });
+    return;
+  }
+  if (lobby.members.some((member) => member.playerId === session.playerId)) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_PRIVATE_ROOM" });
+    return;
+  }
+
+  session.queuedSettings = undefined;
+  session.privateLobbyCode = code;
+  lobby.members.push(session);
+  startPrivateLobbyIfReady(lobby);
 }
 
 function parseMessage(raw: RawData): ClientMessage | undefined {
@@ -791,6 +955,10 @@ wss.on("connection", (socket, request) => {
         send(socket, { type: "error", code: "ALREADY_IN_ROOM" });
         return;
       }
+      if (session.privateLobbyCode) {
+        send(socket, { type: "error", code: "ALREADY_IN_PRIVATE_ROOM" });
+        return;
+      }
 
       const settings = normalizeSettings(message.settings);
       if (!settings) {
@@ -807,6 +975,21 @@ wss.on("connection", (socket, request) => {
     if (message.type === "leave_queue") {
       session.queuedSettings = undefined;
       send(socket, { type: "queue_left" });
+      return;
+    }
+
+    if (message.type === "create_private_room") {
+      createPrivateLobby(session, message.settings);
+      return;
+    }
+
+    if (message.type === "join_private_room") {
+      joinPrivateLobby(session, message.code);
+      return;
+    }
+
+    if (message.type === "leave_private_room") {
+      leavePrivateLobby(session);
       return;
     }
 
@@ -832,6 +1015,9 @@ wss.on("connection", (socket, request) => {
 
   socket.on("close", () => {
     session.queuedSettings = undefined;
+    if (session.privateLobbyCode) {
+      leavePrivateLobby(session, false);
+    }
 
     if (session.roomId) {
       const room = rooms.get(session.roomId);
@@ -877,6 +1063,7 @@ async function shutdown() {
   for (const room of rooms.values()) {
     for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
   }
+  privateLobbies.clear();
   wss.close();
   await profileStore.close();
   server.close(() => process.exit(0));
