@@ -233,3 +233,47 @@ input[type="range"] { width:100%; accent-color:var(--accent); }
 .shopGrid article { padding: 14px; }
 .shopGrid strong { display: block; margin-bottom: 5px; }
 .shopGrid span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+
+.reconnectNotice {
+  max-width: 560px;
+  margin: 0 auto 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(227,184,90,.32);
+  border-radius: 12px;
+  background: rgba(227,184,90,.10);
+  color: var(--text);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.classAbilityBar {
+  max-width: 560px;
+  margin: 0 auto 10px;
+  padding: 11px 13px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.classAbilityBar b {
+  color: var(--accent);
+  font-size: 12px;
+}
+.classAbilityBar span {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.classAbilityBar em {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+}
+.gameActions button:disabled,
+.suitButtons button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
