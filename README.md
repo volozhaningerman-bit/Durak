@@ -62,6 +62,7 @@ Telegram Mini App: классический и RPG-режимы игры «Ду�
 4. Заполнить:
    - `DOMAIN` — домен без `https://`;
    - `BOT_TOKEN` — токен тестового бота из @BotFather;
+   - `TELEGRAM_WEBHOOK_SECRET` — случайная строка для проверки webhook, например результат `openssl rand -hex 32`;
    - `POSTGRES_PASSWORD` — длинный случайный пароль.
 5. Запустить:
    ```bash
@@ -79,10 +80,10 @@ Telegram Mini App: классический и RPG-режимы игры «Ду�
 После того как HTTPS-адрес уже открывается:
 
 ```bash
-BOT_TOKEN="..." WEBAPP_URL="https://your-domain.example" npm run configure:telegram
+BOT_TOKEN="..." TELEGRAM_WEBHOOK_SECRET="..." WEBAPP_URL="https://your-domain.example" npm run configure:telegram
 ```
 
-Скрипт проверит токен через Telegram Bot API, создаст кнопку **«Играть»** в меню бота и команды `/start` и `/play`.
+Скрипт проверит токен через Telegram Bot API, установит защищённый webhook, создаст кнопку **«Играть»** в меню бота и команды `/start` и `/play`. Команды отвечают сообщением с Web App-кнопкой, поэтому бот работает без отдельного polling-процесса.
 
 Токен нельзя коммитить в GitHub. Он хранится только в `deploy/.env` или в переменных окружения сервера.
 
