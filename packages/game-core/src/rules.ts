@@ -33,6 +33,11 @@ function isStandard(card: Card): card is StandardCard {
   return card.kind === "standard";
 }
 
+function normalizeSeat(state: GameState, seat: number): number {
+  const count = state.players.length;
+  return ((seat % count) + count) % count;
+}
+
 export function canBeat(
   attack: Card,
   defense: Card,
@@ -52,12 +57,7 @@ export function canBeat(
   return defenseTrump && !attackTrump;
 }
 
-function normalizeSeat(state: GameState, seat: number): number {
-  const count = state.players.length;
-  return ((seat % count) + count) % count;
-}
-
-function nextActiveSeat(
+export function nextActiveSeat(
   state: GameState,
   fromSeat: number,
   direction: 1 | -1
@@ -108,8 +108,15 @@ export function validateTransfer(
     state.settings.mode === "rpg" &&
     player.classId === "reverse-transfer";
 
-  const direction: 1 | -1 = reverse ? (state.direction === 1 ? -1 : 1) : state.direction;
-  const nextDefenderSeat = nextActiveSeat(state, intent.playerSeat, direction);
+  const nextDirection: 1 | -1 = reverse
+    ? (state.direction === 1 ? -1 : 1)
+    : state.direction;
+
+  const nextDefenderSeat = nextActiveSeat(
+    state,
+    intent.playerSeat,
+    nextDirection
+  );
 
   if (nextDefenderSeat === undefined) {
     return { ok: false, consumesWildTransfer: false, reason: "NO_NEXT_DEFENDER" };
@@ -128,7 +135,8 @@ export function validateTransfer(
   return {
     ok: true,
     consumesWildTransfer: !standardTransfer && canUseWild,
-    nextDefenderSeat
+    nextDefenderSeat,
+    nextDirection
   };
 }
 
@@ -140,4 +148,56 @@ export function maxAttackCardsForDefender(state: GameState): number {
     state.settings.mode === "rpg" && defender.classId === "five-limit" ? 5 : 6;
 
   return Math.min(classLimit, defender.hand.length);
+}
+
+export function getThrowInOrder(state: GameState): number[] {
+  const activeSeats = state.players
+    .filter((player) => !player.finished && player.seat !== state.defenderSeat)
+    .map((player) => player.seat);
+
+  if (activeSeats.length === 0) return [];
+
+  const priorityPlayer = state.players.find(
+    (player) =>
+      !player.finished &&
+      player.seat !== state.defenderSeat &&
+      player.classId === "first-thrower"
+  );
+
+  const ordered: number[] = [];
+  const pushUnique = (seat: number | undefined) => {
+    if (seat === undefined) return;
+    if (!activeSeats.includes(seat)) return;
+    if (!ordered.includes(seat)) ordered.push(seat);
+  };
+
+  pushUnique(priorityPlayer?.seat);
+  pushUnique(state.attackerSeat);
+
+  let cursor = state.attackerSeat;
+  for (let i = 0; i < state.players.length; i += 1) {
+    cursor = normalizeSeat(state, cursor + state.direction);
+    pushUnique(cursor);
+  }
+
+  if (state.settings.throwInPolicy === "all") {
+    return ordered;
+  }
+
+  const previousOfDefender = normalizeSeat(
+    state,
+    state.defenderSeat - state.direction
+  );
+  const nextOfDefender = normalizeSeat(
+    state,
+    state.defenderSeat + state.direction
+  );
+
+  return ordered.filter(
+    (seat) =>
+      seat === priorityPlayer?.seat ||
+      seat === state.attackerSeat ||
+      seat === previousOfDefender ||
+      seat === nextOfDefender
+  );
 }
