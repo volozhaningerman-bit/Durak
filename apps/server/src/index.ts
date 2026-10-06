@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import { WebSocketServer, type WebSocket } from "ws";
+import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import type { GameSettings } from "@durak/game-core";
@@ -37,41 +37,55 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 
 function send(socket: WebSocket, payload: unknown) {
-  if (socket.readyState === socket.OPEN) {
+  if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(payload));
   }
 }
 
-function tryMatchmake() {
-  const queued = [...sessions.values()].filter((s) => s.queuedSettings);
-  for (const session of queued) {
-    if (!session.queuedSettings) continue;
+function sameQueue(a: GameSettings, b: GameSettings): boolean {
+  return (
+    a.mode === b.mode &&
+    a.playerCount === b.playerCount &&
+    a.variant === b.variant &&
+    a.throwInPolicy === b.throwInPolicy
+  );
+}
 
-    const targetCount = session.queuedSettings.playerCount;
-    const compatible = queued.filter((candidate) => {
-      if (!candidate.queuedSettings) return false;
-      const a = session.queuedSettings;
-      const b = candidate.queuedSettings;
-      return (
-        a.mode === b.mode &&
-        a.playerCount === b.playerCount &&
-        a.variant === b.variant &&
-        a.throwInPolicy === b.throwInPolicy
-      );
-    });
+function tryMatchmake() {
+  const queued = [...sessions.values()].filter(
+    (session): session is Session & { queuedSettings: GameSettings } =>
+      session.queuedSettings !== undefined
+  );
+
+  for (const session of queued) {
+    const settings = session.queuedSettings;
+    const targetCount = settings.playerCount;
+
+    const compatible = queued.filter((candidate) =>
+      sameQueue(settings, candidate.queuedSettings)
+    );
 
     if (compatible.length < targetCount) continue;
 
     const players = compatible.slice(0, targetCount);
     const roomId = randomUUID();
+
     for (const player of players) {
       player.queuedSettings = undefined;
       send(player.socket, {
         type: "match_found",
         roomId,
-        players: players.map((p) => p.id)
+        players: players.map((entry) => entry.id)
       });
     }
+  }
+}
+
+function parseMessage(raw: RawData): ClientMessage | undefined {
+  try {
+    return JSON.parse(raw.toString()) as ClientMessage;
+  } catch {
+    return undefined;
   }
 }
 
@@ -81,27 +95,27 @@ wss.on("connection", (socket) => {
   send(socket, { type: "connected", sessionId: session.id });
 
   socket.on("message", (raw) => {
-    try {
-      const message = JSON.parse(raw.toString()) as ClientMessage;
-
-      if (message.type === "ping") {
-        send(socket, { type: "pong" });
-        return;
-      }
-
-      if (message.type === "join_queue") {
-        session.queuedSettings = message.settings;
-        send(socket, { type: "queue_joined", settings: message.settings });
-        tryMatchmake();
-        return;
-      }
-
-      if (message.type === "leave_queue") {
-        session.queuedSettings = undefined;
-        send(socket, { type: "queue_left" });
-      }
-    } catch {
+    const message = parseMessage(raw);
+    if (!message) {
       send(socket, { type: "error", code: "BAD_MESSAGE" });
+      return;
+    }
+
+    if (message.type === "ping") {
+      send(socket, { type: "pong" });
+      return;
+    }
+
+    if (message.type === "join_queue") {
+      session.queuedSettings = message.settings;
+      send(socket, { type: "queue_joined", settings: message.settings });
+      tryMatchmake();
+      return;
+    }
+
+    if (message.type === "leave_queue") {
+      session.queuedSettings = undefined;
+      send(socket, { type: "queue_left" });
     }
   });
 
