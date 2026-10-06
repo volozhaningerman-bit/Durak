@@ -444,6 +444,26 @@ export function App() {
     }
   }
 
+
+  async function sharePrivateRoom() {
+    if (!privateLobby) return;
+    const text = `Durak RPG — заходи в приватную комнату. Код: ${privateLobby.code}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Durak RPG",
+          text
+        });
+        return;
+      } catch {
+        // User may cancel the native share sheet; fall back to copying the code.
+      }
+    }
+
+    await copyPrivateCode();
+  }
+
   function gameAction(action: Record<string, unknown>) {
     if (actionPending) return;
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("light");
@@ -720,9 +740,12 @@ export function App() {
                 <span>Приватная комната</span>
                 <strong>{privateLobby.currentPlayers}/{privateLobby.requiredPlayers}</strong>
               </div>
-              <button onClick={copyPrivateCode}>
-                {copyNotice ? "Скопировано" : privateLobby.code}
-              </button>
+              <div className="privateCodeActions">
+                <button onClick={copyPrivateCode}>
+                  {copyNotice ? "Скопировано" : privateLobby.code}
+                </button>
+                <button aria-label="Поделиться комнатой" onClick={sharePrivateRoom}>↗</button>
+              </div>
             </div>
             <div className="privateMembers">
               {privateLobby.members.map((member) => (
