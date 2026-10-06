@@ -159,6 +159,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedAttackId, setSelectedAttackId] = useState<string | null>(null);
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
+  const [actionPending, setActionPending] = useState(false);
   const [activeTab, setActiveTab] = useState<LobbyTab>("play");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [history, setHistory] = useState<MatchHistoryEntry[]>([]);
@@ -286,6 +287,7 @@ export function App() {
           }
 
           if ((message.type === "match_found" || message.type === "game_state") && message.state) {
+            setActionPending(false);
             setGame(message.state);
             setQueueing(false);
             setSelectedAttackId(null);
@@ -295,6 +297,7 @@ export function App() {
           }
 
           if (message.type === "game_error" || message.type === "error") {
+            setActionPending(false);
             setError(readableError(message.code));
           }
         } catch {
@@ -345,8 +348,18 @@ export function App() {
   }
 
   function gameAction(action: Record<string, unknown>) {
+    if (actionPending) return;
+    setActionPending(true);
     setError(null);
-    send({ type: "game_action", action });
+
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      setActionPending(false);
+      setError("Сервер ещё не подключён");
+      return;
+    }
+
+    socket.send(JSON.stringify({ type: "game_action", action }));
   }
 
   function leaveRoom() {
@@ -365,6 +378,7 @@ export function App() {
       <GameScreen
         game={game}
         connection={connection}
+        actionPending={actionPending}
         theme={theme}
         setTheme={setTheme}
         error={error}
@@ -660,6 +674,7 @@ function Header(props: {
 function GameScreen(props: {
   game: GameView;
   connection: ConnectionState;
+  actionPending: boolean;
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
   error: string | null;
@@ -676,7 +691,7 @@ function GameScreen(props: {
   const myClassDescription = game.self.classId
     ? RPG_CLASS_DESCRIPTIONS[game.self.classId]
     : undefined;
-  const controlsDisabled = props.connection !== "online";
+  const controlsDisabled = props.connection !== "online" || props.actionPending;
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
     game.table.find((pair) => !pair.defense);
