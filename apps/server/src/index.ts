@@ -53,6 +53,7 @@ const privateLobbyTtlMs = Math.max(
   Number(process.env.PRIVATE_LOBBY_TTL_MS || 3_600_000)
 );
 const profileStore = createProfileStore(process.env.DATABASE_URL);
+let botUsername: string | undefined;
 const app = express();
 app.use(express.json());
 
@@ -145,7 +146,8 @@ app.get("/health", (_req, res) => {
 app.get("/api/config", (_req, res) => {
   res.json({
     telegramConfigured: Boolean(process.env.BOT_TOKEN),
-    databaseConfigured: Boolean(process.env.DATABASE_URL)
+    databaseConfigured: Boolean(process.env.DATABASE_URL),
+    botUsername
   });
 });
 
@@ -157,7 +159,7 @@ interface TelegramUpdate {
   };
 }
 
-async function telegramApi(method: string, body: unknown) {
+async function telegramApi<T = unknown>(method: string, body: unknown): Promise<T> {
   const token = process.env.BOT_TOKEN;
   if (!token) throw new Error("BOT_TOKEN_MISSING");
 
@@ -167,10 +169,11 @@ async function telegramApi(method: string, body: unknown) {
     body: JSON.stringify(body)
   });
 
-  const result = await response.json() as { ok?: boolean; description?: string };
+  const result = await response.json() as { ok?: boolean; description?: string; result?: T };
   if (!response.ok || !result.ok) {
     throw new Error(result.description ?? `Telegram API ${method} failed`);
   }
+  return result.result as T;
 }
 
 app.post("/telegram/webhook", async (req, res) => {
@@ -1149,6 +1152,15 @@ const privateLobbyCleanup = setInterval(() => {
 privateLobbyCleanup.unref();
 
 await profileStore.init();
+
+if (process.env.BOT_TOKEN) {
+  try {
+    const me = await telegramApi<{ username?: string }>("getMe", {});
+    botUsername = me?.username;
+  } catch (error) {
+    console.error("Failed to resolve Telegram bot username", error);
+  }
+}
 
 server.listen(port, () => {
   console.log(`Durak RPG server listening on :${port}`);
