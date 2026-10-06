@@ -11,6 +11,10 @@ import {
   type GameState,
   type Suit
 } from "@durak/game-core";
+import {
+  validateTelegramInitData,
+  type TelegramMiniAppUser
+} from "./telegramAuth.js";
 
 const port = Number(process.env.PORT || 3001);
 const app = express();
@@ -25,6 +29,7 @@ type ClientGameAction =
   | { type: "pass_throw_in" };
 
 type ClientMessage =
+  | { type: "auth"; initData: string }
   | { type: "ping" }
   | { type: "join_queue"; settings: unknown }
   | { type: "leave_queue" }
@@ -34,6 +39,9 @@ type ClientMessage =
 interface Session {
   id: string;
   socket: WebSocket;
+  authenticated: boolean;
+  playerId?: string;
+  telegramUser?: TelegramMiniAppUser;
   queuedSettings?: GameSettings;
   roomId?: string;
   seat?: number;
@@ -203,7 +211,10 @@ function createRoom(entries: QueueEntry[]): Room {
   });
 
   const game = createGame(
-    members.map((member) => member.id),
+    members.map((member) => {
+      if (!member.playerId) throw new Error("AUTH_REQUIRED");
+      return member.playerId;
+    }),
     settings,
     { id: roomId }
   );
@@ -330,15 +341,85 @@ function leaveFinishedRoom(session: Session) {
   if (!hasMembers) rooms.delete(roomId);
 }
 
+function authenticateSession(session: Session, initData: string) {
+  const botToken = process.env.BOT_TOKEN;
+
+  if (!botToken) {
+    session.authenticated = true;
+    session.playerId = `dev:${session.id}`;
+    send(session.socket, {
+      type: "auth_ok",
+      dev: true,
+      user: null
+    });
+    return;
+  }
+
+  try {
+    const result = validateTelegramInitData(initData, botToken);
+    const playerId = `tg:${result.user.id}`;
+
+    const duplicate = [...sessions.values()].find(
+      (other) =>
+        other !== session &&
+        other.authenticated &&
+        other.playerId === playerId
+    );
+
+    if (duplicate) {
+      send(session.socket, { type: "auth_error", code: "ALREADY_CONNECTED" });
+      return;
+    }
+
+    session.authenticated = true;
+    session.playerId = playerId;
+    session.telegramUser = result.user;
+
+    send(session.socket, {
+      type: "auth_ok",
+      dev: false,
+      user: {
+        id: result.user.id,
+        firstName: result.user.first_name,
+        lastName: result.user.last_name,
+        username: result.user.username,
+        photoUrl: result.user.photo_url,
+        isPremium: result.user.is_premium === true
+      }
+    });
+  } catch (error) {
+    session.authenticated = false;
+    session.playerId = undefined;
+    session.telegramUser = undefined;
+    send(session.socket, {
+      type: "auth_error",
+      code: error instanceof Error ? error.message : "AUTH_INVALID"
+    });
+  }
+}
+
 wss.on("connection", (socket) => {
-  const session: Session = { id: randomUUID(), socket };
+  const session: Session = {
+    id: randomUUID(),
+    socket,
+    authenticated: false
+  };
   sessions.set(socket, session);
-  send(socket, { type: "connected", sessionId: session.id });
+  send(socket, {
+    type: "connected",
+    sessionId: session.id,
+    requiresAuth: Boolean(process.env.BOT_TOKEN)
+  });
 
   socket.on("message", (raw) => {
     const message = parseMessage(raw);
     if (!message) {
       send(socket, { type: "error", code: "BAD_MESSAGE" });
+      return;
+    }
+
+    if (message.type === "auth") {
+      authenticateSession(session, message.initData);
       return;
     }
 
@@ -348,6 +429,11 @@ wss.on("connection", (socket) => {
     }
 
     if (message.type === "join_queue") {
+      if (!session.authenticated || !session.playerId) {
+        send(socket, { type: "error", code: "AUTH_REQUIRED" });
+        return;
+      }
+
       if (session.roomId) {
         send(socket, { type: "error", code: "ALREADY_IN_ROOM" });
         return;
