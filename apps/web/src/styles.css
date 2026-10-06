@@ -39,6 +39,11 @@ button:disabled { cursor: default; opacity: .48; }
 .connectionDot.connecting::before { background:#d3a741; }
 .connectionDot.offline::before { background:#c64b4b; }
 
+.profileStrip { max-width:560px; margin:0 auto 12px; display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+.profileStrip div { min-width:0; padding:9px 5px; display:flex; flex-direction:column; align-items:center; gap:2px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+.profileStrip span { color:var(--muted); font-size:9px; white-space:nowrap; }
+.profileStrip b { color:var(--text); font-size:14px; }
+
 .modeSwitch { max-width:560px; margin:0 auto 16px; padding:4px; border:1px solid var(--line); background:var(--panel); border-radius:15px; display:grid; grid-template-columns:1fr 1fr; }
 .modeSwitch button, .segmented button { border:0; color:var(--muted); background:transparent; border-radius:11px; min-height:42px; }
 .modeSwitch button.active, .segmented button.active { background:var(--text); color:var(--bg); font-weight:800; }
@@ -147,6 +152,9 @@ input[type="range"] { width:100%; accent-color:var(--accent); }
 }
 
 @media (max-width:390px) {
+  .profileStrip { gap:4px; }
+  .profileStrip div { padding:8px 2px; }
+  .profileStrip span { font-size:8px; }
   .heroCard { min-height:205px; }
   .playingCard { width:62px; height:92px; font-size:17px; }
   .playingCard.left { left:14px; }
