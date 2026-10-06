@@ -26,6 +26,15 @@ export const RPG_CLASS_NAMES: Record<RpgClassId, string> = {
   joker: "Джокер"
 };
 
+export const RPG_CLASS_DESCRIPTIONS: Record<RpgClassId, string> = {
+  "trump-master": "После раздачи сам выбирает одну козырную масть.",
+  "wild-transfer": "Два раза за матч может перевести атаку любой обычной картой.",
+  "five-limit": "На него можно подкинуть максимум 5 карт, а из колоды он добирает только до 5.",
+  "first-thrower": "При подкидывании всегда получает первый приоритет.",
+  "reverse-transfer": "Может перевести назад и развернуть направление всей партии.",
+  joker: "Начинает с седьмой картой — Джокером, который отбивает любую карту."
+};
+
 export function assignUniqueClasses(
   playerIds: string[],
   random = Math.random
