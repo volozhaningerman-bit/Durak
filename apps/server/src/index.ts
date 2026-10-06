@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { createServer } from "node:http";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import {
@@ -20,6 +20,10 @@ import {
 import { createProfileStore } from "./profileStore.js";
 
 const port = Number(process.env.PORT || 3001);
+const reconnectGraceMs = Math.max(
+  10_000,
+  Number(process.env.RECONNECT_GRACE_MS || 60_000)
+);
 const profileStore = createProfileStore(process.env.DATABASE_URL);
 const app = express();
 app.use(express.json());
@@ -68,6 +72,23 @@ interface Room {
 
 const sessions = new Map<WebSocket, Session>();
 const rooms = new Map<string, Room>();
+const aliveSockets = new WeakSet<WebSocket>();
+
+function secureRandom(): number {
+  return randomInt(0, 0x1_0000_0000) / 0x1_0000_0000;
+}
+
+function isAllowedOrigin(origin?: string): boolean {
+  const configured = process.env.WEBAPP_URL?.trim();
+  if (!configured || process.env.NODE_ENV !== "production") return true;
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).origin === new URL(configured).origin;
+  } catch {
+    return false;
+  }
+}
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -255,7 +276,7 @@ function createRoom(entries: QueueEntry[]): Room {
       return member.playerId;
     }),
     settings,
-    { id: roomId }
+    { id: roomId, random: secureRandom }
   );
 
   const room: Room = {
@@ -455,7 +476,7 @@ function scheduleDisconnectForfeit(session: Session) {
     if (stillDisconnected) {
       finishRoomByForfeit(room, seat);
     }
-  }, 60_000);
+  }, reconnectGraceMs);
 
   room.disconnectTimers.set(seat, timer);
 }
@@ -669,7 +690,17 @@ async function authenticateSession(session: Session, initData: string) {
   }
 }
 
-wss.on("connection", (socket) => {
+wss.on("connection", (socket, request) => {
+  if (!isAllowedOrigin(request.headers.origin)) {
+    socket.close(1008, "ORIGIN_NOT_ALLOWED");
+    return;
+  }
+
+  aliveSockets.add(socket);
+  socket.on("pong", () => {
+    aliveSockets.add(socket);
+  });
+
   const session: Session = {
     id: randomUUID(),
     socket,
@@ -770,6 +801,20 @@ wss.on("connection", (socket) => {
   });
 });
 
+const heartbeat = setInterval(() => {
+  for (const socket of wss.clients) {
+    if (!aliveSockets.has(socket)) {
+      socket.terminate();
+      continue;
+    }
+
+    aliveSockets.delete(socket);
+    socket.ping();
+  }
+}, 20_000);
+
+heartbeat.unref();
+
 await profileStore.init();
 
 server.listen(port, () => {
@@ -777,6 +822,11 @@ server.listen(port, () => {
 });
 
 async function shutdown() {
+  clearInterval(heartbeat);
+  for (const room of rooms.values()) {
+    for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
+  }
+  wss.close();
   await profileStore.close();
   server.close(() => process.exit(0));
 }
