@@ -74,6 +74,8 @@ interface Session {
   queuedSettings?: GameSettings;
   roomId?: string;
   seat?: number;
+  messageWindowStartedAt: number;
+  messageCount: number;
 }
 
 interface QueueEntry {
@@ -152,6 +154,18 @@ function send(socket: WebSocket, payload: unknown) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(payload));
   }
+}
+
+
+function consumeMessageBudget(session: Session): boolean {
+  const now = Date.now();
+  if (now - session.messageWindowStartedAt >= 10_000) {
+    session.messageWindowStartedAt = now;
+    session.messageCount = 0;
+  }
+
+  session.messageCount += 1;
+  return session.messageCount <= 120;
 }
 
 function normalizeSettings(input: unknown): GameSettings | undefined {
@@ -733,7 +747,9 @@ wss.on("connection", (socket, request) => {
   const session: Session = {
     id: randomUUID(),
     socket,
-    authenticated: false
+    authenticated: false,
+    messageWindowStartedAt: Date.now(),
+    messageCount: 0
   };
   sessions.set(socket, session);
   send(socket, {
@@ -743,6 +759,12 @@ wss.on("connection", (socket, request) => {
   });
 
   socket.on("message", (raw) => {
+    if (!consumeMessageBudget(session)) {
+      send(socket, { type: "error", code: "RATE_LIMITED" });
+      socket.close(1008, "RATE_LIMITED");
+      return;
+    }
+
     const message = parseMessage(raw);
     if (!message) {
       send(socket, { type: "error", code: "BAD_MESSAGE" });
