@@ -16,14 +16,14 @@ describe("progression", () => {
       draw: false
     });
 
-    expect(winner.rating).toBe(1016);
-    expect(loser.rating).toBe(984);
+    expect(winner.rating).toBe(1020);
+    expect(loser.rating).toBe(980);
     expect(winner.wins).toBe(1);
     expect(loser.losses).toBe(1);
     expect(winner.currentStreak).toBe(1);
   });
 
-  it("shares rating gain across five winners in a six-player match", () => {
+  it("shares the loser pool across five winners in a six-player match", () => {
     const ids = ["a", "b", "c", "d", "e", "f"];
     const profiles = ids.map(createPlayerProgress);
     const result = applyMatchProgress(profiles, {
@@ -32,8 +32,64 @@ describe("progression", () => {
       draw: false
     });
 
-    expect(result.filter((profile) => profile.playerId !== "f").every((profile) => profile.rating === 1003.2)).toBe(true);
-    expect(result.find((profile) => profile.playerId === "f")?.rating).toBe(984);
+    expect(result.filter((profile) => profile.playerId !== "f").every((profile) => profile.rating === 1007)).toBe(true);
+    expect(result.find((profile) => profile.playerId === "f")?.rating).toBe(965);
+  });
+
+  it("makes a favourite lose more rating than an underdog", () => {
+    const strongLoser = {
+      ...createPlayerProgress("strong"),
+      rating: 1400
+    };
+    const weakWinner = {
+      ...createPlayerProgress("weak"),
+      rating: 1000
+    };
+    const [winnerVsStrong, loserStrong] = applyMatchProgress(
+      [weakWinner, strongLoser],
+      {
+        playerIds: ["weak", "strong"],
+        loserId: "strong",
+        draw: false
+      }
+    );
+
+    const weakLoser = {
+      ...createPlayerProgress("weak-loser"),
+      rating: 1000
+    };
+    const strongWinner = {
+      ...createPlayerProgress("strong-winner"),
+      rating: 1400
+    };
+    const [winnerVsWeak, loserWeak] = applyMatchProgress(
+      [strongWinner, weakLoser],
+      {
+        playerIds: ["strong-winner", "weak-loser"],
+        loserId: "weak-loser",
+        draw: false
+      }
+    );
+
+    expect(1400 - loserStrong.rating).toBeGreaterThan(1000 - loserWeak.rating);
+    expect(winnerVsStrong.rating - 1000).toBeGreaterThan(winnerVsWeak.rating - 1400);
+  });
+
+  it("never drops rating below the floor", () => {
+    const loser = {
+      ...createPlayerProgress("loser"),
+      rating: 105
+    };
+    const winner = createPlayerProgress("winner");
+
+    const result = applyMatchProgress([winner, loser], {
+      playerIds: ["winner", "loser"],
+      loserId: "loser",
+      draw: false
+    });
+
+    expect(result.find((profile) => profile.playerId === "loser")?.rating).toBe(100);
+    expect(result.find((profile) => profile.playerId === "winner")?.rating).toBe(1005);
   });
 
   it("resets streaks on a draw without changing rating", () => {
