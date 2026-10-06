@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: durak-rpg
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: durak-rpg-db
+          property: connectionString
+      - key: RECONNECT_GRACE_MS
+        value: "60000"
+      - key: PRIVATE_LOBBY_TTL_MS
+        value: "3600000"
+
+databases:
+  - name: durak-rpg-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "17"
+    databaseName: durak
+    user: durak
