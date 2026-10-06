@@ -467,11 +467,16 @@ function createPrivateLobby(session: Session, input: unknown) {
     return;
   }
 
+  const privateSettings: GameSettings = {
+    ...settings,
+    ranked: false
+  };
+
   session.queuedSettings = undefined;
   const code = generatePrivateCode();
   const lobby: PrivateLobby = {
     code,
-    settings,
+    settings: privateSettings,
     members: [session],
     createdAt: Date.now()
   };
