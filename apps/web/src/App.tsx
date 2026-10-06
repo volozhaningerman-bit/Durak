@@ -152,7 +152,8 @@ const errorMessages: Record<string, string> = {
   PRIVATE_ROOM_NOT_FOUND: "Комната с таким кодом не найдена",
   PRIVATE_ROOM_FULL: "Комната уже заполнена",
   ALREADY_IN_PRIVATE_ROOM: "Ты уже находишься в приватной комнате",
-  NOT_IN_PRIVATE_ROOM: "Ты не находишься в приватной комнате"
+  NOT_IN_PRIVATE_ROOM: "Ты не находишься в приватной комнате",
+  PRIVATE_ROOM_EXPIRED: "Комната закрыта из-за долгого ожидания"
 };
 
 function readableError(code?: string): string {
