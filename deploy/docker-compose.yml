@@ -26,6 +26,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       BOT_TOKEN: ${BOT_TOKEN}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
       WEBAPP_URL: https://${DOMAIN}
       DATABASE_URL: postgresql://${POSTGRES_USER:-durak}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-durak}
       RECONNECT_GRACE_MS: ${RECONNECT_GRACE_MS:-60000}
