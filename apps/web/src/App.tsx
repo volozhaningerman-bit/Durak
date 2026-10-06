@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
@@ -1577,7 +1577,7 @@ function GameScreen(props: {
                 key={card.id}
                 style={{
                   "--ghost-index": index
-                } as React.CSSProperties}
+                } as CSSProperties}
               >
                 <CardFace card={card} />
               </div>
@@ -1715,7 +1715,7 @@ function GameScreen(props: {
               ].join(" ")}
               style={{
                 "--hand-index": game.self.hand.findIndex((candidate) => candidate.id === card.id)
-              } as React.CSSProperties}
+              } as CSSProperties}
               onClick={() => clickHandCard(card)}
               disabled={
                 game.phase === "finished" ||
