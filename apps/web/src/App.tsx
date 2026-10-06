@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
+  canBeat,
   RPG_CLASS_DESCRIPTIONS,
   RPG_CLASS_NAMES,
   type Card,
@@ -952,6 +953,46 @@ function GameScreen(props: {
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
     game.table.find((pair) => !pair.defense);
+  const selectedCard = game.self.hand.find((card) => card.id === props.selectedHandId);
+  const tableRanks = new Set(
+    game.table.flatMap((pair) => {
+      const ranks: string[] = [];
+      if (pair.attack.kind === "standard") ranks.push(pair.attack.rank);
+      if (pair.defense?.kind === "standard") ranks.push(pair.defense.rank);
+      return ranks;
+    })
+  );
+  const attackRanks = game.table
+    .map((pair) => pair.attack)
+    .filter((card): card is Extract<Card, { kind: "standard" }> => card.kind === "standard")
+    .map((card) => card.rank);
+  const transferStillAllowed = game.table.every((pair) => !pair.defense);
+  const standardTransfer =
+    selectedCard?.kind === "standard" &&
+    attackRanks.length > 0 &&
+    attackRanks.every((rank) => rank === selectedCard.rank);
+  const wildTransfer =
+    selectedCard?.kind === "standard" &&
+    game.self.classId === "wild-transfer" &&
+    game.self.ability.wildTransfersLeft > 0;
+  const canSelectedTransfer = transferStillAllowed && (standardTransfer || wildTransfer);
+  const canSelectedDefend =
+    Boolean(selectedCard && openAttack) &&
+    canBeat(openAttack!.attack, selectedCard!, game.trumpSuits);
+
+  function cardPlayable(card: Card): boolean {
+    if (!isMyTurn || controlsDisabled) return false;
+    if (game.phase === "attacking") return card.kind === "standard";
+    if (game.phase === "throwing") {
+      return (
+        card.kind === "standard" &&
+        tableRanks.has(card.rank) &&
+        game.table.length < game.roundAttackLimit
+      );
+    }
+    if (game.phase === "defending") return true;
+    return false;
+  }
 
   function clickHandCard(card: Card) {
     if (!isMyTurn) return;
@@ -1118,16 +1159,16 @@ function GameScreen(props: {
 
       {game.phase === "defending" && isMyTurn && (
         <section className="gameActions">
-          <button disabled={controlsDisabled || !props.selectedHandId || !openAttack} onClick={defend}>
+          <button disabled={controlsDisabled || !canSelectedDefend} onClick={defend}>
             Отбить
           </button>
           {game.settings.variant === "transfer" && (
-            <button disabled={controlsDisabled || !props.selectedHandId} onClick={() => transfer(false)}>
+            <button disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(false)}>
               Перевести
             </button>
           )}
           {game.self.classId === "reverse-transfer" && (
-            <button disabled={controlsDisabled || !props.selectedHandId} onClick={() => transfer(true)}>
+            <button disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(true)}>
               Развернуть
             </button>
           )}
@@ -1167,7 +1208,11 @@ function GameScreen(props: {
                 isRed(card) ? "red" : ""
               ].join(" ")}
               onClick={() => clickHandCard(card)}
-              disabled={controlsDisabled || !isMyTurn || game.phase === "finished" || game.phase === "awaiting-trump"}
+              disabled={
+                game.phase === "finished" ||
+                game.phase === "awaiting-trump" ||
+                !cardPlayable(card)
+              }
             >
               <CardFace card={card} />
             </button>
