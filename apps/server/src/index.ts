@@ -406,6 +406,7 @@ function gameViewForSeat(room: Room, seat: number) {
     direction: game.direction,
     roundAttackLimit: game.roundAttackLimit,
     defenderTaking: game.defenderTaking,
+    lastRoundOutcome: game.lastRoundOutcome,
     loserSeat: game.loserSeat,
     draw: game.draw
   };
