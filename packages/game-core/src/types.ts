@@ -80,6 +80,7 @@ export interface GameState {
   roundAttackLimit: number;
   throwInPassedSeats: number[];
   defenderTaking: boolean;
+  lastRoundOutcome?: "take" | "discard";
   loserSeat?: number;
   draw: boolean;
 }
