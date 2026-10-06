@@ -13,6 +13,11 @@ export interface PlayerIdentity {
 
 export interface LeaderboardEntry extends PlayerProgress, PlayerIdentity {}
 
+export interface RecentContactEntry extends PlayerIdentity {
+  playerId: string;
+  lastSeen: string;
+}
+
 export interface MatchHistoryEntry {
   matchId: string;
   result: "win" | "loss" | "draw";
@@ -28,6 +33,8 @@ export interface ProfileStore {
   upsertIdentity(playerId: string, identity: PlayerIdentity): Promise<void>;
   getLeaderboard(limit: number): Promise<LeaderboardEntry[]>;
   getHistory(playerId: string, limit: number): Promise<MatchHistoryEntry[]>;
+  touchContacts(playerIds: string[]): Promise<void>;
+  getRecentContacts(playerId: string, limit: number): Promise<RecentContactEntry[]>;
   recordMatch(
     matchId: string,
     playerIds: string[],
@@ -43,6 +50,7 @@ export class MemoryProfileStore implements ProfileStore {
   private readonly profiles = new Map<string, PlayerProgress>();
   private readonly identities = new Map<string, PlayerIdentity>();
   private readonly history = new Map<string, MatchHistoryEntry[]>();
+  private readonly contacts = new Map<string, Map<string, number>>();
   private readonly processedMatches = new Set<string>();
 
   async init(): Promise<void> {}
@@ -82,6 +90,31 @@ export class MemoryProfileStore implements ProfileStore {
     return (this.history.get(playerId) ?? [])
       .slice(0, safeLimit)
       .map((entry) => ({ ...entry }));
+  }
+
+  async touchContacts(playerIds: string[]): Promise<void> {
+    const now = Date.now();
+    for (const ownerId of playerIds) {
+      const ownerContacts = this.contacts.get(ownerId) ?? new Map<string, number>();
+      for (const contactId of playerIds) {
+        if (contactId === ownerId) continue;
+        ownerContacts.set(contactId, now);
+      }
+      this.contacts.set(ownerId, ownerContacts);
+    }
+  }
+
+  async getRecentContacts(playerId: string, limit: number): Promise<RecentContactEntry[]> {
+    const safeLimit = Math.max(1, Math.min(20, limit));
+    const entries = [...(this.contacts.get(playerId) ?? new Map()).entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, safeLimit);
+
+    return entries.map(([contactId, lastSeen]) => ({
+      playerId: contactId,
+      ...(this.identities.get(contactId) ?? { displayName: "Игрок" }),
+      lastSeen: new Date(lastSeen).toISOString()
+    }));
   }
 
   async recordMatch(
@@ -213,6 +246,16 @@ export class PostgresProfileStore implements ProfileStore {
 
       CREATE INDEX IF NOT EXISTS player_profiles_rating_idx
         ON player_profiles(rating DESC, wins DESC);
+
+      CREATE TABLE IF NOT EXISTS player_contacts (
+        owner_id TEXT NOT NULL REFERENCES player_profiles(player_id) ON DELETE CASCADE,
+        contact_id TEXT NOT NULL REFERENCES player_profiles(player_id) ON DELETE CASCADE,
+        last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (owner_id, contact_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS player_contacts_owner_seen_idx
+        ON player_contacts(owner_id, last_seen DESC);
     `);
   }
 
@@ -293,6 +336,61 @@ export class PostgresProfileStore implements ProfileStore {
       ratingAfter: Number(row.rating_after),
       ranked: row.ranked !== false,
       createdAt: new Date(row.created_at as string | Date).toISOString()
+    }));
+  }
+
+  async touchContacts(playerIds: string[]): Promise<void> {
+    if (playerIds.length < 2) return;
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      for (const playerId of playerIds) {
+        await this.ensureProfile(client, playerId);
+      }
+      for (const ownerId of playerIds) {
+        for (const contactId of playerIds) {
+          if (ownerId === contactId) continue;
+          await client.query(
+            `INSERT INTO player_contacts (owner_id, contact_id, last_seen)
+             VALUES ($1, $2, NOW())
+             ON CONFLICT (owner_id, contact_id)
+             DO UPDATE SET last_seen = EXCLUDED.last_seen`,
+            [ownerId, contactId]
+          );
+        }
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getRecentContacts(playerId: string, limit: number): Promise<RecentContactEntry[]> {
+    const safeLimit = Math.max(1, Math.min(20, limit));
+    const result = await this.pool.query(
+      `SELECT c.contact_id, c.last_seen, p.display_name, p.username, p.photo_url
+       FROM player_contacts c
+       JOIN player_profiles p ON p.player_id = c.contact_id
+       WHERE c.owner_id = $1
+       ORDER BY c.last_seen DESC
+       LIMIT $2`,
+      [playerId, safeLimit]
+    );
+
+    return result.rows.map((row) => ({
+      playerId: String(row.contact_id),
+      displayName:
+        typeof row.display_name === "string" && row.display_name
+          ? row.display_name
+          : "Игрок",
+      username:
+        typeof row.username === "string" && row.username ? row.username : undefined,
+      photoUrl:
+        typeof row.photo_url === "string" && row.photo_url ? row.photo_url : undefined,
+      lastSeen: new Date(row.last_seen as string | Date).toISOString()
     }));
   }
 
