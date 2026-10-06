@@ -197,6 +197,7 @@ function collectTableCards(state: GameState): Card[] {
 
 function settleSuccessfulDefense(state: GameState): GameState {
   const oldDefenderSeat = state.defenderSeat;
+  state.lastRoundOutcome = "discard";
   state.discard.push(...collectTableCards(state));
   state.table = [];
 
@@ -220,6 +221,7 @@ function settleSuccessfulDefense(state: GameState): GameState {
 function settleTake(state: GameState): GameState {
   const oldDefenderSeat = state.defenderSeat;
   const defender = playerBySeat(state, oldDefenderSeat);
+  state.lastRoundOutcome = "take";
   const collected = collectTableCards(state);
   const reusableCards = collected.filter((card) => card.kind !== "joker");
   defender.hand.push(...reusableCards);
