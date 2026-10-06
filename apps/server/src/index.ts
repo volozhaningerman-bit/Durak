@@ -618,8 +618,10 @@ async function authenticateSession(session: Session, initData: string) {
     );
 
     if (duplicate) {
-      send(session.socket, { type: "auth_error", code: "ALREADY_CONNECTED" });
-      return;
+      duplicate.authenticated = false;
+      duplicate.queuedSettings = undefined;
+      sessions.delete(duplicate.socket);
+      duplicate.socket.close(4001, "SESSION_REPLACED");
     }
 
     session.authenticated = true;
