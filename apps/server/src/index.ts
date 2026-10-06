@@ -179,6 +179,38 @@ async function telegramApi<T = unknown>(method: string, body: unknown): Promise<
   return result.result as T;
 }
 
+async function configureTelegramIntegration(): Promise<void> {
+  const token = process.env.BOT_TOKEN;
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+  if (!token || !resolvedWebAppUrl || !webhookSecret) return;
+
+  const me = await telegramApi<{ username?: string }>("getMe", {});
+  botUsername = me?.username;
+
+  await telegramApi("setWebhook", {
+    url: `${resolvedWebAppUrl.replace(/\/$/, "")}/telegram/webhook`,
+    secret_token: webhookSecret,
+    allowed_updates: ["message"],
+    drop_pending_updates: false
+  });
+
+  await telegramApi("setChatMenuButton", {
+    menu_button: {
+      type: "web_app",
+      text: "Играть",
+      web_app: { url: resolvedWebAppUrl }
+    }
+  });
+
+  await telegramApi("setMyCommands", {
+    commands: [
+      { command: "start", description: "Открыть Durak RPG" },
+      { command: "play", description: "Играть" }
+    ]
+  });
+}
+
 app.post("/telegram/webhook", async (req, res) => {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
   const receivedSecret = req.header("x-telegram-bot-api-secret-token");
@@ -1158,10 +1190,12 @@ await profileStore.init();
 
 if (process.env.BOT_TOKEN) {
   try {
-    const me = await telegramApi<{ username?: string }>("getMe", {});
-    botUsername = me?.username;
+    await configureTelegramIntegration();
+    console.log(
+      `Telegram bot configured${botUsername ? ` @${botUsername}` : ""}`
+    );
   } catch (error) {
-    console.error("Failed to resolve Telegram bot username", error);
+    console.error("Failed to configure Telegram bot", error);
   }
 }
 
