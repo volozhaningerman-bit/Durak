@@ -72,6 +72,31 @@ interface GameView {
 }
 
 type ConnectionState = "connecting" | "online" | "offline";
+type LobbyTab = "play" | "profile" | "rating" | "shop";
+
+interface LeaderboardEntry {
+  rank: number;
+  rating: number;
+  games: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  currentStreak: number;
+  bestStreak: number;
+  level: number;
+  displayName: string;
+  username?: string;
+  photoUrl?: string;
+  isSelf: boolean;
+}
+
+interface MatchHistoryEntry {
+  matchId: string;
+  result: "win" | "loss" | "draw";
+  ratingBefore: number;
+  ratingAfter: number;
+  createdAt: string;
+}
 
 const errorMessages: Record<string, string> = {
   BAD_MESSAGE: "Некорректная команда",
@@ -132,6 +157,9 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedAttackId, setSelectedAttackId] = useState<string | null>(null);
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<LobbyTab>("play");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [history, setHistory] = useState<MatchHistoryEntry[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
 
   const settings = mode === "classic" ? classic : rpg;
@@ -192,6 +220,7 @@ export function App() {
             code?: string;
             state?: GameView;
             profile?: PlayerProgress;
+            entries?: unknown[];
           };
 
           if (message.type === "auth_ok") {
@@ -203,6 +232,16 @@ export function App() {
 
           if (message.type === "profile_updated") {
             if (message.profile) setProfile(message.profile);
+            return;
+          }
+
+          if (message.type === "leaderboard") {
+            setLeaderboard((message.entries ?? []) as LeaderboardEntry[]);
+            return;
+          }
+
+          if (message.type === "match_history") {
+            setHistory((message.entries ?? []) as MatchHistoryEntry[]);
             return;
           }
 
@@ -302,6 +341,13 @@ export function App() {
 
   function leaveRoom() {
     send({ type: "leave_room" });
+  }
+
+  function openTab(tab: LobbyTab) {
+    setActiveTab(tab);
+    setError(null);
+    if (tab === "rating") send({ type: "get_leaderboard", limit: 50 });
+    if (tab === "profile") send({ type: "get_history", limit: 20 });
   }
 
   if (game) {
@@ -446,11 +492,81 @@ export function App() {
       </section>
 
       <nav className="bottomNav">
-        <button className="active">Играть</button>
-        <button>Профиль</button>
-        <button>Рейтинг</button>
-        <button>Магазин</button>
+        <button className={activeTab === "play" ? "active" : ""} onClick={() => openTab("play")}>Играть</button>
+        <button className={activeTab === "profile" ? "active" : ""} onClick={() => openTab("profile")}>Профиль</button>
+        <button className={activeTab === "rating" ? "active" : ""} onClick={() => openTab("rating")}>Рейтинг</button>
+        <button className={activeTab === "shop" ? "active" : ""} onClick={() => openTab("shop")}>Магазин</button>
       </nav>
+
+      {activeTab !== "play" && (
+        <section className="tabOverlay">
+          <button className="tabClose" onClick={() => openTab("play")}>×</button>
+
+          {activeTab === "profile" && (
+            <>
+              <h2>Профиль</h2>
+              {profile ? (
+                <div className="profileGrid">
+                  <div><span>Рейтинг</span><b>{Math.round(profile.rating)}</b></div>
+                  <div><span>Уровень</span><b>{profile.level}</b></div>
+                  <div><span>Игр</span><b>{profile.games}</b></div>
+                  <div><span>Побед</span><b>{profile.wins}</b></div>
+                  <div><span>Поражений</span><b>{profile.losses}</b></div>
+                  <div><span>Лучшая серия</span><b>{profile.bestStreak}</b></div>
+                </div>
+              ) : <p className="tabMuted">Профиль загружается…</p>}
+
+              <h3>Последние матчи</h3>
+              <div className="historyList">
+                {history.length === 0 && <p className="tabMuted">История пока пустая.</p>}
+                {history.map((entry) => (
+                  <div className="historyRow" key={entry.matchId}>
+                    <b>{entry.result === "win" ? "Победа" : entry.result === "loss" ? "Поражение" : "Ничья"}</b>
+                    <span>{Math.round(entry.ratingBefore)} → {Math.round(entry.ratingAfter)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {activeTab === "rating" && (
+            <>
+              <h2>Рейтинг</h2>
+              <div className="leaderboardList">
+                {leaderboard.length === 0 && <p className="tabMuted">Загружаем таблицу…</p>}
+                {leaderboard.map((entry) => (
+                  <div className={`leaderboardRow ${entry.isSelf ? "self" : ""}`} key={`${entry.rank}-${entry.displayName}`}>
+                    <b>#{entry.rank}</b>
+                    <span>{entry.displayName}</span>
+                    <strong>{Math.round(entry.rating)}</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {activeTab === "shop" && (
+            <>
+              <h2>Магазин</h2>
+              <p className="tabMuted">Здесь будут покупки за Telegram Stars. В рейтинговых матчах игровые преимущества отключены.</p>
+              <div className="shopGrid">
+                <article>
+                  <strong>↩ Возврат карты</strong>
+                  <span>Вернуть свою последнюю карту, если сверху ещё ничего не положили.</span>
+                </article>
+                <article>
+                  <strong>👁 Память стола</strong>
+                  <span>На 5 секунд посмотреть уже вышедшие карты.</span>
+                </article>
+                <article>
+                  <strong>🍅 Насмешки</strong>
+                  <span>Помидоры, эмоции и другие визуальные реакции на соперников.</span>
+                </article>
+              </div>
+            </>
+          )}
+        </section>
+      )}
     </main>
   );
 }
