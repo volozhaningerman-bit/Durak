@@ -197,12 +197,18 @@ export function App() {
         }));
       };
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         if (socketRef.current === socket) {
           socketRef.current = null;
         }
         setConnection("offline");
         setQueueing(false);
+
+        if (event.code === 4001) {
+          authBlocked = true;
+          setError("Игра открыта в другой сессии Telegram");
+          return;
+        }
 
         if (!stopped && !authBlocked) {
           window.clearTimeout(reconnectTimer);
