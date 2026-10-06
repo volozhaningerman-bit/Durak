@@ -1713,3 +1713,133 @@ html, body, #root {
     animation-delay: 0ms !important;
   }
 }
+
+
+.tableArea.defenderTaking {
+  border-color: color-mix(in srgb, #d67a62 36%, var(--line));
+  box-shadow: inset 0 0 34px rgba(190, 77, 55, .055);
+}
+
+.takeAnnounce {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid rgba(214,122,98,.34);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  color: #df8b77;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  pointer-events: none;
+  animation: takeAnnounce .55s cubic-bezier(.16,.8,.2,1) both;
+}
+
+.trumpPeek.revealTrump {
+  animation: trumpReveal .55s cubic-bezier(.18,.78,.2,1) both;
+}
+
+.tableTrumpChoice {
+  position: relative;
+  z-index: 5;
+  width: min(100%, 360px);
+  margin: 0;
+  padding: 14px;
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  box-shadow: 0 18px 44px rgba(0,0,0,.16);
+  animation: trumpChoiceIn .35s cubic-bezier(.16,.8,.2,1) both;
+}
+
+.tableTrumpChoice h2 {
+  margin: 4px 0 10px;
+  font-size: 16px;
+}
+
+.tableTrumpChoice .suitButtons button {
+  min-height: 46px;
+  font-size: 25px;
+}
+
+.opponent.motion-finish {
+  animation: opponentFinish .56s cubic-bezier(.16,.78,.22,1) both;
+}
+
+.selfFinishBadge {
+  margin: 0 auto 3px;
+  width: max-content;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line));
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.selfFinishBadge.animate {
+  animation: selfFinish .58s cubic-bezier(.16,.82,.2,1) both;
+}
+
+.attackCardSlot.enter-self,
+.attackCardSlot.enter-opponent,
+.defenseCard.enter-self,
+.defenseCard.enter-opponent,
+.handCard.motion-deal,
+.handCard.motion-draw,
+.handCard.motion-take,
+.opponent.motion-deal,
+.opponent.motion-draw,
+.opponent.motion-take,
+.opponent.motion-play,
+.opponent.motion-finish,
+.motionGhost,
+.transferMotion span,
+.trumpPeek.revealTrump {
+  will-change: transform, opacity;
+}
+
+.tableArea {
+  contain: layout paint;
+}
+
+@keyframes takeAnnounce {
+  0% { opacity:0; transform:translate(-50%,-9px) scale(.9); }
+  35% { opacity:1; transform:translate(-50%,2px) scale(1.04); }
+  100% { opacity:0; transform:translate(-50%,0) scale(1); }
+}
+
+@keyframes trumpReveal {
+  0% { opacity:0; transform:rotate(-90deg) translateX(20px) scale(.6); }
+  55% { opacity:1; transform:rotate(-90deg) translateX(-3px) scale(1.08); }
+  100% { opacity:1; transform:rotate(-90deg) translateX(0) scale(1); }
+}
+
+@keyframes trumpChoiceIn {
+  0% { opacity:0; transform:scale(.9) translateY(10px); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes opponentFinish {
+  0% { opacity:1; transform:none; }
+  45% { opacity:1; transform:translateY(-7px) scale(1.06); border-color:var(--accent); }
+  100% { opacity:.42; transform:scale(.97); }
+}
+
+@keyframes selfFinish {
+  0% { opacity:0; transform:translateY(8px) scale(.82); }
+  55% { opacity:1; transform:translateY(-3px) scale(1.08); }
+  100% { opacity:1; transform:none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .takeAnnounce,
+  .tableTrumpChoice,
+  .selfFinishBadge.animate {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
