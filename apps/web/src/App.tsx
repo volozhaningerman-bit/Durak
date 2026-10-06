@@ -202,6 +202,13 @@ export function App() {
   );
 
   useEffect(() => {
+    void fetch("/api/config")
+      .then((response) => response.json())
+      .then((config: { botUsername?: string }) => {
+        if (config.botUsername) setBotUsername(config.botUsername);
+      })
+      .catch(() => undefined);
+
     let stopped = false;
     let authBlocked = false;
     let reconnectTimer: number | undefined;
@@ -268,6 +275,20 @@ export function App() {
             setConnection("online");
             if (message.profile) setProfile(message.profile);
             setError(null);
+
+            if (!handledStartParamRef.current) {
+              const telegramStartParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+              const urlStartParam = new URLSearchParams(window.location.search).get("tgWebAppStartParam");
+              const startParam = telegramStartParam ?? urlStartParam;
+              const roomMatch = startParam?.match(/^room_([A-Z2-9]{6})$/i);
+
+              handledStartParamRef.current = true;
+              if (roomMatch) {
+                const code = roomMatch[1].toUpperCase();
+                setPrivateCodeInput(code);
+                socket.send(JSON.stringify({ type: "join_private_room", code }));
+              }
+            }
             return;
           }
 
@@ -447,18 +468,32 @@ export function App() {
 
   async function sharePrivateRoom() {
     if (!privateLobby) return;
-    const text = `Durak RPG — заходи в приватную комнату. Код: ${privateLobby.code}`;
+
+    const inviteUrl = botUsername
+      ? `https://t.me/${botUsername}?startapp=room_${privateLobby.code}`
+      : undefined;
+    const text = inviteUrl
+      ? `Durak RPG — заходи в приватную комнату: ${inviteUrl}`
+      : `Durak RPG — заходи в приватную комнату. Код: ${privateLobby.code}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: "Durak RPG",
-          text
+          text,
+          url: inviteUrl
         });
         return;
       } catch {
-        // User may cancel the native share sheet; fall back to copying the code.
+        // User may cancel the native share sheet; fall back to Telegram share or clipboard.
       }
+    }
+
+    if (inviteUrl && window.Telegram?.WebApp?.openTelegramLink) {
+      const shareUrl =
+        `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent("Заходи в Durak RPG")}`;
+      window.Telegram.WebApp.openTelegramLink(shareUrl);
+      return;
     }
 
     await copyPrivateCode();
