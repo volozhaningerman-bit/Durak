@@ -15,8 +15,10 @@ import {
   validateTelegramInitData,
   type TelegramMiniAppUser
 } from "./telegramAuth.js";
+import { createProfileStore } from "./profileStore.js";
 
 const port = Number(process.env.PORT || 3001);
+const profileStore = createProfileStore(process.env.DATABASE_URL);
 const app = express();
 app.use(express.json());
 
@@ -56,6 +58,7 @@ interface Room {
   id: string;
   members: Session[];
   game: GameState;
+  progressApplied: boolean;
 }
 
 const sessions = new Map<WebSocket, Session>();
@@ -237,7 +240,8 @@ function createRoom(entries: QueueEntry[]): Room {
   const room: Room = {
     id: roomId,
     members,
-    game
+    game,
+    progressApplied: false
   };
 
   rooms.set(roomId, room);
@@ -302,7 +306,50 @@ function toServerAction(action: ClientGameAction, seat: number): GameAction {
   }
 }
 
-function handleGameAction(session: Session, action: ClientGameAction) {
+async function applyRoomProgress(room: Room) {
+  if (room.progressApplied || room.game.phase !== "finished") return;
+
+  room.progressApplied = true;
+
+  try {
+    const playerIds = room.game.players.map((player) => player.id);
+    const loserId =
+      room.game.loserSeat === undefined
+        ? undefined
+        : room.game.players.find((player) => player.seat === room.game.loserSeat)?.id;
+
+    const profiles = await profileStore.recordMatch(
+      room.id,
+      playerIds,
+      loserId,
+      room.game.draw
+    );
+
+    const byId = new Map(profiles.map((profile) => [profile.playerId, profile]));
+
+    for (const member of room.members) {
+      if (!member.playerId) continue;
+      const profile = byId.get(member.playerId);
+      if (!profile) continue;
+
+      send(member.socket, {
+        type: "profile_updated",
+        profile
+      });
+    }
+  } catch (error) {
+    room.progressApplied = false;
+    console.error("Failed to persist match progression", error);
+    for (const member of room.members) {
+      send(member.socket, {
+        type: "progress_error",
+        code: "PROGRESS_SAVE_FAILED"
+      });
+    }
+  }
+}
+
+async function handleGameAction(session: Session, action: ClientGameAction) {
   if (!session.roomId || session.seat === undefined) {
     send(session.socket, { type: "game_error", code: "NOT_IN_ROOM" });
     return;
@@ -320,6 +367,10 @@ function handleGameAction(session: Session, action: ClientGameAction) {
       toServerAction(action, session.seat)
     );
     broadcastRoom(room);
+
+    if (room.game.phase === "finished") {
+      await applyRoomProgress(room);
+    }
   } catch (error) {
     send(session.socket, {
       type: "game_error",
@@ -356,16 +407,18 @@ function leaveFinishedRoom(session: Session) {
   if (!hasMembers) rooms.delete(roomId);
 }
 
-function authenticateSession(session: Session, initData: string) {
+async function authenticateSession(session: Session, initData: string) {
   const botToken = process.env.BOT_TOKEN;
 
   if (!botToken) {
     session.authenticated = true;
     session.playerId = `dev:${session.id}`;
+    const profile = await profileStore.getProfile(session.playerId);
     send(session.socket, {
       type: "auth_ok",
       dev: true,
-      user: null
+      user: null,
+      profile
     });
     return;
   }
@@ -390,6 +443,8 @@ function authenticateSession(session: Session, initData: string) {
     session.playerId = playerId;
     session.telegramUser = result.user;
 
+    const profile = await profileStore.getProfile(playerId);
+
     send(session.socket, {
       type: "auth_ok",
       dev: false,
@@ -400,7 +455,8 @@ function authenticateSession(session: Session, initData: string) {
         username: result.user.username,
         photoUrl: result.user.photo_url,
         isPremium: result.user.is_premium === true
-      }
+      },
+      profile
     });
   } catch (error) {
     session.authenticated = false;
@@ -434,7 +490,7 @@ wss.on("connection", (socket) => {
     }
 
     if (message.type === "auth") {
-      authenticateSession(session, message.initData);
+      void authenticateSession(session, message.initData);
       return;
     }
 
@@ -478,7 +534,7 @@ wss.on("connection", (socket) => {
     }
 
     if (message.type === "game_action") {
-      handleGameAction(session, message.action);
+      void handleGameAction(session, message.action);
     }
   });
 
@@ -501,6 +557,16 @@ wss.on("connection", (socket) => {
   });
 });
 
+await profileStore.init();
+
 server.listen(port, () => {
   console.log(`Durak RPG server listening on :${port}`);
 });
+
+async function shutdown() {
+  await profileStore.close();
+  server.close(() => process.exit(0));
+}
+
+process.once("SIGTERM", () => void shutdown());
+process.once("SIGINT", () => void shutdown());
