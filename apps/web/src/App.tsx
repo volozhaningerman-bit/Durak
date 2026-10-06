@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
@@ -81,6 +81,7 @@ interface ClearedTableMotion {
   token: number;
   kind: "discard" | "take";
   cards: Card[];
+  discardedCards: Card[];
   targetSeat: number;
   toSelf: boolean;
 }
@@ -1264,14 +1265,53 @@ function GameScreen(props: {
   const myClassDescription = game.self.classId
     ? RPG_CLASS_DESCRIPTIONS[game.self.classId]
     : undefined;
-  const controlsDisabled = props.connection !== "online" || props.actionPending;
   const [motion, setMotion] = useState<GameMotionState>(() => initialGameMotion(game));
   const previousGameRef = useRef<GameView>(game);
   const motionTimerRef = useRef<number | undefined>(undefined);
+  const suppressNextMotionRef = useRef(false);
+  const prefersReducedMotion = useMemo(
+    () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true,
+    []
+  );
+  const motionBusy =
+    Object.keys(motion.hand).length > 0 ||
+    Object.keys(motion.attack).length > 0 ||
+    Object.keys(motion.defense).length > 0 ||
+    Object.keys(motion.opponents).length > 0 ||
+    Boolean(motion.cleared) ||
+    Boolean(motion.transfer);
+  const controlsDisabled =
+    props.connection !== "online" ||
+    props.actionPending ||
+    (motionBusy && !prefersReducedMotion);
 
   useEffect(() => {
+    if (props.connection !== "online") {
+      suppressNextMotionRef.current = true;
+    }
+  }, [props.connection]);
+
+  useEffect(() => () => {
+    window.clearTimeout(motionTimerRef.current);
+  }, []);
+
+  useLayoutEffect(() => {
     const previous = previousGameRef.current;
     previousGameRef.current = game;
+
+    if (suppressNextMotionRef.current && props.connection === "online") {
+      suppressNextMotionRef.current = false;
+      window.clearTimeout(motionTimerRef.current);
+      setMotion({
+        hand: {},
+        attack: {},
+        defense: {},
+        opponents: {},
+        deckPulse: false,
+        discardPulse: false
+      });
+      return;
+    }
 
     if (previous.id !== game.id) {
       setMotion(initialGameMotion(game));
@@ -1292,7 +1332,6 @@ function GameScreen(props: {
     const previousSelfIds = new Set(previous.self.hand.map((card) => card.id));
     const previousTable = tableCards(previous);
     const previousTableIds = new Set(previousTable.map((card) => card.id));
-    const nextTableIds = new Set(tableCards(game).map((card) => card.id));
     const hand: Record<string, HandMotion> = {};
     const attack: Record<string, TableMotion> = {};
     const defense: Record<string, TableMotion> = {};
@@ -1345,6 +1384,10 @@ function GameScreen(props: {
           outcome === "take"
             ? previousTable.filter((card) => card.kind !== "joker")
             : previousTable,
+        discardedCards:
+          outcome === "take"
+            ? previousTable.filter((card) => card.kind === "joker")
+            : [],
         targetSeat: previous.defenderSeat,
         toSelf: previous.defenderSeat === previous.self.seat
       };
@@ -1385,7 +1428,7 @@ function GameScreen(props: {
     }, cleared ? 720 : 560);
 
     return () => window.clearTimeout(motionTimerRef.current);
-  }, [game]);
+  }, [game, props.connection]);
 
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
@@ -1472,7 +1515,11 @@ function GameScreen(props: {
       : null;
 
   return (
-    <main className="app gameApp" data-theme={props.theme}>
+    <main
+      className="app gameApp"
+      data-theme={props.theme}
+      data-motion={motion.cleared?.kind}
+    >
       <Header
         theme={props.theme}
         setTheme={props.setTheme}
@@ -1591,6 +1638,24 @@ function GameScreen(props: {
             ))}
           </div>
         )}
+
+        {motion.cleared?.discardedCards.length ? (
+          <div
+            key={`discard-special-${motion.cleared.token}`}
+            className="clearMotion toDiscard specialDiscard"
+            aria-hidden="true"
+          >
+            {motion.cleared.discardedCards.map((card, index) => (
+              <div
+                className="motionGhost"
+                key={card.id}
+                style={{ "--ghost-index": index } as CSSProperties}
+              >
+                <CardFace card={card} />
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {motion.transfer && (
           <div
