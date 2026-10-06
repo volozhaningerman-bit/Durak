@@ -102,6 +102,7 @@ interface MatchHistoryEntry {
 
 interface RecentPlayer {
   key: string;
+  contactId?: string;
   name: string;
   username?: string;
   photoUrl?: string;
@@ -161,7 +162,12 @@ const errorMessages: Record<string, string> = {
   PRIVATE_ROOM_FULL: "Комната уже заполнена",
   ALREADY_IN_PRIVATE_ROOM: "Ты уже находишься в приватной комнате",
   NOT_IN_PRIVATE_ROOM: "Ты не находишься в приватной комнате",
-  PRIVATE_ROOM_EXPIRED: "Комната закрыта из-за долгого ожидания"
+  PRIVATE_ROOM_EXPIRED: "Комната закрыта из-за долгого ожидания",
+  INVITE_CONTACT_NOT_FOUND: "Игрок больше не доступен в недавних",
+  INVITE_COOLDOWN: "Этому игроку уже отправлено приглашение — подожди немного",
+  INVITE_UNAVAILABLE: "Сейчас этому игроку нельзя отправить приглашение",
+  INVITE_FAILED: "Не удалось отправить приглашение",
+  RECENT_PLAYERS_LOAD_FAILED: "Не удалось загрузить недавних игроков"
 };
 
 function readableError(code?: string): string {
@@ -199,6 +205,7 @@ export function App() {
   const [privateLobby, setPrivateLobby] = useState<PrivateLobbyView | null>(null);
   const [privateCodeInput, setPrivateCodeInput] = useState("");
   const [copyNotice, setCopyNotice] = useState(false);
+  const [inviteSentName, setInviteSentName] = useState<string | null>(null);
   const [botUsername, setBotUsername] = useState<string | null>(null);
   const [recentPlayers, setRecentPlayers] = useState<RecentPlayer[]>(() => {
     try {
@@ -289,6 +296,7 @@ export function App() {
             state?: GameView;
             profile?: PlayerProgress;
             entries?: unknown[];
+            name?: string;
             settings?: GameSettings;
             members?: PrivateLobbyView["members"];
             currentPlayers?: number;
@@ -319,6 +327,32 @@ export function App() {
 
           if (message.type === "profile_updated") {
             if (message.profile) setProfile(message.profile);
+            return;
+          }
+
+          if (message.type === "recent_players") {
+            rememberRecentPlayers(
+              ((message.entries ?? []) as Array<{
+                contactId: string;
+                name: string;
+                username?: string;
+                photoUrl?: string;
+                lastSeen?: string;
+              }>).map((entry) => ({
+                contactId: entry.contactId,
+                name: entry.name,
+                username: entry.username,
+                photoUrl: entry.photoUrl,
+                lastSeen: entry.lastSeen ? new Date(entry.lastSeen).getTime() : Date.now()
+              }))
+            );
+            return;
+          }
+
+          if (message.type === "invite_sent") {
+            setInviteSentName(message.name ?? "игроку");
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+            window.setTimeout(() => setInviteSentName(null), 1800);
             return;
           }
 
@@ -570,22 +604,32 @@ export function App() {
   }
 
   function rememberRecentPlayers(
-    players: Array<{ name: string; username?: string; photoUrl?: string }>
+    players: Array<{
+      contactId?: string;
+      name: string;
+      username?: string;
+      photoUrl?: string;
+      lastSeen?: number;
+    }>
   ) {
     if (players.length === 0) return;
 
     setRecentPlayers((current) => {
       const byKey = new Map(current.map((player) => [player.key, player]));
       for (const player of players) {
-        const key = player.username
-          ? `@${player.username.toLowerCase()}`
-          : player.name.toLowerCase();
+        const key = player.contactId ?? (
+          player.username
+            ? `@${player.username.toLowerCase()}`
+            : player.name.toLowerCase()
+        );
+        const previous = byKey.get(key);
         byKey.set(key, {
           key,
+          contactId: player.contactId ?? previous?.contactId,
           name: player.name,
-          username: player.username,
-          photoUrl: player.photoUrl,
-          lastSeen: Date.now()
+          username: player.username ?? previous?.username,
+          photoUrl: player.photoUrl ?? previous?.photoUrl,
+          lastSeen: player.lastSeen ?? Date.now()
         });
       }
       const next = [...byKey.values()]
@@ -600,11 +644,21 @@ export function App() {
     });
   }
 
-  function inviteRecentPlayer() {
+  function inviteRecentPlayer(player: RecentPlayer) {
     if (!privateLobby) {
       setError("Сначала создай приватную комнату — после этого можно отправить приглашение.");
       return;
     }
+
+    if (player.contactId) {
+      send({
+        type: "invite_recent_player",
+        contactId: player.contactId,
+        code: privateLobby.code
+      });
+      return;
+    }
+
     void sharePrivateRoom();
   }
 
@@ -733,6 +787,10 @@ export function App() {
                   </div>
                 </div>
 
+                {inviteSentName && (
+                  <div className="inviteToast">Приглашение отправлено: {inviteSentName}</div>
+                )}
+
                 <div className="waitingCaption">
                   <span className="waitingDot" />
                   Ждём ещё {Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers)} игрок(а)
@@ -752,7 +810,7 @@ export function App() {
                     <div className="recentHead"><span>Недавние игроки</span><small>сохраняются автоматически</small></div>
                     <div className="recentPlayers">
                       {recentPlayers.slice(0, 5).map((player) => (
-                        <button className="recentPlayer" key={player.key} onClick={inviteRecentPlayer}>
+                        <button className="recentPlayer" key={player.key} onClick={() => inviteRecentPlayer(player)}>
                           <span className="avatar">
                             {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.name.slice(0, 1)}
                           </span>
