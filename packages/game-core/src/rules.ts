@@ -88,10 +88,11 @@ export function validateTransfer(
     .filter(isStandard)
     .map((card) => card.rank);
 
+  const transferRank = intent.card.kind === "standard" ? intent.card.rank : undefined;
   const standardTransfer =
-    intent.card.kind === "standard" &&
+    transferRank !== undefined &&
     attackRanks.length > 0 &&
-    attackRanks.every((rank) => rank === intent.card.rank);
+    attackRanks.every((rank) => rank === transferRank);
 
   const canUseWild =
     state.settings.mode === "rpg" &&
