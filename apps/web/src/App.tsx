@@ -256,7 +256,6 @@ export function App() {
             state?: GameView;
             profile?: PlayerProgress;
             entries?: unknown[];
-            code?: string;
             settings?: GameSettings;
             members?: PrivateLobbyView["members"];
             currentPlayers?: number;
