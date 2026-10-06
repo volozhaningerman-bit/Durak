@@ -1582,6 +1582,7 @@ function GameScreen(props: {
                 player.finished ? "finished" : "",
                 motion.opponents[player.seat] ? `motion-${motion.opponents[player.seat]}` : ""
               ].join(" ")}
+              style={{ "--seat-index": player.seat } as CSSProperties}
             >
               <div className="avatar">
                 {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.seat + 1}
