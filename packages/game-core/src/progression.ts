@@ -16,29 +16,18 @@ export interface MatchProgressResult {
   loserId?: string;
   draw: boolean;
   ranked?: boolean;
+  winnerOrder?: string[];
 }
 
 export const DEFAULT_RATING = 1000;
 export const MIN_RATING = 100;
+export const RANKED_RATING_POOL = 30;
 
-const BASE_RATING_POOL: Record<number, number> = {
-  2: 20,
-  3: 24,
-  4: 30,
-  5: 32,
-  6: 35
-};
-
-export function baseRatingChange(playerCount: number): {
-  winnerGain: number;
-  loserLoss: number;
-} {
-  const safeCount = Math.max(2, Math.min(6, Math.round(playerCount)));
-  const loserLoss = BASE_RATING_POOL[safeCount] ?? 20;
-  return {
-    loserLoss,
-    winnerGain: loserLoss / (safeCount - 1)
-  };
+export function ratingAwardsForWinnerCount(winnerCount: number): number[] {
+  const count = Math.max(1, Math.min(5, Math.round(winnerCount)));
+  const weights = Array.from({ length: count }, (_, index) => count - index);
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  return weights.map((weight) => (RANKED_RATING_POOL * weight) / weightSum);
 }
 
 export function levelFromXp(xp: number): number {
@@ -60,31 +49,8 @@ export function createPlayerProgress(playerId: string): PlayerProgress {
   };
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 function oneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
-}
-
-function rankedPool(
-  loser: PlayerProgress,
-  winners: readonly PlayerProgress[]
-): number {
-  const base = baseRatingChange(winners.length + 1).loserLoss;
-  const averageWinnerRating =
-    winners.reduce((sum, winner) => sum + winner.rating, 0) / winners.length;
-
-  // A favourite who loses pays more; an underdog pays less.
-  // The modifier is deliberately capped so rating stays predictable.
-  const strengthFactor = clamp(
-    1 + (loser.rating - averageWinnerRating) / 1000,
-    0.7,
-    1.3
-  );
-
-  return oneDecimal(base * strengthFactor);
 }
 
 export function applyMatchProgress(
@@ -114,17 +80,28 @@ export function applyMatchProgress(
   const winners = profiles.filter((profile) => profile.playerId !== result.loserId);
   if (winners.length === 0) throw new Error("MATCH_REQUIRES_WINNER");
 
-  const ratingEnabled = result.ranked !== false;
-  let winnerGain = 0;
-  let loserLoss = 0;
+  const orderedWinnerIds = [
+    ...(result.winnerOrder ?? []).filter(
+      (id) => id !== result.loserId && winners.some((winner) => winner.playerId === id)
+    ),
+    ...winners
+      .map((winner) => winner.playerId)
+      .filter((id) => !(result.winnerOrder ?? []).includes(id))
+  ];
 
-  if (ratingEnabled) {
-    const requestedPool = rankedPool(loser, winners);
-    const availableLoss = Math.max(0, loser.rating - MIN_RATING);
-    const actualPool = Math.min(requestedPool, availableLoss);
-    winnerGain = oneDecimal(actualPool / winners.length);
-    loserLoss = oneDecimal(winnerGain * winners.length);
-  }
+  const ratingEnabled = result.ranked !== false;
+  const requestedLoss = ratingEnabled ? RANKED_RATING_POOL : 0;
+  const loserLoss = ratingEnabled
+    ? Math.min(requestedLoss, Math.max(0, loser.rating - MIN_RATING))
+    : 0;
+  const baseAwards = ratingAwardsForWinnerCount(orderedWinnerIds.length);
+  const scale = requestedLoss > 0 ? loserLoss / requestedLoss : 0;
+  const winnerDeltas = new Map(
+    orderedWinnerIds.map((id, index) => [
+      id,
+      oneDecimal((baseAwards[index] ?? 0) * scale)
+    ])
+  );
 
   return profiles.map((profile) => {
     if (profile.playerId === loser.playerId) {
