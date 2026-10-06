@@ -96,6 +96,7 @@ interface MatchHistoryEntry {
   result: "win" | "loss" | "draw";
   ratingBefore: number;
   ratingAfter: number;
+  ranked: boolean;
   createdAt: string;
 }
 
@@ -476,6 +477,41 @@ export function App() {
           </div>
         </SettingRow>
 
+        <SettingRow
+          label="Очередь"
+          value={settings.ranked ? "Рейтинговая" : "Обычная"}
+        >
+          <div className="segmented">
+            <button
+              className={!settings.ranked ? "active" : ""}
+              onClick={() =>
+                updateSettings({
+                  ranked: false,
+                  gameplayItemsEnabled: mode === "rpg"
+                })
+              }
+            >
+              Обычная
+            </button>
+            <button
+              className={settings.ranked ? "active" : ""}
+              onClick={() =>
+                updateSettings({
+                  ranked: true,
+                  gameplayItemsEnabled: false
+                })
+              }
+            >
+              Рейтинг
+            </button>
+          </div>
+          <div className="settingHint">
+            {settings.ranked
+              ? "Рейтинг меняется. Игровые расходники отключены."
+              : "Рейтинг не меняется, прогресс и статистика сохраняются."}
+          </div>
+        </SettingRow>
+
         {mode === "rpg" && (
           <div className="rpgNote">
             Класс выдаётся случайно перед партией. RPG всегда подкидной + переводной.
@@ -531,8 +567,15 @@ export function App() {
                 {history.length === 0 && <p className="tabMuted">История пока пустая.</p>}
                 {history.map((entry) => (
                   <div className="historyRow" key={entry.matchId}>
-                    <b>{entry.result === "win" ? "Победа" : entry.result === "loss" ? "Поражение" : "Ничья"}</b>
-                    <span>{Math.round(entry.ratingBefore)} → {Math.round(entry.ratingAfter)}</span>
+                    <div>
+                      <b>{entry.result === "win" ? "Победа" : entry.result === "loss" ? "Поражение" : "Ничья"}</b>
+                      <small>{entry.ranked ? "Рейтинг" : "Обычная"}</small>
+                    </div>
+                    <span>
+                      {entry.ranked
+                        ? `${Math.round(entry.ratingBefore)} → ${Math.round(entry.ratingAfter)}`
+                        : "без изменения рейтинга"}
+                    </span>
                   </div>
                 ))}
               </div>
