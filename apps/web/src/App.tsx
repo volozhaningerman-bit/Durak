@@ -1268,6 +1268,7 @@ function GameScreen(props: {
   const [motion, setMotion] = useState<GameMotionState>(() => initialGameMotion(game));
   const previousGameRef = useRef<GameView>(game);
   const motionTimerRef = useRef<number | undefined>(undefined);
+  const firstMotionPassRef = useRef(true);
   const suppressNextMotionRef = useRef(false);
   const prefersReducedMotion = useMemo(
     () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true,
@@ -1299,7 +1300,23 @@ function GameScreen(props: {
     const previous = previousGameRef.current;
     previousGameRef.current = game;
 
-    if (suppressNextMotionRef.current && props.connection === "online") {
+    if (firstMotionPassRef.current) {
+      firstMotionPassRef.current = false;
+      window.clearTimeout(motionTimerRef.current);
+      motionTimerRef.current = window.setTimeout(() => {
+        setMotion({
+          hand: {},
+          attack: {},
+          defense: {},
+          opponents: {},
+          deckPulse: false,
+          discardPulse: false
+        });
+      }, 950);
+      return;
+    }
+
+    if (suppressNextMotionRef.current) {
       suppressNextMotionRef.current = false;
       window.clearTimeout(motionTimerRef.current);
       setMotion({
@@ -1428,7 +1445,7 @@ function GameScreen(props: {
     }, cleared ? 720 : 560);
 
     return () => window.clearTimeout(motionTimerRef.current);
-  }, [game, props.connection]);
+  }, [game]);
 
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
