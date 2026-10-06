@@ -53,6 +53,25 @@ describe("progression", () => {
     expect(result.currentStreak).toBe(0);
   });
 
+  it("keeps Elo unchanged in casual matches while updating progression", () => {
+    const a = createPlayerProgress("a");
+    const b = createPlayerProgress("b");
+
+    const [winner, loser] = applyMatchProgress([a, b], {
+      playerIds: ["a", "b"],
+      loserId: "b",
+      draw: false,
+      ranked: false
+    });
+
+    expect(winner.rating).toBe(1000);
+    expect(loser.rating).toBe(1000);
+    expect(winner.wins).toBe(1);
+    expect(loser.losses).toBe(1);
+    expect(winner.xp).toBeGreaterThan(0);
+    expect(loser.xp).toBeGreaterThan(0);
+  });
+
   it("levels up every 500 xp", () => {
     expect(levelFromXp(0)).toBe(1);
     expect(levelFromXp(499)).toBe(1);
