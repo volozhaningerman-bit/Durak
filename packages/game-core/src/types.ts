@@ -3,7 +3,7 @@ export type Rank = "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K" | "A";
 export type GameMode = "classic" | "rpg";
 export type DurakVariant = "throw-in" | "transfer";
 export type ThrowInPolicy = "all" | "neighbors";
-export type ThemeId = "classic" | "casino" | "dark" | "rus-fantasy";
+export type ThemeId = "light" | "dark";
 export type GamePhase =
   | "awaiting-trump"
   | "attacking"
