@@ -15,6 +15,7 @@ export interface MatchProgressResult {
   playerIds: string[];
   loserId?: string;
   draw: boolean;
+  ranked?: boolean;
 }
 
 export const DEFAULT_RATING = 1000;
@@ -74,6 +75,7 @@ export function applyMatchProgress(
   const winners = profiles.filter((profile) => profile.playerId !== result.loserId);
   if (winners.length === 0) throw new Error("MATCH_REQUIRES_WINNER");
 
+  const ratingEnabled = result.ranked !== false;
   const perOpponentK = RATING_K / winners.length;
   let loserDelta = 0;
   const winnerDeltas = new Map<string, number>();
@@ -90,7 +92,9 @@ export function applyMatchProgress(
       const xp = profile.xp + 40;
       return {
         ...profile,
-        rating: oneDecimal(Math.max(100, profile.rating + loserDelta)),
+        rating: ratingEnabled
+          ? oneDecimal(Math.max(100, profile.rating + loserDelta))
+          : profile.rating,
         games: profile.games + 1,
         losses: profile.losses + 1,
         currentStreak: 0,
@@ -103,7 +107,9 @@ export function applyMatchProgress(
     const xp = profile.xp + 100;
     return {
       ...profile,
-      rating: oneDecimal(profile.rating + (winnerDeltas.get(profile.playerId) ?? 0)),
+      rating: ratingEnabled
+        ? oneDecimal(profile.rating + (winnerDeltas.get(profile.playerId) ?? 0))
+        : profile.rating,
       games: profile.games + 1,
       wins: profile.wins + 1,
       currentStreak: streak,
