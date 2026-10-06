@@ -17,6 +17,9 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run test
       - run: npm run build
+      - run: node --check scripts/configure-telegram.mjs
+      - run: node --check scripts/smoke-test.mjs
+      - run: docker build -t durak-rpg:ci .
       - name: Smoke test production server
         run: |
           PORT=3100 npm start > /tmp/durak-server.log 2>&1 &
