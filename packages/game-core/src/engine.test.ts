@@ -222,7 +222,34 @@ describe("match engine", () => {
 
     expect(game.phase).toBe("finished");
     expect(game.loserSeat).toBe(1);
+    expect(game.lastRoundOutcome).toBe("discard");
     expect(game.discard.map((card) => card.id)).toEqual(["clubs-6", "clubs-7"]);
+  });
+
+
+  it("marks an immediate two-player take so the client can animate it correctly", () => {
+    let game = state({
+      players: [
+        p(0, [c("6", "clubs"), c("8", "spades")]),
+        p(1, [c("7", "hearts"), c("9", "hearts")])
+      ],
+      roundAttackLimit: 2
+    });
+
+    game = applyGameAction(game, {
+      type: "attack",
+      playerSeat: 0,
+      cardId: "clubs-6"
+    });
+
+    game = applyGameAction(game, {
+      type: "take",
+      playerSeat: 1
+    });
+
+    expect(game.table).toHaveLength(0);
+    expect(game.lastRoundOutcome).toBe("take");
+    expect(game.players[1].hand.map((card) => card.id)).toContain("clubs-6");
   });
 
   it("lets other players throw matching cards after defender chooses to take", () => {
@@ -258,6 +285,7 @@ describe("match engine", () => {
 
     expect(game.players[1].hand.map((card) => card.id)).toContain("clubs-6");
     expect(game.players[1].hand.map((card) => card.id)).toContain("hearts-6");
+    expect(game.lastRoundOutcome).toBe("take");
     expect(game.table).toHaveLength(0);
   });
 
