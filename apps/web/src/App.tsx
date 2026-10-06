@@ -479,7 +479,7 @@ export function App() {
     if (!privateLobby) return;
 
     const inviteUrl = botUsername
-      ? `https://t.me/${botUsername}?startapp=room_${privateLobby.code}`
+      ? `https://t.me/${botUsername}?startapp=room_${privateLobby.code}&mode=fullscreen`
       : undefined;
     const text = inviteUrl
       ? `Durak RPG — заходи в приватную комнату: ${inviteUrl}`
