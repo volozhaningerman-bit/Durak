@@ -1,3 +1,5 @@
+import WebSocket from "ws";
+
 const baseUrl = (process.env.WEBAPP_URL || process.argv[2] || "").replace(/\/$/, "");
 
 if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
@@ -22,21 +24,19 @@ async function checkHttp(path, validate) {
 }
 
 async function checkWebSocket() {
-  if (typeof WebSocket === "undefined") {
-    console.log("SKIP /ws (WebSocket global unavailable in this Node runtime)");
-    return;
-  }
-
   await new Promise((resolve, reject) => {
-    const socket = new WebSocket(wsUrl);
+    const socket = new WebSocket(wsUrl, {
+      origin: baseUrl
+    });
+
     const timer = setTimeout(() => {
-      socket.close();
+      socket.terminate();
       reject(new Error("WebSocket timeout"));
     }, 5000);
 
-    socket.addEventListener("message", (event) => {
+    socket.on("message", (data) => {
       try {
-        const message = JSON.parse(String(event.data));
+        const message = JSON.parse(data.toString());
         if (message.type !== "connected") return;
         clearTimeout(timer);
         socket.close();
@@ -44,14 +44,14 @@ async function checkWebSocket() {
         resolve();
       } catch (error) {
         clearTimeout(timer);
-        socket.close();
+        socket.terminate();
         reject(error);
       }
     });
 
-    socket.addEventListener("error", () => {
+    socket.on("error", (error) => {
       clearTimeout(timer);
-      reject(new Error("WebSocket connection failed"));
+      reject(error);
     });
   });
 }
