@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
+  baseRatingChange,
   canBeat,
   RPG_CLASS_DESCRIPTIONS,
   RPG_CLASS_NAMES,
@@ -15,10 +16,8 @@ import {
 } from "@durak/game-core";
 
 const themes: { id: ThemeId; label: string }[] = [
-  { id: "classic", label: "Классика" },
-  { id: "casino", label: "Казино" },
-  { id: "dark", label: "Тёмная" },
-  { id: "rus-fantasy", label: "Русь" }
+  { id: "light", label: "Светлая" },
+  { id: "dark", label: "Тёмная" }
 ];
 
 const suitSymbol: Record<Suit, string> = {
@@ -173,7 +172,9 @@ function websocketUrl(): string {
 
 export function App() {
   const [mode, setMode] = useState<GameMode>("classic");
-  const [theme, setTheme] = useState<ThemeId>("dark");
+  const [theme, setTheme] = useState<ThemeId>(() =>
+    window.Telegram?.WebApp?.colorScheme === "light" ? "light" : "dark"
+  );
   const [classic, setClassic] = useState<GameSettings>({ ...DEFAULT_CLASSIC_SETTINGS });
   const [rpg, setRpg] = useState<GameSettings>({ ...DEFAULT_RPG_SETTINGS });
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -229,6 +230,11 @@ export function App() {
         const telegram = window.Telegram?.WebApp;
         telegram?.ready();
         telegram?.expand();
+        try {
+          telegram?.requestFullscreen?.();
+        } catch {
+          // Older Telegram clients may not support fullscreen.
+        }
 
         socket.send(JSON.stringify({
           type: "auth",
@@ -706,7 +712,7 @@ export function App() {
           </div>
           <div className="settingHint">
             {settings.ranked
-              ? "Рейтинг меняется. Игровые расходники отключены."
+              ? `База: победа +${baseRatingChange(settings.playerCount).winnerGain}, поражение −${baseRatingChange(settings.playerCount).loserLoss}. Сила игроков меняет итог максимум на 30%.`
               : "Рейтинг не меняется, прогресс и статистика сохраняются."}
           </div>
         </SettingRow>
@@ -902,6 +908,38 @@ function Header(props: {
   subtitle: string;
   connection?: ConnectionState;
 }) {
+  const [isFullscreen, setIsFullscreen] = useState(
+    window.Telegram?.WebApp?.isFullscreen === true
+  );
+
+  useEffect(() => {
+    const webApp = window.Telegram?.WebApp;
+    if (!webApp?.onEvent || !webApp?.offEvent) return;
+
+    const syncFullscreen = () => setIsFullscreen(webApp.isFullscreen === true);
+    webApp.onEvent("fullscreenChanged", syncFullscreen);
+    return () => webApp.offEvent?.("fullscreenChanged", syncFullscreen);
+  }, []);
+
+  function toggleFullscreen() {
+    const webApp = window.Telegram?.WebApp;
+    if (!webApp) return;
+
+    try {
+      if (webApp.isFullscreen) {
+        webApp.exitFullscreen?.();
+      } else {
+        webApp.requestFullscreen?.();
+      }
+      window.setTimeout(
+        () => setIsFullscreen(window.Telegram?.WebApp?.isFullscreen === true),
+        150
+      );
+    } catch {
+      // Fullscreen is optional on older Telegram clients.
+    }
+  }
+
   return (
     <header className="topbar">
       <div>
@@ -915,16 +953,26 @@ function Header(props: {
           )}
         </div>
       </div>
-      <select
-        className="themeSelect"
-        value={props.theme}
-        onChange={(event) => props.setTheme(event.target.value as ThemeId)}
-        aria-label="Стиль"
-      >
-        {themes.map((item) => (
-          <option key={item.id} value={item.id}>{item.label}</option>
-        ))}
-      </select>
+      <div className="headerActions">
+        <button
+          className="fullscreenButton"
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Выйти из полного экрана" : "На весь экран"}
+          title={isFullscreen ? "Выйти из полного экрана" : "На весь экран"}
+        >
+          {isFullscreen ? "↙" : "⛶"}
+        </button>
+        <select
+          className="themeSelect"
+          value={props.theme}
+          onChange={(event) => props.setTheme(event.target.value as ThemeId)}
+          aria-label="Тема"
+        >
+          {themes.map((item) => (
+            <option key={item.id} value={item.id}>{item.label}</option>
+          ))}
+        </select>
+      </div>
     </header>
   );
 }
