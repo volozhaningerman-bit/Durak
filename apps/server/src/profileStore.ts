@@ -33,7 +33,8 @@ export interface ProfileStore {
     playerIds: string[],
     loserId: string | undefined,
     draw: boolean,
-    ranked?: boolean
+    ranked?: boolean,
+    winnerOrder?: string[]
   ): Promise<PlayerProgress[]>;
   close(): Promise<void>;
 }
@@ -88,14 +89,15 @@ export class MemoryProfileStore implements ProfileStore {
     playerIds: string[],
     loserId: string | undefined,
     draw: boolean,
-    ranked = true
+    ranked = true,
+    winnerOrder?: string[]
   ): Promise<PlayerProgress[]> {
     if (this.processedMatches.has(matchId)) {
       return Promise.all(playerIds.map((id) => this.getProfile(id)));
     }
 
     const current = await Promise.all(playerIds.map((id) => this.getProfile(id)));
-    const updated = applyMatchProgress(current, { playerIds, loserId, draw, ranked });
+    const updated = applyMatchProgress(current, { playerIds, loserId, draw, ranked, winnerOrder });
     const before = new Map(current.map((profile) => [profile.playerId, profile]));
 
     for (const profile of updated) {
@@ -299,7 +301,8 @@ export class PostgresProfileStore implements ProfileStore {
     playerIds: string[],
     loserId: string | undefined,
     draw: boolean,
-    ranked = true
+    ranked = true,
+    winnerOrder?: string[]
   ): Promise<PlayerProgress[]> {
     const client = await this.pool.connect();
 
@@ -322,7 +325,7 @@ export class PostgresProfileStore implements ProfileStore {
       }
 
       const current = await this.loadProfiles(client, playerIds, true);
-      const updated = applyMatchProgress(current, { playerIds, loserId, draw, ranked });
+      const updated = applyMatchProgress(current, { playerIds, loserId, draw, ranked, winnerOrder });
       const before = new Map(current.map((profile) => [profile.playerId, profile]));
 
       for (const profile of updated) {
