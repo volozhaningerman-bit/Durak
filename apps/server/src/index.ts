@@ -34,8 +34,8 @@ function validateProductionConfig() {
     "DATABASE_URL",
     "TELEGRAM_WEBHOOK_SECRET"
   ] as const;
-  const missing = required.filter((key) => !process.env[key]?.trim());
-  if (!resolvedWebAppUrl) missing.push("WEBAPP_URL" as never);
+  const missing: string[] = required.filter((key) => !process.env[key]?.trim());
+  if (!resolvedWebAppUrl) missing.push("WEBAPP_URL");
   if (missing.length > 0) {
     throw new Error(`Missing required production env: ${missing.join(", ")}`);
   }
