@@ -386,9 +386,14 @@ async function handleGameAction(session: Session, action: ClientGameAction) {
 function finishRoomByForfeit(room: Room, loserSeat: number) {
   if (room.game.phase === "finished") return;
 
-  const loserMember = room.members[loserSeat];
-  loserMember.roomId = undefined;
-  loserMember.seat = undefined;
+  for (const member of room.members) {
+    const disconnected =
+      !sessions.has(member.socket) || member.socket.readyState !== WebSocket.OPEN;
+    if (disconnected) {
+      member.roomId = undefined;
+      member.seat = undefined;
+    }
+  }
 
   room.game = {
     ...room.game,
