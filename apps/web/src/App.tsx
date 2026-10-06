@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
+  RPG_CLASS_DESCRIPTIONS,
   RPG_CLASS_NAMES,
   type Card,
   type GameMode,
@@ -362,6 +363,7 @@ export function App() {
     return (
       <GameScreen
         game={game}
+        connection={connection}
         theme={theme}
         setTheme={setTheme}
         error={error}
@@ -614,6 +616,7 @@ function Header(props: {
 
 function GameScreen(props: {
   game: GameView;
+  connection: ConnectionState;
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
   error: string | null;
@@ -627,6 +630,10 @@ function GameScreen(props: {
   const { game } = props;
   const isMyTurn = game.turnSeat === game.self.seat;
   const myClass = game.self.classId ? RPG_CLASS_NAMES[game.self.classId] : undefined;
+  const myClassDescription = game.self.classId
+    ? RPG_CLASS_DESCRIPTIONS[game.self.classId]
+    : undefined;
+  const controlsDisabled = props.connection !== "online";
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
     game.table.find((pair) => !pair.defense);
@@ -677,7 +684,24 @@ function GameScreen(props: {
         theme={props.theme}
         setTheme={props.setTheme}
         subtitle={myClass ? `Твой класс: ${myClass}` : "Классическая партия"}
+        connection={props.connection}
       />
+
+      {props.connection !== "online" && (
+        <div className="reconnectNotice">
+          Соединение потеряно. Пытаемся вернуть тебя в эту же партию…
+        </div>
+      )}
+
+      {myClassDescription && (
+        <section className="classAbilityBar">
+          <b>{myClass}</b>
+          <span>{myClassDescription}</span>
+          {game.self.classId === "wild-transfer" && (
+            <em>Осталось особых переводов: {game.self.ability.wildTransfersLeft}</em>
+          )}
+        </section>
+      )}
 
       <section className="gameMeta">
         <span>Колода <b>{game.deckCount}</b></span>
@@ -719,6 +743,7 @@ function GameScreen(props: {
               <button
                 key={suit}
                 className={suit === "hearts" || suit === "diamonds" ? "redSuit" : ""}
+                disabled={controlsDisabled}
                 onClick={() => props.onAction({ type: "choose_trump", suit })}
               >
                 {suitSymbol[suit]}
@@ -778,20 +803,20 @@ function GameScreen(props: {
 
       {game.phase === "defending" && isMyTurn && (
         <section className="gameActions">
-          <button disabled={!props.selectedHandId || !openAttack} onClick={defend}>
+          <button disabled={controlsDisabled || !props.selectedHandId || !openAttack} onClick={defend}>
             Отбить
           </button>
           {game.settings.variant === "transfer" && (
-            <button disabled={!props.selectedHandId} onClick={() => transfer(false)}>
+            <button disabled={controlsDisabled || !props.selectedHandId} onClick={() => transfer(false)}>
               Перевести
             </button>
           )}
           {game.self.classId === "reverse-transfer" && (
-            <button disabled={!props.selectedHandId} onClick={() => transfer(true)}>
+            <button disabled={controlsDisabled || !props.selectedHandId} onClick={() => transfer(true)}>
               Развернуть
             </button>
           )}
-          <button className="dangerAction" onClick={() => props.onAction({ type: "take" })}>
+          <button className="dangerAction" disabled={controlsDisabled} onClick={() => props.onAction({ type: "take" })}>
             Взять
           </button>
         </section>
@@ -799,7 +824,7 @@ function GameScreen(props: {
 
       {game.phase === "throwing" && isMyTurn && (
         <section className="gameActions single">
-          <button onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
+          <button disabled={controlsDisabled} onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
         </section>
       )}
 
@@ -827,7 +852,7 @@ function GameScreen(props: {
                 isRed(card) ? "red" : ""
               ].join(" ")}
               onClick={() => clickHandCard(card)}
-              disabled={!isMyTurn || game.phase === "finished" || game.phase === "awaiting-trump"}
+              disabled={controlsDisabled || !isMyTurn || game.phase === "finished" || game.phase === "awaiting-trump"}
             >
               <CardFace card={card} />
             </button>
