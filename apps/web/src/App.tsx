@@ -189,7 +189,9 @@ export function App() {
   const [privateLobby, setPrivateLobby] = useState<PrivateLobbyView | null>(null);
   const [privateCodeInput, setPrivateCodeInput] = useState("");
   const [copyNotice, setCopyNotice] = useState(false);
+  const [botUsername, setBotUsername] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const handledStartParamRef = useRef(false);
 
   const settings = mode === "classic" ? classic : rpg;
 
