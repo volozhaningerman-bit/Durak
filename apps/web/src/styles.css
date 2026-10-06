@@ -1501,3 +1501,239 @@ html, body, #root {
     animation-delay: 0ms !important;
   }
 }
+
+
+/* Motion audit fixes: fixed game viewport, sequencing, stable piles. */
+.gameApp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding:
+    max(72px, env(safe-area-inset-top), var(--tg-content-safe-area-inset-top, 0px))
+    10px
+    max(8px, env(safe-area-inset-bottom));
+}
+
+.gameApp .topbar,
+.gameApp .reconnectNotice,
+.gameApp .classAbilityBar,
+.gameApp .gameMeta,
+.gameApp .opponents,
+.gameApp .trumpChoice,
+.gameApp .turnInfo,
+.gameApp .gameActions,
+.gameApp .myHand {
+  flex: 0 0 auto;
+}
+
+.gameApp .topbar {
+  width: 100%;
+  margin-bottom: 0;
+  min-height: 42px;
+}
+
+.gameApp .classAbilityBar {
+  margin: 0 auto;
+  padding: 7px 10px;
+  gap: 1px;
+}
+
+.gameApp .classAbilityBar span {
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.gameApp .classAbilityBar em { font-size: 8px; }
+
+.gameApp .gameMeta {
+  width: 100%;
+  margin: 0 auto;
+  padding: 6px 8px;
+  min-height: 38px;
+}
+
+.gameApp .gameMeta span { font-size: 8px; }
+.gameApp .gameMeta b { font-size: 12px; }
+
+.gameApp .opponents {
+  width: 100%;
+  margin: 0 auto;
+  padding: 1px 2px 3px;
+  min-height: 58px;
+}
+
+.gameApp .opponent {
+  min-width: 82px;
+  min-height: 54px;
+  padding: 5px 7px;
+  gap: 1px;
+}
+
+.gameApp .opponent .avatar {
+  width: 27px;
+  height: 27px;
+}
+
+.gameApp .tableArea {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 132px;
+  max-height: none;
+  margin: 0 auto;
+  padding: 10px 58px;
+  border-radius: 18px;
+}
+
+.gameApp .turnInfo {
+  width: 100%;
+  margin: 0 auto;
+  min-height: 18px;
+  font-size: 11px;
+}
+
+.gameApp .gameActions {
+  width: min(100%, 560px);
+  margin: 0 auto;
+}
+
+.gameApp .gameActions button { min-height: 36px; }
+
+.gameApp .myHand {
+  width: 100%;
+  margin: 0 auto;
+  padding: 4px 4px 0;
+  min-height: 96px;
+}
+
+.gameApp .handHeader {
+  margin-bottom: 2px;
+  font-size: 9px;
+}
+
+.gameApp .handCards {
+  min-height: 82px;
+  height: 88px;
+  padding: 2px 22px 2px;
+}
+
+.gameApp .handCard,
+.gameApp .handCard .cardFace {
+  width: 58px;
+  height: 82px;
+}
+
+.gameApp .handCard {
+  flex-basis: 58px;
+  margin-left: -14px;
+}
+
+.gameApp .handCard:first-child { margin-left: 0; }
+.gameApp .handCard .cardFace b { font-size: 15px; }
+.gameApp .handCard .cardFace strong { font-size: 22px; }
+
+.gameApp[data-motion="discard"] .handCard.motion-draw {
+  animation-delay: calc(230ms + var(--hand-index, 0) * 38ms);
+}
+
+.gameApp[data-motion="discard"] .opponent.motion-draw,
+.gameApp[data-motion="take"] .opponent.motion-draw {
+  animation-delay: 210ms;
+}
+
+.gameApp[data-motion] .deckPile.pulseDraw .backTwo {
+  animation-delay: 190ms;
+}
+
+.opponent.motion-deal {
+  animation-delay: calc(var(--seat-index, 0) * 55ms);
+}
+
+.discardPile.pulseDiscard {
+  animation: none;
+}
+
+.discardPile.pulseDiscard .discardTwo {
+  animation: discardTopReceive .5s cubic-bezier(.18,.78,.22,1);
+}
+
+@keyframes discardTopReceive {
+  0% { transform:translate(2px,-1px) rotate(9deg) scale(.78); opacity:.45; }
+  60% { transform:translate(2px,-1px) rotate(5deg) scale(1.14); opacity:1; }
+  100% { transform:translate(2px,-1px) rotate(9deg) scale(1); opacity:.84; }
+}
+
+@keyframes cardsToDiscard {
+  0% { opacity:1; }
+  72% {
+    opacity:1;
+    left:-2px;
+    top:calc(50% - 45px);
+    transform:scale(.48) rotate(-18deg);
+  }
+  100% {
+    opacity:0;
+    left:-5px;
+    top:calc(50% - 44px);
+    transform:scale(.36) rotate(-24deg);
+  }
+}
+
+@keyframes cardsToSelf {
+  0% { opacity:1; }
+  72% {
+    opacity:1;
+    left:calc(50% - 32px);
+    top:calc(100% + 5px);
+    transform:scale(.55) rotate(7deg);
+  }
+  100% {
+    opacity:0;
+    left:calc(50% - 32px);
+    top:calc(100% + 34px);
+    transform:scale(.42) rotate(9deg);
+  }
+}
+
+@keyframes cardsToOpponent {
+  0% { opacity:1; }
+  72% {
+    opacity:1;
+    left:calc(50% - 32px);
+    top:-66px;
+    transform:scale(.52) rotate(-7deg);
+  }
+  100% {
+    opacity:0;
+    left:calc(50% - 32px);
+    top:-96px;
+    transform:scale(.4) rotate(-10deg);
+  }
+}
+
+@media (max-height: 760px) {
+  .gameApp {
+    gap: 4px;
+    padding-top: max(68px, env(safe-area-inset-top), var(--tg-content-safe-area-inset-top, 0px));
+  }
+  .gameApp .topbar { min-height: 36px; }
+  .gameApp .classAbilityBar span { display:none; }
+  .gameApp .opponents { min-height: 50px; }
+  .gameApp .opponent { min-height: 48px; padding:4px 6px; }
+  .gameApp .opponent .avatar { width:23px; height:23px; }
+  .gameApp .tableArea { min-height:112px; padding-top:6px; padding-bottom:6px; }
+  .gameApp .myHand { min-height:84px; }
+  .gameApp .handCards { min-height:72px; height:76px; }
+  .gameApp .handCard,
+  .gameApp .handCard .cardFace { width:52px; height:74px; }
+  .gameApp .handCard { flex-basis:52px; margin-left:-13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gameApp[data-motion="discard"] .handCard.motion-draw,
+  .gameApp[data-motion="discard"] .opponent.motion-draw,
+  .gameApp[data-motion="take"] .opponent.motion-draw,
+  .gameApp[data-motion] .deckPile.pulseDraw .backTwo {
+    animation-delay: 0ms !important;
+  }
+}
