@@ -365,7 +365,8 @@ async function applyRoomProgress(room: Room) {
       room.id,
       playerIds,
       loserId,
-      room.game.draw
+      room.game.draw,
+      room.game.settings.ranked
     );
 
     const byId = new Map(profiles.map((profile) => [profile.playerId, profile]));
