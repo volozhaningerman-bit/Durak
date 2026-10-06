@@ -67,6 +67,36 @@ interface GameView {
 
 type ConnectionState = "connecting" | "online" | "offline";
 
+const errorMessages: Record<string, string> = {
+  BAD_MESSAGE: "Некорректная команда",
+  INVALID_SETTINGS: "Некорректные настройки игры",
+  ALREADY_IN_ROOM: "Ты уже находишься в партии",
+  NOT_IN_ROOM: "Ты не находишься в партии",
+  ROOM_NOT_FOUND: "Комната больше не существует",
+  GAME_NOT_FINISHED: "Сначала закончи текущую партию",
+  NOT_YOUR_TURN: "Сейчас не твой ход",
+  CARD_NOT_IN_HAND: "Этой карты уже нет в руке",
+  JOKER_DEFENSE_ONLY: "Джокером можно только отбиваться",
+  CARD_CANNOT_BEAT: "Этой картой нельзя отбить",
+  ATTACK_NOT_ALLOWED: "Сейчас нельзя ходить",
+  DEFENSE_NOT_ALLOWED: "Сейчас нельзя отбиваться",
+  TRANSFER_NOT_ALLOWED: "Сейчас нельзя переводить",
+  TAKE_NOT_ALLOWED: "Сейчас нельзя взять",
+  PASS_NOT_ALLOWED: "Сейчас нельзя пасовать",
+  THROW_IN_RANK_MISMATCH: "Подкинуть можно только подходящее достоинство",
+  ATTACK_LIMIT_REACHED: "На стол уже положено максимум карт",
+  RANK_MISMATCH: "Этой картой нельзя перевести",
+  ALREADY_DEFENDED: "После начала отбоя переводить уже нельзя",
+  NEXT_PLAYER_NOT_ENOUGH_CARDS: "Следующему игроку нельзя перевести столько карт",
+  GAME_FINISHED: "Партия уже закончена",
+  NOT_WAITING_FOR_TRUMP: "Сейчас нельзя выбирать козырь"
+};
+
+function readableError(code?: string): string {
+  if (!code) return "Ошибка игры";
+  return errorMessages[code] ?? "Не удалось выполнить действие";
+}
+
 function websocketUrl(): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host =
@@ -153,7 +183,7 @@ export function App() {
         }
 
         if (message.type === "game_error" || message.type === "error") {
-          setError(message.code ?? "Ошибка игры");
+          setError(readableError(message.code));
         }
       } catch {
         setError("Сервер прислал некорректный ответ");
