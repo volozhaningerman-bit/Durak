@@ -1,9 +1,13 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
+  RPG_CLASS_NAMES,
+  type Card,
   type GameMode,
   type GameSettings,
+  type RpgClassId,
+  type Suit,
   type ThemeId
 } from "@durak/game-core";
 
@@ -14,39 +18,206 @@ const themes: { id: ThemeId; label: string }[] = [
   { id: "rus-fantasy", label: "Русь" }
 ];
 
+const suitSymbol: Record<Suit, string> = {
+  clubs: "♣",
+  diamonds: "♦",
+  hearts: "♥",
+  spades: "♠"
+};
+
+interface GameViewPlayer {
+  id: string;
+  seat: number;
+  classId?: RpgClassId;
+  handCount: number;
+  finished: boolean;
+  place?: number;
+}
+
+interface GameView {
+  id: string;
+  settings: GameSettings;
+  phase: "awaiting-trump" | "attacking" | "defending" | "throwing" | "finished";
+  players: GameViewPlayer[];
+  self: {
+    seat: number;
+    hand: Card[];
+    classId?: RpgClassId;
+    ability: {
+      wildTransfersLeft: number;
+      jokerAvailable: boolean;
+    };
+    finished: boolean;
+    place?: number;
+  };
+  deckCount: number;
+  discardCount: number;
+  trumpSuits: Suit[];
+  trumpCard?: Card;
+  table: Array<{ attack: Card; defense?: Card }>;
+  attackerSeat: number;
+  defenderSeat: number;
+  turnSeat?: number;
+  direction: 1 | -1;
+  roundAttackLimit: number;
+  defenderTaking: boolean;
+  loserSeat?: number;
+  draw: boolean;
+}
+
+type ConnectionState = "connecting" | "online" | "offline";
+
+function websocketUrl(): string {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host =
+    window.location.hostname === "localhost"
+      ? `${window.location.hostname}:3001`
+      : window.location.host;
+  return `${protocol}//${host}/ws`;
+}
+
 export function App() {
   const [mode, setMode] = useState<GameMode>("classic");
   const [theme, setTheme] = useState<ThemeId>("dark");
   const [classic, setClassic] = useState<GameSettings>({ ...DEFAULT_CLASSIC_SETTINGS });
   const [rpg, setRpg] = useState<GameSettings>({ ...DEFAULT_RPG_SETTINGS });
+  const [connection, setConnection] = useState<ConnectionState>("connecting");
+  const [queueing, setQueueing] = useState(false);
+  const [game, setGame] = useState<GameView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedAttackId, setSelectedAttackId] = useState<string | null>(null);
+  const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+
   const settings = mode === "classic" ? classic : rpg;
 
   const subtitle = useMemo(
-    () => mode === "classic" ? "Настрой правила и найди соперников" : "Случайный класс. Никаких одинаковых ролей.",
+    () =>
+      mode === "classic"
+        ? "Настрой правила и найди соперников"
+        : "Случайный класс. Никаких одинаковых ролей.",
     [mode]
   );
 
+  useEffect(() => {
+    const socket = new WebSocket(websocketUrl());
+    socketRef.current = socket;
+
+    socket.onopen = () => {
+      setConnection("online");
+      setError(null);
+    };
+
+    socket.onclose = () => {
+      setConnection("offline");
+      setQueueing(false);
+    };
+
+    socket.onerror = () => {
+      setError("Нет соединения с игровым сервером");
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(String(event.data)) as {
+          type: string;
+          code?: string;
+          state?: GameView;
+        };
+
+        if (message.type === "queue_joined") {
+          setQueueing(true);
+          return;
+        }
+
+        if (message.type === "queue_left") {
+          setQueueing(false);
+          return;
+        }
+
+        if ((message.type === "match_found" || message.type === "game_state") && message.state) {
+          setGame(message.state);
+          setQueueing(false);
+          setSelectedAttackId(null);
+          setSelectedHandId(null);
+          setError(null);
+          return;
+        }
+
+        if (message.type === "game_error" || message.type === "error") {
+          setError(message.code ?? "Ошибка игры");
+        }
+      } catch {
+        setError("Сервер прислал некорректный ответ");
+      }
+    };
+
+    return () => {
+      socket.close();
+      socketRef.current = null;
+    };
+  }, []);
+
+  function send(payload: unknown) {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      setError("Сервер ещё не подключён");
+      return;
+    }
+    socket.send(JSON.stringify(payload));
+  }
+
   function updateSettings(patch: Partial<GameSettings>) {
-    if (mode === "classic") setClassic((s) => ({ ...s, ...patch }));
-    else setRpg((s) => ({ ...s, ...patch, mode: "rpg", variant: "transfer" }));
+    if (mode === "classic") {
+      setClassic((current) => ({ ...current, ...patch }));
+    } else {
+      setRpg((current) => ({
+        ...current,
+        ...patch,
+        mode: "rpg",
+        variant: "transfer"
+      }));
+    }
+  }
+
+  function joinQueue() {
+    setError(null);
+    send({ type: "join_queue", settings });
+  }
+
+  function leaveQueue() {
+    send({ type: "leave_queue" });
+  }
+
+  function gameAction(action: Record<string, unknown>) {
+    setError(null);
+    send({ type: "game_action", action });
+  }
+
+  if (game) {
+    return (
+      <GameScreen
+        game={game}
+        theme={theme}
+        setTheme={setTheme}
+        error={error}
+        selectedAttackId={selectedAttackId}
+        setSelectedAttackId={setSelectedAttackId}
+        selectedHandId={selectedHandId}
+        setSelectedHandId={setSelectedHandId}
+        onAction={gameAction}
+      />
+    );
   }
 
   return (
     <main className="app" data-theme={theme}>
-      <header className="topbar">
-        <div>
-          <strong className="brand">DURAK <span>RPG</span></strong>
-          <div className="subtitle">{subtitle}</div>
-        </div>
-        <select
-          className="themeSelect"
-          value={theme}
-          onChange={(e) => setTheme(e.target.value as ThemeId)}
-          aria-label="Стиль"
-        >
-          {themes.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-        </select>
-      </header>
+      <Header
+        theme={theme}
+        setTheme={setTheme}
+        subtitle={subtitle}
+        connection={connection}
+      />
 
       <section className="modeSwitch">
         <button className={mode === "classic" ? "active" : ""} onClick={() => setMode("classic")}>
@@ -62,7 +233,11 @@ export function App() {
         <div className="crest">Д</div>
         <div className="playingCard right">A♥</div>
         <h1>{mode === "classic" ? "Классический дурак" : "Дурак с классами"}</h1>
-        <p>{mode === "classic" ? "Подкидной или переводной — правила выбираешь ты." : "Шесть классов меняют привычную партию."}</p>
+        <p>
+          {mode === "classic"
+            ? "Подкидной или переводной — правила выбираешь ты."
+            : "Шесть классов меняют привычную партию."}
+        </p>
       </section>
 
       <section className="settings">
@@ -73,27 +248,80 @@ export function App() {
             max="6"
             step="1"
             value={settings.playerCount}
-            onChange={(e) => updateSettings({ playerCount: Number(e.target.value) as GameSettings["playerCount"] })}
+            onChange={(event) =>
+              updateSettings({
+                playerCount: Number(event.target.value) as GameSettings["playerCount"]
+              })
+            }
           />
+          <div className="rangeLabels"><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
         </SettingRow>
 
         {mode === "classic" && (
-          <SettingRow label="Режим" value={settings.variant === "throw-in" ? "Подкидной" : "Переводной"}>
+          <SettingRow
+            label="Режим"
+            value={settings.variant === "throw-in" ? "Подкидной" : "Переводной"}
+          >
             <div className="segmented">
-              <button className={settings.variant === "throw-in" ? "active" : ""} onClick={() => updateSettings({ variant: "throw-in" })}>Подкидной</button>
-              <button className={settings.variant === "transfer" ? "active" : ""} onClick={() => updateSettings({ variant: "transfer" })}>Переводной</button>
+              <button
+                className={settings.variant === "throw-in" ? "active" : ""}
+                onClick={() => updateSettings({ variant: "throw-in" })}
+              >
+                Подкидной
+              </button>
+              <button
+                className={settings.variant === "transfer" ? "active" : ""}
+                onClick={() => updateSettings({ variant: "transfer" })}
+              >
+                Переводной
+              </button>
             </div>
           </SettingRow>
         )}
 
-        <SettingRow label="Подкидывают" value={settings.throwInPolicy === "all" ? "Все" : "Крайние"}>
+        <SettingRow
+          label="Подкидывают"
+          value={settings.throwInPolicy === "all" ? "Все" : "Крайние"}
+        >
           <div className="segmented">
-            <button className={settings.throwInPolicy === "all" ? "active" : ""} onClick={() => updateSettings({ throwInPolicy: "all" })}>Все</button>
-            <button className={settings.throwInPolicy === "neighbors" ? "active" : ""} onClick={() => updateSettings({ throwInPolicy: "neighbors" })}>Крайние</button>
+            <button
+              className={settings.throwInPolicy === "all" ? "active" : ""}
+              onClick={() => updateSettings({ throwInPolicy: "all" })}
+            >
+              Все
+            </button>
+            <button
+              className={settings.throwInPolicy === "neighbors" ? "active" : ""}
+              onClick={() => updateSettings({ throwInPolicy: "neighbors" })}
+            >
+              Крайние
+            </button>
           </div>
         </SettingRow>
 
-        <button className="findGame">НАЙТИ ИГРУ</button>
+        {mode === "rpg" && (
+          <div className="rpgNote">
+            Класс выдаётся случайно перед партией. RPG всегда подкидной + переводной.
+          </div>
+        )}
+
+        {error && <div className="errorBanner">{error}</div>}
+
+        <button
+          className="findGame"
+          disabled={connection !== "online"}
+          onClick={queueing ? leaveQueue : joinQueue}
+        >
+          {connection === "connecting"
+            ? "ПОДКЛЮЧЕНИЕ..."
+            : connection === "offline"
+              ? "СЕРВЕР НЕДОСТУПЕН"
+              : queueing
+                ? "ОТМЕНИТЬ ПОИСК"
+                : "НАЙТИ ИГРУ"}
+        </button>
+
+        {queueing && <div className="searchingPulse">Ищем игроков с такими же настройками…</div>}
       </section>
 
       <nav className="bottomNav">
@@ -103,6 +331,273 @@ export function App() {
         <button>Магазин</button>
       </nav>
     </main>
+  );
+}
+
+function Header(props: {
+  theme: ThemeId;
+  setTheme: (theme: ThemeId) => void;
+  subtitle: string;
+  connection?: ConnectionState;
+}) {
+  return (
+    <header className="topbar">
+      <div>
+        <strong className="brand">DURAK <span>RPG</span></strong>
+        <div className="subtitle">
+          {props.subtitle}
+          {props.connection && (
+            <span className={`connectionDot ${props.connection}`}>
+              {props.connection === "online" ? " online" : ""}
+            </span>
+          )}
+        </div>
+      </div>
+      <select
+        className="themeSelect"
+        value={props.theme}
+        onChange={(event) => props.setTheme(event.target.value as ThemeId)}
+        aria-label="Стиль"
+      >
+        {themes.map((item) => (
+          <option key={item.id} value={item.id}>{item.label}</option>
+        ))}
+      </select>
+    </header>
+  );
+}
+
+function GameScreen(props: {
+  game: GameView;
+  theme: ThemeId;
+  setTheme: (theme: ThemeId) => void;
+  error: string | null;
+  selectedAttackId: string | null;
+  setSelectedAttackId: (value: string | null) => void;
+  selectedHandId: string | null;
+  setSelectedHandId: (value: string | null) => void;
+  onAction: (action: Record<string, unknown>) => void;
+}) {
+  const { game } = props;
+  const isMyTurn = game.turnSeat === game.self.seat;
+  const myClass = game.self.classId ? RPG_CLASS_NAMES[game.self.classId] : undefined;
+  const openAttack =
+    game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
+    game.table.find((pair) => !pair.defense);
+
+  function clickHandCard(card: Card) {
+    if (!isMyTurn) return;
+
+    if (game.phase === "attacking" || game.phase === "throwing") {
+      props.onAction({ type: "attack", cardId: card.id });
+      return;
+    }
+
+    if (game.phase === "defending") {
+      props.setSelectedHandId(card.id);
+    }
+  }
+
+  function defend() {
+    if (!props.selectedHandId || !openAttack) return;
+    props.onAction({
+      type: "defend",
+      attackCardId: openAttack.attack.id,
+      cardId: props.selectedHandId
+    });
+  }
+
+  function transfer(reverse = false) {
+    if (!props.selectedHandId) return;
+    props.onAction({
+      type: "transfer",
+      cardId: props.selectedHandId,
+      reverse
+    });
+  }
+
+  const resultText =
+    game.phase === "finished"
+      ? game.draw
+        ? "Ничья"
+        : game.loserSeat === game.self.seat
+          ? "Ты остался дураком"
+          : `Дурак — игрок #${(game.loserSeat ?? 0) + 1}`
+      : null;
+
+  return (
+    <main className="app gameApp" data-theme={props.theme}>
+      <Header
+        theme={props.theme}
+        setTheme={props.setTheme}
+        subtitle={myClass ? `Твой класс: ${myClass}` : "Классическая партия"}
+      />
+
+      <section className="gameMeta">
+        <span>Колода <b>{game.deckCount}</b></span>
+        <span>
+          Козырь <b>{game.trumpSuits[0] ? suitSymbol[game.trumpSuits[0]] : "?"}</b>
+        </span>
+        <span>Ход <b>{game.direction === 1 ? "→" : "←"}</b></span>
+        <span>На столе <b>{game.table.length}/{game.roundAttackLimit || "—"}</b></span>
+      </section>
+
+      <section className="opponents">
+        {game.players
+          .filter((player) => player.seat !== game.self.seat)
+          .map((player) => (
+            <div
+              key={player.seat}
+              className={[
+                "opponent",
+                player.seat === game.turnSeat ? "turn" : "",
+                player.seat === game.defenderSeat ? "defender" : "",
+                player.finished ? "finished" : ""
+              ].join(" ")}
+            >
+              <div className="avatar">{player.seat + 1}</div>
+              <strong>Игрок {player.seat + 1}</strong>
+              <span>{player.handCount} карт</span>
+              {player.classId && <small>{RPG_CLASS_NAMES[player.classId]}</small>}
+            </div>
+          ))}
+      </section>
+
+      {game.phase === "awaiting-trump" && isMyTurn && (
+        <section className="trumpChoice">
+          <h2>Выбери козырь</h2>
+          <div className="suitButtons">
+            {(["clubs", "diamonds", "hearts", "spades"] as Suit[]).map((suit) => (
+              <button
+                key={suit}
+                className={suit === "hearts" || suit === "diamonds" ? "redSuit" : ""}
+                onClick={() => props.onAction({ type: "choose_trump", suit })}
+              >
+                {suitSymbol[suit]}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="tableArea">
+        {game.table.length === 0 ? (
+          <div className="emptyTable">
+            {game.phase === "finished"
+              ? resultText
+              : isMyTurn
+                ? "Твой ход"
+                : "Ожидаем ход соперника"}
+          </div>
+        ) : (
+          <div className="tablePairs">
+            {game.table.map((pair) => (
+              <button
+                key={pair.attack.id}
+                className={[
+                  "tablePair",
+                  !pair.defense && openAttack?.attack.id === pair.attack.id ? "selected" : ""
+                ].join(" ")}
+                onClick={() => {
+                  if (!pair.defense && game.phase === "defending" && isMyTurn) {
+                    props.setSelectedAttackId(pair.attack.id);
+                  }
+                }}
+              >
+                <CardFace card={pair.attack} />
+                {pair.defense && <div className="defenseCard"><CardFace card={pair.defense} /></div>}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {props.error && <div className="errorBanner gameError">{props.error}</div>}
+
+      <section className="turnInfo">
+        {resultText ?? (
+          isMyTurn
+            ? game.phase === "defending"
+              ? "Отбей, переведи или возьми"
+              : game.phase === "throwing"
+                ? "Подкинь карту или пас"
+                : game.phase === "attacking"
+                  ? "Выбери карту для хода"
+                  : "Выбери козырную масть"
+            : `Ход игрока #${(game.turnSeat ?? 0) + 1}`
+        )}
+      </section>
+
+      {game.phase === "defending" && isMyTurn && (
+        <section className="gameActions">
+          <button disabled={!props.selectedHandId || !openAttack} onClick={defend}>
+            Отбить
+          </button>
+          {game.settings.variant === "transfer" && (
+            <button disabled={!props.selectedHandId} onClick={() => transfer(false)}>
+              Перевести
+            </button>
+          )}
+          {game.self.classId === "reverse-transfer" && (
+            <button disabled={!props.selectedHandId} onClick={() => transfer(true)}>
+              Развернуть
+            </button>
+          )}
+          <button className="dangerAction" onClick={() => props.onAction({ type: "take" })}>
+            Взять
+          </button>
+        </section>
+      )}
+
+      {game.phase === "throwing" && isMyTurn && (
+        <section className="gameActions single">
+          <button onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
+        </section>
+      )}
+
+      <section className="myHand">
+        <div className="handHeader">
+          <span>Твои карты</span>
+          <b>{game.self.hand.length}</b>
+          {game.self.classId === "wild-transfer" && (
+            <small>особых переводов: {game.self.ability.wildTransfersLeft}</small>
+          )}
+        </div>
+        <div className="handCards">
+          {game.self.hand.map((card) => (
+            <button
+              key={card.id}
+              className={[
+                "handCard",
+                card.id === props.selectedHandId ? "selected" : "",
+                isRed(card) ? "red" : ""
+              ].join(" ")}
+              onClick={() => clickHandCard(card)}
+              disabled={!isMyTurn || game.phase === "finished" || game.phase === "awaiting-trump"}
+            >
+              <CardFace card={card} />
+            </button>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function isRed(card: Card): boolean {
+  return card.kind === "standard" && (card.suit === "hearts" || card.suit === "diamonds");
+}
+
+function CardFace({ card }: { card: Card }) {
+  if (card.kind === "joker") {
+    return <span className="cardFace jokerFace"><b>★</b><small>JOKER</small></span>;
+  }
+
+  return (
+    <span className={`cardFace ${isRed(card) ? "red" : ""}`}>
+      <b>{card.rank}</b>
+      <strong>{suitSymbol[card.suit]}</strong>
+    </span>
   );
 }
 
