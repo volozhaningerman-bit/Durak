@@ -4,6 +4,12 @@ export type GameMode = "classic" | "rpg";
 export type DurakVariant = "throw-in" | "transfer";
 export type ThrowInPolicy = "all" | "neighbors";
 export type ThemeId = "classic" | "casino" | "dark" | "rus-fantasy";
+export type GamePhase =
+  | "awaiting-trump"
+  | "attacking"
+  | "defending"
+  | "throwing"
+  | "finished";
 
 export type RpgClassId =
   | "trump-master"
@@ -49,6 +55,7 @@ export interface PlayerState {
   hand: Card[];
   ability: PlayerAbilityState;
   finished: boolean;
+  place?: number;
 }
 
 export interface AttackPair {
@@ -59,15 +66,22 @@ export interface AttackPair {
 export interface GameState {
   id: string;
   settings: GameSettings;
+  phase: GamePhase;
   players: PlayerState[];
   deck: StandardCard[];
+  discard: Card[];
   trumpSuits: Suit[];
   trumpCard?: StandardCard;
   table: AttackPair[];
   attackerSeat: number;
   defenderSeat: number;
+  turnSeat?: number;
   direction: 1 | -1;
-  firstThrowPrioritySeat?: number;
+  roundAttackLimit: number;
+  throwInPassedSeats: number[];
+  defenderTaking: boolean;
+  loserSeat?: number;
+  draw: boolean;
 }
 
 export interface TransferIntent {
@@ -83,3 +97,11 @@ export interface TransferValidation {
   nextDirection?: 1 | -1;
   reason?: string;
 }
+
+export type GameAction =
+  | { type: "choose_trump"; playerSeat: number; suit: Suit }
+  | { type: "attack"; playerSeat: number; cardId: string }
+  | { type: "defend"; playerSeat: number; attackCardId: string; cardId: string }
+  | { type: "transfer"; playerSeat: number; cardId: string; reverse?: boolean }
+  | { type: "take"; playerSeat: number }
+  | { type: "pass_throw_in"; playerSeat: number };
