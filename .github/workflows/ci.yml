@@ -17,3 +17,16 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run test
       - run: npm run build
+      - name: Smoke test production server
+        run: |
+          PORT=3100 npm start > /tmp/durak-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:3100/health > /tmp/health.json; then
+              break
+            fi
+            sleep 0.5
+          done
+          grep -q '"ok":true' /tmp/health.json
+          curl -fsS http://127.0.0.1:3100/ | grep -q 'Durak RPG'
