@@ -679,6 +679,7 @@ export function App() {
 
         {!queueing && !privateLobby && (
           <div className="privateRoomTools">
+            <div className="settingHint">Приватные комнаты всегда без изменения рейтинга.</div>
             <button
               className="secondaryGameButton"
               disabled={connection !== "online"}
