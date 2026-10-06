@@ -294,3 +294,122 @@ input[type="range"] { width:100%; accent-color:var(--accent); }
   font-size: 9px;
   font-weight: 600;
 }
+
+
+.privateRoomTools {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.secondaryGameButton {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.secondaryGameButton:disabled {
+  opacity: .5;
+}
+
+.joinPrivateRow {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+}
+
+.joinPrivateRow input {
+  min-width: 0;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.joinPrivateRow input::placeholder {
+  color: var(--muted);
+  opacity: .7;
+}
+
+.privateLobbyCard {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+}
+
+.privateLobbyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.privateLobbyHead > div span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-bottom: 3px;
+}
+
+.privateLobbyHead > div strong {
+  font-size: 18px;
+}
+
+.privateLobbyHead > button {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 12px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.privateMembers {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+
+.privateMember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.privateMember .avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
+}
+
+.privateMember span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.privateMember small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.dangerOutline {
+  width: 100%;
+  margin-top: 8px;
+  color: #df7777;
+}
