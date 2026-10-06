@@ -21,23 +21,26 @@ import { createProfileStore } from "./profileStore.js";
 
 const port = Number(process.env.PORT || 3001);
 const isProduction = process.env.NODE_ENV === "production";
+const resolvedWebAppUrl =
+  process.env.WEBAPP_URL?.trim() ||
+  process.env.RENDER_EXTERNAL_URL?.trim() ||
+  "";
 
 function validateProductionConfig() {
   if (!isProduction) return;
 
   const required = [
     "BOT_TOKEN",
-    "WEBAPP_URL",
     "DATABASE_URL",
     "TELEGRAM_WEBHOOK_SECRET"
   ] as const;
   const missing = required.filter((key) => !process.env[key]?.trim());
+  if (!resolvedWebAppUrl) missing.push("WEBAPP_URL" as never);
   if (missing.length > 0) {
     throw new Error(`Missing required production env: ${missing.join(", ")}`);
   }
 
-  const webAppUrl = process.env.WEBAPP_URL!;
-  if (!/^https:\/\//i.test(webAppUrl)) {
+  if (!/^https:\/\//i.test(resolvedWebAppUrl)) {
     throw new Error("WEBAPP_URL must use https:// in production");
   }
 }
@@ -122,7 +125,7 @@ function secureRandom(): number {
 }
 
 function isAllowedOrigin(origin?: string): boolean {
-  const configured = process.env.WEBAPP_URL?.trim();
+  const configured = resolvedWebAppUrl;
   if (!configured || !isProduction) return true;
   if (!origin) return false;
 
@@ -194,7 +197,7 @@ app.post("/telegram/webhook", async (req, res) => {
     return;
   }
 
-  const webAppUrl = process.env.WEBAPP_URL;
+  const webAppUrl = resolvedWebAppUrl;
   if (!webAppUrl) return;
 
   try {
