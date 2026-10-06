@@ -386,6 +386,10 @@ async function handleGameAction(session: Session, action: ClientGameAction) {
 function finishRoomByForfeit(room: Room, loserSeat: number) {
   if (room.game.phase === "finished") return;
 
+  const loserMember = room.members[loserSeat];
+  loserMember.roomId = undefined;
+  loserMember.seat = undefined;
+
   room.game = {
     ...room.game,
     phase: "finished",
@@ -534,6 +538,7 @@ function restoreRoomMembership(session: Session): Room | undefined {
     if (seat < 0) continue;
 
     const previous = room.members[seat];
+    if (previous.roomId !== room.id) continue;
     if (previous === session) return room;
 
     if (
