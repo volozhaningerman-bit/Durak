@@ -48,17 +48,42 @@ export function chooseTrumpForMaster(
     throw new Error("PLAYER_CANNOT_CHOOSE_TRUMP");
   }
 
-  const index = state.deck.findIndex((card) => card.suit === suit);
-  if (index === -1) {
-    throw new Error("CHOSEN_TRUMP_SUIT_NOT_IN_DECK");
+  const players = state.players.map((entry) => ({
+    ...entry,
+    hand: [...entry.hand],
+    ability: { ...entry.ability }
+  }));
+  const deck = [...state.deck];
+
+  let trumpCard: StandardCard | undefined;
+  const deckIndex = deck.findIndex((card) => card.suit === suit);
+
+  if (deckIndex >= 0) {
+    [trumpCard] = deck.splice(deckIndex, 1);
+    deck.push(trumpCard);
+  } else if (deck.length > 0) {
+    for (const owner of players) {
+      const handIndex = owner.hand.findIndex(
+        (card): card is StandardCard => card.kind === "standard" && card.suit === suit
+      );
+      if (handIndex < 0) continue;
+
+      const chosen = owner.hand[handIndex] as StandardCard;
+      const replacement = deck.pop()!;
+      owner.hand.splice(handIndex, 1, replacement);
+      deck.push(chosen);
+      trumpCard = chosen;
+      break;
+    }
   }
 
-  const deck = [...state.deck];
-  const [trumpCard] = deck.splice(index, 1);
-  deck.push(trumpCard);
+  if (!trumpCard) {
+    throw new Error("CHOSEN_TRUMP_SUIT_UNAVAILABLE");
+  }
 
   return {
     ...state,
+    players,
     deck,
     trumpSuits: [suit],
     trumpCard
