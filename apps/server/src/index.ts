@@ -36,6 +36,8 @@ type ClientMessage =
   | { type: "join_queue"; settings: unknown }
   | { type: "leave_queue" }
   | { type: "leave_room" }
+  | { type: "get_leaderboard"; limit?: number }
+  | { type: "get_history"; limit?: number }
   | { type: "game_action"; action: ClientGameAction };
 
 interface Session {
@@ -407,12 +409,75 @@ function leaveFinishedRoom(session: Session) {
   if (!hasMembers) rooms.delete(roomId);
 }
 
+async function sendLeaderboard(session: Session, requestedLimit?: number) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const limit =
+    typeof requestedLimit === "number" && Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(100, Math.floor(requestedLimit)))
+      : 50;
+
+  try {
+    const entries = await profileStore.getLeaderboard(limit);
+    send(session.socket, {
+      type: "leaderboard",
+      entries: entries.map((entry, index) => ({
+        rank: index + 1,
+        rating: entry.rating,
+        games: entry.games,
+        wins: entry.wins,
+        losses: entry.losses,
+        draws: entry.draws,
+        currentStreak: entry.currentStreak,
+        bestStreak: entry.bestStreak,
+        level: entry.level,
+        displayName: entry.displayName,
+        username: entry.username,
+        photoUrl: entry.photoUrl,
+        isSelf: entry.playerId === session.playerId
+      }))
+    });
+  } catch (error) {
+    console.error("Failed to load leaderboard", error);
+    send(session.socket, { type: "error", code: "LEADERBOARD_LOAD_FAILED" });
+  }
+}
+
+async function sendHistory(session: Session, requestedLimit?: number) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const limit =
+    typeof requestedLimit === "number" && Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(100, Math.floor(requestedLimit)))
+      : 20;
+
+  try {
+    const entries = await profileStore.getHistory(session.playerId, limit);
+    send(session.socket, {
+      type: "match_history",
+      entries
+    });
+  } catch (error) {
+    console.error("Failed to load match history", error);
+    send(session.socket, { type: "error", code: "HISTORY_LOAD_FAILED" });
+  }
+}
+
 async function authenticateSession(session: Session, initData: string) {
   const botToken = process.env.BOT_TOKEN;
 
   if (!botToken) {
     session.authenticated = true;
     session.playerId = `dev:${session.id}`;
+    await profileStore.upsertIdentity(session.playerId, {
+      displayName: "Dev player"
+    });
     const profile = await profileStore.getProfile(session.playerId);
     send(session.socket, {
       type: "auth_ok",
@@ -443,6 +508,11 @@ async function authenticateSession(session: Session, initData: string) {
     session.playerId = playerId;
     session.telegramUser = result.user;
 
+    await profileStore.upsertIdentity(playerId, {
+      displayName: result.user.first_name,
+      username: result.user.username,
+      photoUrl: result.user.photo_url
+    });
     const profile = await profileStore.getProfile(playerId);
 
     send(session.socket, {
@@ -530,6 +600,16 @@ wss.on("connection", (socket) => {
 
     if (message.type === "leave_room") {
       leaveFinishedRoom(session);
+      return;
+    }
+
+    if (message.type === "get_leaderboard") {
+      void sendLeaderboard(session, message.limit);
+      return;
+    }
+
+    if (message.type === "get_history") {
+      void sendHistory(session, message.limit);
       return;
     }
 
