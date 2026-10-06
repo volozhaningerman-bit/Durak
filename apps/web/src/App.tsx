@@ -1441,6 +1441,18 @@ function GameScreen(props: {
           }
         : undefined;
 
+    if (!prefersReducedMotion) {
+      if (!previous.defenderTaking && game.defenderTaking && game.table.length > 0) {
+        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("medium");
+      } else if (directionChanged) {
+        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("rigid");
+      } else if (!previous.self.finished && game.self.finished) {
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+      } else if (cleared?.kind === "discard") {
+        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("soft");
+      }
+    }
+
     setMotion({
       hand,
       attack,
@@ -1627,7 +1639,7 @@ function GameScreen(props: {
           ))}
       </section>
 
-      <section className={`tableArea ${motion.takeDeclared ? "takingDeclared" : ""}`}>
+      <section className={`tableArea ${game.defenderTaking ? "defenderTaking" : ""}`}>
         <div className={`deckPile ${motion.deckPulse ? "pulseDraw" : ""}`} aria-label={`Колода: ${game.deckCount}`}>
           <span className="pileCard backOne" />
           <span className="pileCard backTwo" />
@@ -1826,8 +1838,10 @@ function GameScreen(props: {
       )}
 
       <section className={`myHand ${motion.selfFinished ? "motion-finish" : ""}`}>
-        {motion.selfFinished && game.self.place && (
-          <div className="selfFinishBadge">ВЫШЕЛ #{game.self.place}</div>
+        {game.self.finished && game.self.place && (
+          <div className={`selfFinishBadge ${motion.selfFinished ? "animate" : ""}`}>
+            ВЫШЕЛ #{game.self.place}
+          </div>
         )}
         <div className="handHeader">
           <span>Твои карты</span>
