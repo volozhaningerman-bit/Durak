@@ -148,29 +148,44 @@ function getQueueEntries(): QueueEntry[] {
   return entries;
 }
 
-function gameViewForSeat(game: GameState, seat: number) {
+function gameViewForSeat(room: Room, seat: number) {
+  const game = room.game;
   const self = game.players.find((player) => player.seat === seat);
   if (!self) throw new Error("PLAYER_NOT_FOUND");
+
+  const publicPlayer = (player: GameState["players"][number]) => {
+    const member = room.members[player.seat];
+    const user = member?.telegramUser;
+    return {
+      seat: player.seat,
+      classId: player.classId,
+      handCount: player.hand.length,
+      finished: player.finished,
+      place: player.place,
+      name: user?.first_name ?? `Игрок ${player.seat + 1}`,
+      username: user?.username,
+      photoUrl: user?.photo_url
+    };
+  };
+
+  const selfMember = room.members[seat];
+  const selfUser = selfMember?.telegramUser;
 
   return {
     id: game.id,
     settings: game.settings,
     phase: game.phase,
-    players: game.players.map((player) => ({
-      id: player.id,
-      seat: player.seat,
-      classId: player.classId,
-      handCount: player.hand.length,
-      finished: player.finished,
-      place: player.place
-    })),
+    players: game.players.map(publicPlayer),
     self: {
       seat: self.seat,
       hand: self.hand,
       classId: self.classId,
       ability: self.ability,
       finished: self.finished,
-      place: self.place
+      place: self.place,
+      name: selfUser?.first_name ?? `Игрок ${self.seat + 1}`,
+      username: selfUser?.username,
+      photoUrl: selfUser?.photo_url
     },
     deckCount: game.deck.length,
     discardCount: game.discard.length,
@@ -194,7 +209,7 @@ function broadcastRoom(room: Room, event = "game_state") {
     send(member.socket, {
       type: event,
       roomId: room.id,
-      state: gameViewForSeat(room.game, member.seat)
+      state: gameViewForSeat(room, member.seat)
     });
   }
 }
