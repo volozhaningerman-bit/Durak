@@ -124,7 +124,7 @@ export function applyMatchProgress(
     return {
       ...profile,
       rating: ratingEnabled
-        ? oneDecimal(profile.rating + winnerGain)
+        ? oneDecimal(profile.rating + (winnerDeltas.get(profile.playerId) ?? 0))
         : profile.rating,
       games: profile.games + 1,
       wins: profile.wins + 1,
