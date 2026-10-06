@@ -68,6 +68,7 @@ interface GameView {
   direction: 1 | -1;
   roundAttackLimit: number;
   defenderTaking: boolean;
+  lastRoundOutcome?: "take" | "discard";
   loserSeat?: number;
   draw: boolean;
 }
@@ -1334,10 +1335,16 @@ function GameScreen(props: {
 
     let cleared: ClearedTableMotion | undefined;
     if (previous.table.length > 0 && game.table.length === 0) {
+      const outcome =
+        game.lastRoundOutcome ??
+        (previous.defenderTaking ? "take" : "discard");
       cleared = {
         token: Date.now(),
-        kind: previous.defenderTaking ? "take" : "discard",
-        cards: previousTable,
+        kind: outcome,
+        cards:
+          outcome === "take"
+            ? previousTable.filter((card) => card.kind !== "joker")
+            : previousTable,
         targetSeat: previous.defenderSeat,
         toSelf: previous.defenderSeat === previous.self.seat
       };
