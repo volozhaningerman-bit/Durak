@@ -287,6 +287,9 @@ export function App() {
           }
 
           if ((message.type === "match_found" || message.type === "game_state") && message.state) {
+            if (message.type === "match_found") {
+              window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+            }
             setActionPending(false);
             setGame(message.state);
             setQueueing(false);
@@ -297,6 +300,7 @@ export function App() {
           }
 
           if (message.type === "game_error" || message.type === "error") {
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("error");
             setActionPending(false);
             setError(readableError(message.code));
           }
@@ -349,6 +353,7 @@ export function App() {
 
   function gameAction(action: Record<string, unknown>) {
     if (actionPending) return;
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("light");
     setActionPending(true);
     setError(null);
 
@@ -372,6 +377,35 @@ export function App() {
     if (tab === "rating") send({ type: "get_leaderboard", limit: 50 });
     if (tab === "profile") send({ type: "get_history", limit: 20 });
   }
+
+
+  useEffect(() => {
+    const backButton = window.Telegram?.WebApp?.BackButton;
+    if (!backButton) return;
+
+    const handleBack = () => {
+      if (activeTab !== "play") {
+        setActiveTab("play");
+        return;
+      }
+
+      if (game?.phase === "finished") {
+        leaveRoom();
+      }
+    };
+
+    const shouldShow = activeTab !== "play" || game?.phase === "finished";
+    if (shouldShow) {
+      backButton.show();
+      backButton.onClick(handleBack);
+    } else {
+      backButton.hide();
+    }
+
+    return () => {
+      backButton.offClick(handleBack);
+    };
+  }, [activeTab, game?.phase]);
 
   if (game) {
     return (
