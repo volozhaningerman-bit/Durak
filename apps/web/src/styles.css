@@ -1174,3 +1174,330 @@ html, body, #root {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* In-match motion system */
+.tableArea {
+  position: relative;
+  isolation: isolate;
+}
+
+.attackCardSlot {
+  width: 100%;
+  height: 100%;
+}
+
+.attackCardSlot.enter-self {
+  animation: cardFromSelf .38s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.attackCardSlot.enter-opponent {
+  animation: cardFromOpponent .38s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.defenseCard.enter-self {
+  animation: defenseFromSelf .36s cubic-bezier(.18,.8,.24,1) both;
+}
+
+.defenseCard.enter-opponent {
+  animation: defenseFromOpponent .36s cubic-bezier(.18,.8,.24,1) both;
+}
+
+.handCard.motion-deal {
+  animation: handDealIn .48s cubic-bezier(.16,.78,.22,1) both;
+  animation-delay: calc(var(--hand-index, 0) * 70ms);
+}
+
+.handCard.motion-draw {
+  animation: handDrawIn .42s cubic-bezier(.16,.78,.22,1) both;
+  animation-delay: calc(var(--hand-index, 0) * 38ms);
+}
+
+.handCard.motion-take {
+  animation: handTakeIn .46s cubic-bezier(.16,.78,.22,1) both;
+  animation-delay: calc(var(--hand-index, 0) * 24ms);
+}
+
+.opponent.motion-deal {
+  animation: opponentDeal .55s cubic-bezier(.16,.78,.22,1) both;
+}
+
+.opponent.motion-draw {
+  animation: opponentDraw .42s cubic-bezier(.16,.78,.22,1) both;
+}
+
+.opponent.motion-take {
+  animation: opponentTake .52s cubic-bezier(.16,.78,.22,1) both;
+}
+
+.opponent.motion-play {
+  animation: opponentPlay .34s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.deckPile,
+.discardPile {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  width: 42px;
+  height: 62px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.deckPile { right: 10px; }
+.discardPile { left: 10px; }
+
+.pileCard {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.2);
+}
+
+.deckPile .pileCard {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 4px, transparent 4px 8px),
+    color-mix(in srgb, var(--accent) 26%, #232427);
+}
+
+.deckPile .backOne { transform: translate(-4px, 3px) rotate(-4deg); opacity:.7; }
+.deckPile .backTwo { transform: translate(1px, -1px) rotate(2deg); }
+
+.discardPile .pileCard {
+  background: #ece6d9;
+  border-color: rgba(0,0,0,.16);
+}
+
+.discardPile .discardOne { transform: rotate(-12deg); opacity:.64; }
+.discardPile .discardTwo { transform: translate(2px,-1px) rotate(9deg); opacity:.84; }
+
+.deckPile em,
+.discardPile em {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+  min-width: 24px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.trumpPeek {
+  position: absolute;
+  z-index: -1;
+  left: -18px;
+  top: 7px;
+  width: 40px;
+  height: 56px;
+  padding: 5px;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 6px;
+  background: #f6f2e8;
+  color: #151515;
+  font: 800 10px Georgia, serif;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.trumpPeek.red { color:#b0242f; }
+
+.deckPile.pulseDraw .backTwo {
+  animation: deckGiveCard .42s ease-out;
+}
+
+.discardPile.pulseDiscard {
+  animation: discardReceive .5s cubic-bezier(.18,.78,.22,1);
+}
+
+.clearMotion {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  pointer-events: none;
+}
+
+.motionGhost {
+  --ghost-index: 0;
+  position: absolute;
+  left: calc(50% - 36px + (var(--ghost-index) - 2) * 5px);
+  top: calc(50% - 51px + (var(--ghost-index) - 2) * 3px);
+  width: 72px;
+  height: 102px;
+  transform: rotate(calc((var(--ghost-index) - 2) * 3deg));
+}
+
+.clearMotion.toDiscard .motionGhost {
+  animation: cardsToDiscard .58s cubic-bezier(.28,.05,.4,1) both;
+  animation-delay: calc(var(--ghost-index) * 22ms);
+}
+
+.clearMotion.toSelf .motionGhost {
+  animation: cardsToSelf .62s cubic-bezier(.2,.72,.2,1) both;
+  animation-delay: calc(var(--ghost-index) * 24ms);
+}
+
+.clearMotion.toOpponent .motionGhost {
+  animation: cardsToOpponent .58s cubic-bezier(.2,.72,.2,1) both;
+  animation-delay: calc(var(--ghost-index) * 24ms);
+}
+
+.transferMotion {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.transferMotion span {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  color: var(--accent);
+  font-size: 38px;
+  font-weight: 900;
+  box-shadow: 0 12px 36px rgba(0,0,0,.26);
+  animation: transferSweep .5s cubic-bezier(.18,.75,.2,1) both;
+}
+
+.transferMotion.reverse span {
+  animation: reverseSweep .6s cubic-bezier(.18,.75,.2,1) both;
+}
+
+@keyframes cardFromSelf {
+  0% { opacity:.25; transform:translateY(190px) scale(.72) rotate(-7deg); }
+  70% { opacity:1; transform:translateY(-5px) scale(1.04) rotate(1deg); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes cardFromOpponent {
+  0% { opacity:.2; transform:translateY(-130px) scale(.68) rotate(7deg); }
+  72% { opacity:1; transform:translateY(4px) scale(1.04) rotate(-1deg); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes defenseFromSelf {
+  0% { opacity:.2; transform:translate(-14px,150px) scale(.72) rotate(-5deg); }
+  72% { opacity:1; transform:translate(1px,-2px) scale(1.04) rotate(10deg); }
+  100% { opacity:1; transform:rotate(8deg); }
+}
+
+@keyframes defenseFromOpponent {
+  0% { opacity:.2; transform:translate(12px,-120px) scale(.72) rotate(18deg); }
+  72% { opacity:1; transform:translate(-1px,2px) scale(1.04) rotate(7deg); }
+  100% { opacity:1; transform:rotate(8deg); }
+}
+
+@keyframes handDealIn {
+  0% { opacity:0; transform:translate(190px,-180px) scale(.46) rotate(26deg); }
+  72% { opacity:1; transform:translateY(-7px) scale(1.03) rotate(-2deg); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes handDrawIn {
+  0% { opacity:.15; transform:translate(180px,-150px) scale(.5) rotate(16deg); }
+  70% { opacity:1; transform:translateY(-8px) scale(1.04); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes handTakeIn {
+  0% { opacity:.18; transform:translateY(-180px) scale(.64) rotate(-9deg); }
+  70% { opacity:1; transform:translateY(-6px) scale(1.03); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes opponentDeal {
+  0% { opacity:.2; transform:translateY(34px) scale(.84); }
+  100% { opacity:1; transform:none; }
+}
+
+@keyframes opponentDraw {
+  0% { transform:translateX(8px) scale(.96); }
+  45% { transform:translateX(-3px) scale(1.035); border-color:var(--accent); }
+  100% { transform:none; }
+}
+
+@keyframes opponentTake {
+  0% { transform:translateY(-6px) scale(.94); }
+  45% { transform:translateY(5px) scale(1.045); border-color:#d47070; }
+  100% { transform:none; }
+}
+
+@keyframes opponentPlay {
+  0% { transform:translateY(0); }
+  45% { transform:translateY(-8px) scale(1.035); border-color:var(--accent); }
+  100% { transform:none; }
+}
+
+@keyframes deckGiveCard {
+  0% { transform:translate(1px,-1px) rotate(2deg); }
+  45% { transform:translate(-9px,-12px) rotate(-8deg); }
+  100% { transform:translate(1px,-1px) rotate(2deg); }
+}
+
+@keyframes discardReceive {
+  0% { transform:translateY(-50%) scale(.84) rotate(-6deg); }
+  60% { transform:translateY(-50%) scale(1.1) rotate(3deg); }
+  100% { transform:translateY(-50%) scale(1); }
+}
+
+@keyframes cardsToDiscard {
+  0% { opacity:1; }
+  70% { opacity:1; transform:translate(calc(-50vw + 58px), 5px) scale(.48) rotate(-18deg); }
+  100% { opacity:0; transform:translate(calc(-50vw + 42px), 5px) scale(.38) rotate(-24deg); }
+}
+
+@keyframes cardsToSelf {
+  0% { opacity:1; }
+  72% { opacity:1; transform:translateY(220px) scale(.55) rotate(7deg); }
+  100% { opacity:0; transform:translateY(270px) scale(.42) rotate(9deg); }
+}
+
+@keyframes cardsToOpponent {
+  0% { opacity:1; }
+  72% { opacity:1; transform:translateY(-150px) scale(.52) rotate(-7deg); }
+  100% { opacity:0; transform:translateY(-190px) scale(.4) rotate(-10deg); }
+}
+
+@keyframes transferSweep {
+  0% { opacity:0; transform:scale(.55) translateX(-28px); }
+  45% { opacity:1; transform:scale(1.08) translateX(5px); }
+  100% { opacity:0; transform:scale(.9) translateX(30px); }
+}
+
+@keyframes reverseSweep {
+  0% { opacity:0; transform:scale(.55) rotate(-120deg); }
+  50% { opacity:1; transform:scale(1.08) rotate(10deg); }
+  100% { opacity:0; transform:scale(.9) rotate(150deg); }
+}
+
+@media (max-width:560px) {
+  .deckPile { right:5px; transform:translateY(-50%) scale(.86); }
+  .discardPile { left:5px; transform:translateY(-50%) scale(.86); }
+  .motionGhost { width:64px; height:92px; left:calc(50% - 32px + (var(--ghost-index) - 2) * 4px); top:calc(50% - 46px + (var(--ghost-index) - 2) * 3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attackCardSlot,
+  .defenseCard,
+  .handCard,
+  .opponent,
+  .motionGhost,
+  .transferMotion span,
+  .deckPile .pileCard,
+  .discardPile {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
