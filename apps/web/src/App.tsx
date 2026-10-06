@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
@@ -106,7 +106,7 @@ export function App() {
   );
 }
 
-function SettingRow(props: { label: string; value: string; children: React.ReactNode }) {
+function SettingRow(props: { label: string; value: string; children: ReactNode }) {
   return (
     <div className="settingRow">
       <div className="settingTitle"><span>{props.label}</span><b>{props.value}</b></div>
