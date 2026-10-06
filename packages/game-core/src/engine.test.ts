@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyGameAction, createGame } from "./engine.js";
-import { DEFAULT_CLASSIC_SETTINGS, DEFAULT_RPG_SETTINGS } from "./rules.js";
+import { canBeat, DEFAULT_CLASSIC_SETTINGS, DEFAULT_RPG_SETTINGS } from "./rules.js";
 import type { GameState, PlayerState, StandardCard } from "./types.js";
 
 const c = (rank: StandardCard["rank"], suit: StandardCard["suit"]): StandardCard => ({
@@ -48,6 +48,93 @@ function state(overrides: Partial<GameState>): GameState {
     draw: false,
     ...overrides
   };
+}
+
+
+
+function autoPlay(initial: GameState): GameState {
+  let game = initial;
+
+  for (let step = 0; step < 10000 && game.phase !== "finished"; step += 1) {
+    if (game.phase === "awaiting-trump") {
+      game = applyGameAction(game, {
+        type: "choose_trump",
+        playerSeat: game.turnSeat!,
+        suit: "hearts"
+      });
+      continue;
+    }
+
+    const seat = game.turnSeat;
+    if (seat === undefined) throw new Error("AUTO_PLAY_MISSING_TURN");
+    const player = game.players.find((entry) => entry.seat === seat)!;
+
+    if (game.phase === "attacking") {
+      const card = player.hand.find((entry) => entry.kind === "standard");
+      if (!card) throw new Error("AUTO_PLAY_NO_ATTACK_CARD");
+      game = applyGameAction(game, {
+        type: "attack",
+        playerSeat: seat,
+        cardId: card.id
+      });
+      continue;
+    }
+
+    if (game.phase === "defending") {
+      const open = game.table.find((pair) => !pair.defense);
+      if (!open) throw new Error("AUTO_PLAY_NO_OPEN_ATTACK");
+
+      const defense = player.hand.find((card) =>
+        canBeat(open.attack, card, game.trumpSuits)
+      );
+
+      if (defense) {
+        game = applyGameAction(game, {
+          type: "defend",
+          playerSeat: seat,
+          attackCardId: open.attack.id,
+          cardId: defense.id
+        });
+      } else {
+        game = applyGameAction(game, {
+          type: "take",
+          playerSeat: seat
+        });
+      }
+      continue;
+    }
+
+    if (game.phase === "throwing") {
+      const ranks = new Set<string>();
+      for (const pair of game.table) {
+        if (pair.attack.kind === "standard") ranks.add(pair.attack.rank);
+        if (pair.defense?.kind === "standard") ranks.add(pair.defense.rank);
+      }
+
+      const throwCard = player.hand.find(
+        (card) => card.kind === "standard" && ranks.has(card.rank)
+      );
+
+      if (throwCard && game.table.length < game.roundAttackLimit) {
+        game = applyGameAction(game, {
+          type: "attack",
+          playerSeat: seat,
+          cardId: throwCard.id
+        });
+      } else {
+        game = applyGameAction(game, {
+          type: "pass_throw_in",
+          playerSeat: seat
+        });
+      }
+    }
+  }
+
+  if (game.phase !== "finished") {
+    throw new Error("AUTO_PLAY_DID_NOT_FINISH");
+  }
+
+  return game;
 }
 
 describe("match engine", () => {
@@ -234,6 +321,41 @@ describe("match engine", () => {
     ).toThrow("JOKER_DEFENSE_ONLY");
 
     expect(game.players[0].hand).toHaveLength(1);
+  });
+
+  it("completes classic games for every supported player count", () => {
+    for (const playerCount of [2, 3, 4, 5, 6] as const) {
+      const game = createGame(
+        Array.from({ length: playerCount }, (_, index) => `classic-${playerCount}-${index}`),
+        {
+          ...DEFAULT_CLASSIC_SETTINGS,
+          playerCount,
+          variant: playerCount % 2 === 0 ? "throw-in" : "transfer"
+        },
+        { random: () => 0.27 }
+      );
+
+      const result = autoPlay(game);
+      expect(result.phase).toBe("finished");
+      expect(result.draw || result.loserSeat !== undefined).toBe(true);
+    }
+  });
+
+  it("completes RPG games for every supported player count", () => {
+    for (const playerCount of [2, 3, 4, 5, 6] as const) {
+      const game = createGame(
+        Array.from({ length: playerCount }, (_, index) => `rpg-${playerCount}-${index}`),
+        {
+          ...DEFAULT_RPG_SETTINGS,
+          playerCount
+        },
+        { random: () => 0.41 }
+      );
+
+      const result = autoPlay(game);
+      expect(result.phase).toBe("finished");
+      expect(result.draw || result.loserSeat !== undefined).toBe(true);
+    }
   });
 
   it("rejects transfer after the defender has already covered a card", () => {
