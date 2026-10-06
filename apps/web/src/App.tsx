@@ -26,12 +26,14 @@ const suitSymbol: Record<Suit, string> = {
 };
 
 interface GameViewPlayer {
-  id: string;
   seat: number;
   classId?: RpgClassId;
   handCount: number;
   finished: boolean;
   place?: number;
+  name: string;
+  username?: string;
+  photoUrl?: string;
 }
 
 interface GameView {
@@ -49,6 +51,9 @@ interface GameView {
     };
     finished: boolean;
     place?: number;
+    name: string;
+    username?: string;
+    photoUrl?: string;
   };
   deckCount: number;
   discardCount: number;
@@ -528,8 +533,10 @@ function GameScreen(props: {
                 player.finished ? "finished" : ""
               ].join(" ")}
             >
-              <div className="avatar">{player.seat + 1}</div>
-              <strong>Игрок {player.seat + 1}</strong>
+              <div className="avatar">
+                {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.seat + 1}
+              </div>
+              <strong>{player.name}</strong>
               <span>{player.handCount} карт</span>
               {player.classId && <small>{RPG_CLASS_NAMES[player.classId]}</small>}
             </div>
