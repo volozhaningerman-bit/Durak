@@ -6,6 +6,7 @@ import {
   type Card,
   type GameMode,
   type GameSettings,
+  type PlayerProgress,
   type RpgClassId,
   type Suit,
   type ThemeId
@@ -126,6 +127,7 @@ export function App() {
   const [rpg, setRpg] = useState<GameSettings>({ ...DEFAULT_RPG_SETTINGS });
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [queueing, setQueueing] = useState(false);
+  const [profile, setProfile] = useState<PlayerProgress | null>(null);
   const [game, setGame] = useState<GameView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedAttackId, setSelectedAttackId] = useState<string | null>(null);
@@ -175,11 +177,23 @@ export function App() {
           type: string;
           code?: string;
           state?: GameView;
+          profile?: PlayerProgress;
         };
 
         if (message.type === "auth_ok") {
           setConnection("online");
+          if (message.profile) setProfile(message.profile);
           setError(null);
+          return;
+        }
+
+        if (message.type === "profile_updated") {
+          if (message.profile) setProfile(message.profile);
+          return;
+        }
+
+        if (message.type === "progress_error") {
+          setError("Партия закончена, но прогресс временно не сохранился");
           return;
         }
 
@@ -295,6 +309,16 @@ export function App() {
         subtitle={subtitle}
         connection={connection}
       />
+
+      {profile && (
+        <section className="profileStrip">
+          <div><span>Рейтинг</span><b>{Math.round(profile.rating)}</b></div>
+          <div><span>Уровень</span><b>{profile.level}</b></div>
+          <div><span>Победы</span><b>{profile.wins}</b></div>
+          <div><span>Поражения</span><b>{profile.losses}</b></div>
+          <div><span>Серия</span><b>{profile.currentStreak}</b></div>
+        </section>
+      )}
 
       <section className="modeSwitch">
         <button className={mode === "classic" ? "active" : ""} onClick={() => setMode("classic")}>
