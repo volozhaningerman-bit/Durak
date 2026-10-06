@@ -43,6 +43,10 @@ const reconnectGraceMs = Math.max(
   10_000,
   Number(process.env.RECONNECT_GRACE_MS || 60_000)
 );
+const privateLobbyTtlMs = Math.max(
+  60_000,
+  Number(process.env.PRIVATE_LOBBY_TTL_MS || 3_600_000)
+);
 const profileStore = createProfileStore(process.env.DATABASE_URL);
 const app = express();
 app.use(express.json());
@@ -1057,6 +1061,25 @@ const heartbeat = setInterval(() => {
 
 heartbeat.unref();
 
+const privateLobbyCleanup = setInterval(() => {
+  const cutoff = Date.now() - privateLobbyTtlMs;
+
+  for (const [code, lobby] of privateLobbies) {
+    if (lobby.createdAt > cutoff) continue;
+
+    privateLobbies.delete(code);
+    for (const member of lobby.members) {
+      if (member.privateLobbyCode === code) {
+        member.privateLobbyCode = undefined;
+      }
+      send(member.socket, { type: "error", code: "PRIVATE_ROOM_EXPIRED" });
+      send(member.socket, { type: "private_room_left" });
+    }
+  }
+}, 60_000);
+
+privateLobbyCleanup.unref();
+
 await profileStore.init();
 
 server.listen(port, () => {
@@ -1065,6 +1088,7 @@ server.listen(port, () => {
 
 async function shutdown() {
   clearInterval(heartbeat);
+  clearInterval(privateLobbyCleanup);
   for (const room of rooms.values()) {
     for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
   }
