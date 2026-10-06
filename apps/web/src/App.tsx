@@ -145,101 +145,121 @@ export function App() {
   );
 
   useEffect(() => {
-    const socket = new WebSocket(websocketUrl());
-    socketRef.current = socket;
+    let stopped = false;
+    let reconnectTimer: number | undefined;
 
-    socket.onopen = () => {
+    const connect = () => {
+      if (stopped) return;
+
       setConnection("connecting");
-      setError(null);
+      const socket = new WebSocket(websocketUrl());
+      socketRef.current = socket;
 
-      const telegram = window.Telegram?.WebApp;
-      telegram?.ready();
-      telegram?.expand();
+      socket.onopen = () => {
+        setError(null);
 
-      socket.send(JSON.stringify({
-        type: "auth",
-        initData: telegram?.initData ?? ""
-      }));
+        const telegram = window.Telegram?.WebApp;
+        telegram?.ready();
+        telegram?.expand();
+
+        socket.send(JSON.stringify({
+          type: "auth",
+          initData: telegram?.initData ?? ""
+        }));
+      };
+
+      socket.onclose = () => {
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+        setConnection("offline");
+        setQueueing(false);
+
+        if (!stopped) {
+          window.clearTimeout(reconnectTimer);
+          reconnectTimer = window.setTimeout(connect, 1500);
+        }
+      };
+
+      socket.onerror = () => {
+        setError("Соединение потеряно. Переподключаемся…");
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(String(event.data)) as {
+            type: string;
+            code?: string;
+            state?: GameView;
+            profile?: PlayerProgress;
+          };
+
+          if (message.type === "auth_ok") {
+            setConnection("online");
+            if (message.profile) setProfile(message.profile);
+            setError(null);
+            return;
+          }
+
+          if (message.type === "profile_updated") {
+            if (message.profile) setProfile(message.profile);
+            return;
+          }
+
+          if (message.type === "progress_error") {
+            setError("Партия закончена, но прогресс временно не сохранился");
+            return;
+          }
+
+          if (message.type === "auth_error") {
+            setConnection("offline");
+            setError(readableError(message.code));
+            socket.close();
+            return;
+          }
+
+          if (message.type === "queue_joined") {
+            setQueueing(true);
+            return;
+          }
+
+          if (message.type === "queue_left") {
+            setQueueing(false);
+            return;
+          }
+
+          if (message.type === "room_left") {
+            setGame(null);
+            setSelectedAttackId(null);
+            setSelectedHandId(null);
+            setError(null);
+            return;
+          }
+
+          if ((message.type === "match_found" || message.type === "game_state") && message.state) {
+            setGame(message.state);
+            setQueueing(false);
+            setSelectedAttackId(null);
+            setSelectedHandId(null);
+            setError(null);
+            return;
+          }
+
+          if (message.type === "game_error" || message.type === "error") {
+            setError(readableError(message.code));
+          }
+        } catch {
+          setError("Сервер прислал некорректный ответ");
+        }
+      };
     };
 
-    socket.onclose = () => {
-      setConnection("offline");
-      setQueueing(false);
-    };
-
-    socket.onerror = () => {
-      setError("Нет соединения с игровым сервером");
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(String(event.data)) as {
-          type: string;
-          code?: string;
-          state?: GameView;
-          profile?: PlayerProgress;
-        };
-
-        if (message.type === "auth_ok") {
-          setConnection("online");
-          if (message.profile) setProfile(message.profile);
-          setError(null);
-          return;
-        }
-
-        if (message.type === "profile_updated") {
-          if (message.profile) setProfile(message.profile);
-          return;
-        }
-
-        if (message.type === "progress_error") {
-          setError("Партия закончена, но прогресс временно не сохранился");
-          return;
-        }
-
-        if (message.type === "auth_error") {
-          setConnection("offline");
-          setError(readableError(message.code));
-          return;
-        }
-
-        if (message.type === "queue_joined") {
-          setQueueing(true);
-          return;
-        }
-
-        if (message.type === "queue_left") {
-          setQueueing(false);
-          return;
-        }
-
-        if (message.type === "room_left") {
-          setGame(null);
-          setSelectedAttackId(null);
-          setSelectedHandId(null);
-          setError(null);
-          return;
-        }
-
-        if ((message.type === "match_found" || message.type === "game_state") && message.state) {
-          setGame(message.state);
-          setQueueing(false);
-          setSelectedAttackId(null);
-          setSelectedHandId(null);
-          setError(null);
-          return;
-        }
-
-        if (message.type === "game_error" || message.type === "error") {
-          setError(readableError(message.code));
-        }
-      } catch {
-        setError("Сервер прислал некорректный ответ");
-      }
-    };
+    connect();
 
     return () => {
-      socket.close();
+      stopped = true;
+      window.clearTimeout(reconnectTimer);
+      socketRef.current?.close();
       socketRef.current = null;
     };
   }, []);
