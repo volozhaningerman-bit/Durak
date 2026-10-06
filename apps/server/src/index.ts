@@ -61,6 +61,7 @@ interface Room {
   members: Session[];
   game: GameState;
   progressApplied: boolean;
+  disconnectTimers: Map<number, ReturnType<typeof setTimeout>>;
 }
 
 const sessions = new Map<WebSocket, Session>();
@@ -243,7 +244,8 @@ function createRoom(entries: QueueEntry[]): Room {
     id: roomId,
     members,
     game,
-    progressApplied: false
+    progressApplied: false,
+    disconnectTimers: new Map()
   };
 
   rooms.set(roomId, room);
@@ -381,6 +383,56 @@ async function handleGameAction(session: Session, action: ClientGameAction) {
   }
 }
 
+function finishRoomByForfeit(room: Room, loserSeat: number) {
+  if (room.game.phase === "finished") return;
+
+  room.game = {
+    ...room.game,
+    phase: "finished",
+    turnSeat: undefined,
+    table: [],
+    roundAttackLimit: 0,
+    throwInPassedSeats: [],
+    defenderTaking: false,
+    loserSeat,
+    draw: false
+  };
+
+  for (const timer of room.disconnectTimers.values()) {
+    clearTimeout(timer);
+  }
+  room.disconnectTimers.clear();
+
+  broadcastRoom(room);
+  void applyRoomProgress(room);
+}
+
+function scheduleDisconnectForfeit(session: Session) {
+  if (!session.roomId || session.seat === undefined) return;
+
+  const room = rooms.get(session.roomId);
+  if (!room || room.game.phase === "finished") return;
+
+  const seat = session.seat;
+  const existing = room.disconnectTimers.get(seat);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(() => {
+    room.disconnectTimers.delete(seat);
+
+    const member = room.members[seat];
+    const stillDisconnected =
+      member.playerId === session.playerId &&
+      (!sessions.has(member.socket) || member.socket.readyState !== WebSocket.OPEN);
+
+    if (stillDisconnected) {
+      finishRoomByForfeit(room, seat);
+    }
+  }, 60_000);
+
+  room.disconnectTimers.set(seat, timer);
+}
+
 function leaveFinishedRoom(session: Session) {
   if (!session.roomId) {
     send(session.socket, { type: "error", code: "NOT_IN_ROOM" });
@@ -406,7 +458,10 @@ function leaveFinishedRoom(session: Session) {
   send(session.socket, { type: "room_left" });
 
   const hasMembers = room.members.some((member) => member.roomId === roomId);
-  if (!hasMembers) rooms.delete(roomId);
+  if (!hasMembers) {
+    for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
+    rooms.delete(roomId);
+  }
 }
 
 async function sendLeaderboard(session: Session, requestedLimit?: number) {
@@ -490,6 +545,11 @@ function restoreRoomMembership(session: Session): Room | undefined {
 
     previous.roomId = undefined;
     previous.seat = undefined;
+    const timer = room.disconnectTimers.get(seat);
+    if (timer) {
+      clearTimeout(timer);
+      room.disconnectTimers.delete(seat);
+    }
     room.members[seat] = session;
     session.roomId = room.id;
     session.seat = seat;
@@ -668,8 +728,11 @@ wss.on("connection", (socket) => {
         session.roomId = undefined;
         session.seat = undefined;
         if (!room.members.some((member) => member.roomId === roomId)) {
+          for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
           rooms.delete(roomId);
         }
+      } else {
+        scheduleDisconnectForfeit(session);
       }
     }
 
