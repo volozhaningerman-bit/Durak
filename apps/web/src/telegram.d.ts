@@ -10,6 +10,12 @@ declare global {
         };
         ready: () => void;
         expand: () => void;
+        colorScheme?: "light" | "dark";
+        isFullscreen?: boolean;
+        requestFullscreen?: () => void;
+        exitFullscreen?: () => void;
+        onEvent?: (eventType: string, callback: (...args: unknown[]) => void) => void;
+        offEvent?: (eventType: string, callback: (...args: unknown[]) => void) => void;
         close?: () => void;
         openTelegramLink?: (url: string) => void;
         platform?: string;
