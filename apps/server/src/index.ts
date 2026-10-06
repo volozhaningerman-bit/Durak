@@ -677,12 +677,23 @@ async function applyRoomProgress(room: Room) {
         ? undefined
         : room.game.players.find((player) => player.seat === room.game.loserSeat)?.id;
 
+    const winnerOrder = room.game.players
+      .filter((player) => player.id !== loserId)
+      .sort(
+        (a, b) =>
+          (a.place ?? Number.MAX_SAFE_INTEGER) -
+            (b.place ?? Number.MAX_SAFE_INTEGER) ||
+          a.seat - b.seat
+      )
+      .map((player) => player.id);
+
     const profiles = await profileStore.recordMatch(
       room.id,
       playerIds,
       loserId,
       room.game.draw,
-      room.game.settings.ranked
+      room.game.settings.ranked,
+      winnerOrder
     );
 
     const byId = new Map(profiles.map((profile) => [profile.playerId, profile]));
