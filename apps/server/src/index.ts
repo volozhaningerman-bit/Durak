@@ -3,6 +3,8 @@ import express from "express";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import {
   applyGameAction,
   createGame,
@@ -82,6 +84,22 @@ app.get("/api/config", (_req, res) => {
     databaseConfigured: Boolean(process.env.DATABASE_URL)
   });
 });
+
+const webDist = path.resolve(process.cwd(), "apps/web/dist");
+if (existsSync(webDist)) {
+  app.use(express.static(webDist, {
+    index: false,
+    maxAge: process.env.NODE_ENV === "production" ? "1h" : 0
+  }));
+
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/") || req.path === "/health" || req.path === "/ws") {
+      next();
+      return;
+    }
+    res.sendFile(path.join(webDist, "index.html"));
+  });
+}
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
