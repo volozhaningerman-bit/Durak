@@ -1487,11 +1487,12 @@ function GameScreen(props: {
         trumpReveal: false,
         selfFinished: false
       });
-    }, cleared ? 720 : 560);
+    }, cleared ? 980 : 640);
 
     return () => window.clearTimeout(motionTimerRef.current);
   }, [game]);
 
+  const handMotionOrder = Object.keys(motion.hand);
   const openAttack =
     game.table.find((pair) => !pair.defense && pair.attack.id === props.selectedAttackId) ??
     game.table.find((pair) => !pair.defense);
@@ -1678,7 +1679,7 @@ function GameScreen(props: {
             ].join(" ")}
             aria-hidden="true"
           >
-            {motion.cleared.cards.slice(0, 8).map((card, index) => (
+            {motion.cleared.cards.map((card, index) => (
               <div
                 className="motionGhost"
                 key={card.id}
@@ -1861,7 +1862,7 @@ function GameScreen(props: {
                 motion.hand[card.id] ? `motion-${motion.hand[card.id]}` : ""
               ].join(" ")}
               style={{
-                "--hand-index": game.self.hand.findIndex((candidate) => candidate.id === card.id)
+                "--motion-index": Math.max(0, handMotionOrder.indexOf(card.id))
               } as CSSProperties}
               onClick={() => clickHandCard(card)}
               disabled={
