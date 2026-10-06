@@ -358,6 +358,52 @@ describe("match engine", () => {
     }
   });
 
+  it("returns joker availability when a defender takes it back from the table", () => {
+    let game = state({
+      settings: { ...DEFAULT_RPG_SETTINGS, playerCount: 3 },
+      phase: "defending",
+      players: [
+        p(0, [c("6", "hearts")]),
+        {
+          ...p(1, [c("9", "clubs")]),
+          classId: "joker",
+          hand: [{ id: "joker-p1", kind: "joker" }, c("9", "clubs")],
+          ability: { wildTransfersLeft: 0, jokerAvailable: true }
+        },
+        p(2, [c("8", "spades")])
+      ],
+      table: [{ attack: c("8", "clubs") }],
+      attackerSeat: 0,
+      defenderSeat: 1,
+      turnSeat: 1,
+      roundAttackLimit: 2
+    });
+
+    game = applyGameAction(game, {
+      type: "defend",
+      playerSeat: 1,
+      attackCardId: "clubs-8",
+      cardId: "joker-p1"
+    });
+
+    expect(game.players[1].ability.jokerAvailable).toBe(false);
+    expect(game.phase).toBe("throwing");
+
+    game = applyGameAction(game, {
+      type: "attack",
+      playerSeat: 2,
+      cardId: "spades-8"
+    });
+
+    game = applyGameAction(game, {
+      type: "take",
+      playerSeat: 1
+    });
+
+    expect(game.players[1].hand.some((card) => card.kind === "joker")).toBe(true);
+    expect(game.players[1].ability.jokerAvailable).toBe(true);
+  });
+
   it("rejects transfer after the defender has already covered a card", () => {
     const game = state({
       settings: { ...DEFAULT_RPG_SETTINGS, playerCount: 3 },
