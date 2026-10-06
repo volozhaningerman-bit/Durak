@@ -130,7 +130,9 @@ const errorMessages: Record<string, string> = {
   AUTH_DATE_INVALID: "Некорректная дата авторизации",
   AUTH_USER_MISSING: "Telegram не передал профиль пользователя",
   AUTH_USER_INVALID: "Не удалось прочитать профиль Telegram",
-  ALREADY_CONNECTED: "Этот Telegram-аккаунт уже открыт в другой игровой сессии"
+  ALREADY_CONNECTED: "Этот Telegram-аккаунт уже открыт в другой игровой сессии",
+  RATE_LIMITED: "Слишком много команд подряд. Переподключаемся…",
+  SERVER_MISCONFIGURED: "Игровой сервер временно настроен неправильно"
 };
 
 function readableError(code?: string): string {
