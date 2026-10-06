@@ -6,7 +6,7 @@ import {
 } from "./progression.js";
 
 describe("progression", () => {
-  it("updates a two-player match like a standard Elo duel", () => {
+  it("uses a fixed +30/-30 pool in a two-player ranked match", () => {
     const a = createPlayerProgress("a");
     const b = createPlayerProgress("b");
 
@@ -16,63 +16,45 @@ describe("progression", () => {
       draw: false
     });
 
-    expect(winner.rating).toBe(1020);
-    expect(loser.rating).toBe(980);
+    expect(winner.rating).toBe(1030);
+    expect(loser.rating).toBe(970);
     expect(winner.wins).toBe(1);
     expect(loser.losses).toBe(1);
     expect(winner.currentStreak).toBe(1);
   });
 
-  it("shares the loser pool across five winners in a six-player match", () => {
+  it("splits 30 rating by finish order in a six-player match", () => {
     const ids = ["a", "b", "c", "d", "e", "f"];
     const profiles = ids.map(createPlayerProgress);
     const result = applyMatchProgress(profiles, {
       playerIds: ids,
       loserId: "f",
-      draw: false
+      draw: false,
+      winnerOrder: ["c", "a", "e", "b", "d"]
     });
 
-    expect(result.filter((profile) => profile.playerId !== "f").every((profile) => profile.rating === 1007)).toBe(true);
-    expect(result.find((profile) => profile.playerId === "f")?.rating).toBe(965);
+    expect(result.find((profile) => profile.playerId === "c")?.rating).toBe(1010);
+    expect(result.find((profile) => profile.playerId === "a")?.rating).toBe(1008);
+    expect(result.find((profile) => profile.playerId === "e")?.rating).toBe(1006);
+    expect(result.find((profile) => profile.playerId === "b")?.rating).toBe(1004);
+    expect(result.find((profile) => profile.playerId === "d")?.rating).toBe(1002);
+    expect(result.find((profile) => profile.playerId === "f")?.rating).toBe(970);
   });
 
-  it("makes a favourite lose more rating than an underdog", () => {
-    const strongLoser = {
-      ...createPlayerProgress("strong"),
-      rating: 1400
-    };
-    const weakWinner = {
-      ...createPlayerProgress("weak"),
-      rating: 1000
-    };
-    const [winnerVsStrong, loserStrong] = applyMatchProgress(
-      [weakWinner, strongLoser],
-      {
-        playerIds: ["weak", "strong"],
-        loserId: "strong",
-        draw: false
-      }
-    );
 
-    const weakLoser = {
-      ...createPlayerProgress("weak-loser"),
-      rating: 1000
-    };
-    const strongWinner = {
-      ...createPlayerProgress("strong-winner"),
-      rating: 1400
-    };
-    const [winnerVsWeak, loserWeak] = applyMatchProgress(
-      [strongWinner, weakLoser],
-      {
-        playerIds: ["strong-winner", "weak-loser"],
-        loserId: "weak-loser",
-        draw: false
-      }
-    );
+  it("gives earlier finishers a larger share of the same 30 point pool", () => {
+    const ids = ["a", "b", "c", "d"];
+    const result = applyMatchProgress(ids.map(createPlayerProgress), {
+      playerIds: ids,
+      loserId: "d",
+      draw: false,
+      winnerOrder: ["b", "c", "a"]
+    });
 
-    expect(1400 - loserStrong.rating).toBeGreaterThan(1000 - loserWeak.rating);
-    expect(winnerVsStrong.rating - 1000).toBeGreaterThan(winnerVsWeak.rating - 1400);
+    expect(result.find((profile) => profile.playerId === "b")?.rating).toBe(1015);
+    expect(result.find((profile) => profile.playerId === "c")?.rating).toBe(1010);
+    expect(result.find((profile) => profile.playerId === "a")?.rating).toBe(1005);
+    expect(result.find((profile) => profile.playerId === "d")?.rating).toBe(970);
   });
 
   it("never drops rating below the floor", () => {
