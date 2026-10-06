@@ -71,4 +71,35 @@ describe("MemoryProfileStore", () => {
     expect(leaderboard[0].username).toBe("alice");
     expect(leaderboard[1].displayName).toBe("Bob");
   });
+  it("remembers recent opponents for repeat invitations", async () => {
+    const store = new MemoryProfileStore();
+    await store.upsertIdentity("a", { displayName: "Alice", username: "alice" });
+    await store.upsertIdentity("b", { displayName: "Bob", username: "bob" });
+    await store.upsertIdentity("c", { displayName: "Carol" });
+
+    await store.touchContacts(["a", "b", "c"]);
+
+    const contacts = await store.getRecentContacts("a", 10);
+    expect(contacts).toHaveLength(2);
+    expect(contacts.map((entry) => entry.playerId).sort()).toEqual(["b", "c"]);
+    expect(contacts.find((entry) => entry.playerId === "b")?.displayName).toBe("Bob");
+  });
+
+  it("uses finish order when splitting ranked rewards", async () => {
+    const store = new MemoryProfileStore();
+    await store.recordMatch(
+      "ranked-order",
+      ["a", "b", "c", "d"],
+      "d",
+      false,
+      true,
+      ["b", "c", "a"]
+    );
+
+    expect((await store.getProfile("b")).rating).toBe(1015);
+    expect((await store.getProfile("c")).rating).toBe(1010);
+    expect((await store.getProfile("a")).rating).toBe(1005);
+    expect((await store.getProfile("d")).rating).toBe(970);
+  });
+
 });
