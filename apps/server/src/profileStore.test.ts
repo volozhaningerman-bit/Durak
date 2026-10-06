@@ -36,6 +36,23 @@ describe("MemoryProfileStore", () => {
     expect(history[0].result).toBe("loss");
   });
 
+  it("records casual matches without changing Elo", async () => {
+    const store = new MemoryProfileStore();
+
+    await store.recordMatch("casual-1", ["a", "b"], "b", false, false);
+
+    const a = await store.getProfile("a");
+    const b = await store.getProfile("b");
+    expect(a.rating).toBe(1000);
+    expect(b.rating).toBe(1000);
+    expect(a.wins).toBe(1);
+    expect(b.losses).toBe(1);
+
+    const history = await store.getHistory("a", 10);
+    expect(history[0].ranked).toBe(false);
+    expect(history[0].ratingBefore).toBe(history[0].ratingAfter);
+  });
+
   it("stores public identity and orders leaderboard by rating", async () => {
     const store = new MemoryProfileStore();
     await store.upsertIdentity("a", {
