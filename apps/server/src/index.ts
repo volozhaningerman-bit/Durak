@@ -20,6 +20,25 @@ import {
 import { createProfileStore } from "./profileStore.js";
 
 const port = Number(process.env.PORT || 3001);
+const isProduction = process.env.NODE_ENV === "production";
+
+function validateProductionConfig() {
+  if (!isProduction) return;
+
+  const required = ["BOT_TOKEN", "WEBAPP_URL", "DATABASE_URL"] as const;
+  const missing = required.filter((key) => !process.env[key]?.trim());
+  if (missing.length > 0) {
+    throw new Error(`Missing required production env: ${missing.join(", ")}`);
+  }
+
+  const webAppUrl = process.env.WEBAPP_URL!;
+  if (!/^https:\/\//i.test(webAppUrl)) {
+    throw new Error("WEBAPP_URL must use https:// in production");
+  }
+}
+
+validateProductionConfig();
+
 const reconnectGraceMs = Math.max(
   10_000,
   Number(process.env.RECONNECT_GRACE_MS || 60_000)
@@ -80,7 +99,7 @@ function secureRandom(): number {
 
 function isAllowedOrigin(origin?: string): boolean {
   const configured = process.env.WEBAPP_URL?.trim();
-  if (!configured || process.env.NODE_ENV !== "production") return true;
+  if (!configured || !isProduction) return true;
   if (!origin) return false;
 
   try {
@@ -123,7 +142,11 @@ if (existsSync(webDist)) {
 }
 
 const server = createServer(app);
-const wss = new WebSocketServer({ server, path: "/ws" });
+const wss = new WebSocketServer({
+  server,
+  path: "/ws",
+  maxPayload: 64 * 1024
+});
 
 function send(socket: WebSocket, payload: unknown) {
   if (socket.readyState === WebSocket.OPEN) {
@@ -613,6 +636,11 @@ async function authenticateSession(session: Session, initData: string) {
   const botToken = process.env.BOT_TOKEN;
 
   if (!botToken) {
+    if (isProduction) {
+      send(session.socket, { type: "auth_error", code: "SERVER_MISCONFIGURED" });
+      return;
+    }
+
     session.authenticated = true;
     session.playerId = `dev:${session.id}`;
     await profileStore.upsertIdentity(session.playerId, {
