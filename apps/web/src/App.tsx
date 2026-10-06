@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
-  baseRatingChange,
+  RANKED_RATING_POOL,
   canBeat,
   RPG_CLASS_DESCRIPTIONS,
   RPG_CLASS_NAMES,
@@ -100,6 +100,14 @@ interface MatchHistoryEntry {
   createdAt: string;
 }
 
+interface RecentPlayer {
+  key: string;
+  name: string;
+  username?: string;
+  photoUrl?: string;
+  lastSeen: number;
+}
+
 interface PrivateLobbyView {
   code: string;
   settings: GameSettings;
@@ -192,6 +200,14 @@ export function App() {
   const [privateCodeInput, setPrivateCodeInput] = useState("");
   const [copyNotice, setCopyNotice] = useState(false);
   const [botUsername, setBotUsername] = useState<string | null>(null);
+  const [recentPlayers, setRecentPlayers] = useState<RecentPlayer[]>(() => {
+    try {
+      const raw = window.localStorage.getItem("durak-recent-players");
+      return raw ? (JSON.parse(raw) as RecentPlayer[]).slice(0, 8) : [];
+    } catch {
+      return [];
+    }
+  });
   const socketRef = useRef<WebSocket | null>(null);
   const handledStartParamRef = useRef(false);
 
@@ -356,6 +372,15 @@ export function App() {
               requiredPlayers: message.requiredPlayers,
               isHost: message.isHost === true
             });
+            rememberRecentPlayers(
+              message.members
+                .filter((member) => !member.isSelf)
+                .map((member) => ({
+                  name: member.name,
+                  username: member.username,
+                  photoUrl: member.photoUrl
+                }))
+            );
             setError(null);
             return;
           }
@@ -379,6 +404,15 @@ export function App() {
             }
             setActionPending(false);
             setGame(message.state);
+            rememberRecentPlayers(
+              message.state.players
+                .filter((player) => player.seat !== message.state!.self.seat)
+                .map((player) => ({
+                  name: player.name,
+                  username: player.username,
+                  photoUrl: player.photoUrl
+                }))
+            );
             setQueueing(false);
             setPrivateLobby(null);
             setSelectedAttackId(null);
@@ -535,23 +569,57 @@ export function App() {
     if (tab === "profile") send({ type: "get_history", limit: 20 });
   }
 
+  function rememberRecentPlayers(
+    players: Array<{ name: string; username?: string; photoUrl?: string }>
+  ) {
+    if (players.length === 0) return;
+
+    setRecentPlayers((current) => {
+      const byKey = new Map(current.map((player) => [player.key, player]));
+      for (const player of players) {
+        const key = player.username
+          ? `@${player.username.toLowerCase()}`
+          : player.name.toLowerCase();
+        byKey.set(key, {
+          key,
+          name: player.name,
+          username: player.username,
+          photoUrl: player.photoUrl,
+          lastSeen: Date.now()
+        });
+      }
+      const next = [...byKey.values()]
+        .sort((a, b) => b.lastSeen - a.lastSeen)
+        .slice(0, 8);
+      try {
+        window.localStorage.setItem("durak-recent-players", JSON.stringify(next));
+      } catch {
+        // Local persistence is optional.
+      }
+      return next;
+    });
+  }
+
+  function inviteRecentPlayer() {
+    if (!privateLobby) {
+      setError("Сначала создай приватную комнату — после этого можно отправить приглашение.");
+      return;
+    }
+    void sharePrivateRoom();
+  }
+
 
   useEffect(() => {
     const backButton = window.Telegram?.WebApp?.BackButton;
     if (!backButton) return;
 
     const handleBack = () => {
-      if (activeTab !== "play") {
-        setActiveTab("play");
-        return;
-      }
-
       if (game?.phase === "finished") {
         leaveRoom();
       }
     };
 
-    const shouldShow = activeTab !== "play" || game?.phase === "finished";
+    const shouldShow = game?.phase === "finished";
     if (shouldShow) {
       backButton.show();
       backButton.onClick(handleBack);
