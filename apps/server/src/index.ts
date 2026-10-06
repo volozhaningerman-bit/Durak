@@ -469,6 +469,36 @@ async function sendHistory(session: Session, requestedLimit?: number) {
   }
 }
 
+function restoreRoomMembership(session: Session): Room | undefined {
+  if (!session.playerId) return undefined;
+
+  for (const room of rooms.values()) {
+    const seat = room.members.findIndex(
+      (member) => member.playerId === session.playerId
+    );
+    if (seat < 0) continue;
+
+    const previous = room.members[seat];
+    if (previous === session) return room;
+
+    if (
+      previous.socket.readyState === WebSocket.OPEN &&
+      sessions.has(previous.socket)
+    ) {
+      return undefined;
+    }
+
+    previous.roomId = undefined;
+    previous.seat = undefined;
+    room.members[seat] = session;
+    session.roomId = room.id;
+    session.seat = seat;
+    return room;
+  }
+
+  return undefined;
+}
+
 async function authenticateSession(session: Session, initData: string) {
   const botToken = process.env.BOT_TOKEN;
 
@@ -507,6 +537,7 @@ async function authenticateSession(session: Session, initData: string) {
     session.authenticated = true;
     session.playerId = playerId;
     session.telegramUser = result.user;
+    const restoredRoom = restoreRoomMembership(session);
 
     await profileStore.upsertIdentity(playerId, {
       displayName: result.user.first_name,
@@ -526,8 +557,17 @@ async function authenticateSession(session: Session, initData: string) {
         photoUrl: result.user.photo_url,
         isPremium: result.user.is_premium === true
       },
-      profile
+      profile,
+      restoredRoom: restoredRoom?.id
     });
+
+    if (restoredRoom && session.seat !== undefined) {
+      send(session.socket, {
+        type: "game_state",
+        roomId: restoredRoom.id,
+        state: gameViewForSeat(restoredRoom, session.seat)
+      });
+    }
   } catch (error) {
     session.authenticated = false;
     session.playerId = undefined;
