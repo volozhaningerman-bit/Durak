@@ -221,10 +221,10 @@ function settleTake(state: GameState): GameState {
   const oldDefenderSeat = state.defenderSeat;
   const defender = playerBySeat(state, oldDefenderSeat);
   const collected = collectTableCards(state);
-  defender.hand.push(...collected);
-  if (collected.some((card) => card.kind === "joker")) {
-    defender.ability.jokerAvailable = true;
-  }
+  const reusableCards = collected.filter((card) => card.kind !== "joker");
+  defender.hand.push(...reusableCards);
+  const usedJokers = collected.filter((card) => card.kind === "joker");
+  state.discard.push(...usedJokers);
   state.table = [];
 
   refillInOrder(state, oldDefenderSeat);
