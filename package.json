@@ -11,6 +11,10 @@
     "dev:server": "npm run dev -w @durak/server",
     "build": "npm run build -w @durak/game-core && npm run build -w @durak/server && npm run build -w @durak/web",
     "test": "npm run build -w @durak/game-core && npm run test -w @durak/game-core && npm run test -w @durak/server",
-    "typecheck": "npm run typecheck -ws --if-present"
+    "typecheck": "npm run typecheck -ws --if-present",
+    "start": "node apps/server/dist/index.js"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
