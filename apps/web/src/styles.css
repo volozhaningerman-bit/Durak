@@ -277,3 +277,20 @@ input[type="range"] { width:100%; accent-color:var(--accent); }
   opacity: .45;
   cursor: not-allowed;
 }
+
+
+.settingHint {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.historyRow > div {
+  display: grid;
+  gap: 2px;
+}
+.historyRow small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+}
