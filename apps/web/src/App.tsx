@@ -652,234 +652,407 @@ export function App() {
   }
 
   return (
-    <main className="app" data-theme={theme}>
+    <main className="app lobbyApp" data-theme={theme} data-mode={mode}>
       <Header
         theme={theme}
         setTheme={setTheme}
-        subtitle={subtitle}
+        subtitle={
+          activeTab === "play"
+            ? subtitle
+            : activeTab === "profile"
+              ? "Статистика и история матчей"
+              : activeTab === "rating"
+                ? "Лидерборд рейтинговых матчей"
+                : "Косметика, эмоции и расходники"
+        }
         connection={connection}
       />
 
-      {profile && (
-        <section className="profileStrip">
-          <div><span>Рейтинг</span><b>{Math.round(profile.rating)}</b></div>
-          <div><span>Уровень</span><b>{profile.level}</b></div>
-          <div><span>Победы</span><b>{profile.wins}</b></div>
-          <div><span>Поражения</span><b>{profile.losses}</b></div>
-          <div><span>Серия</span><b>{profile.currentStreak}</b></div>
-        </section>
-      )}
-
-      <section className="modeSwitch">
-        <button className={mode === "classic" ? "active" : ""} onClick={() => setMode("classic")}>
-          Классический
-        </button>
-        <button className={mode === "rpg" ? "active" : ""} onClick={() => setMode("rpg")}>
-          RPG
-        </button>
-      </section>
-
-      <section className="heroCard">
-        <div className="playingCard left">6♠</div>
-        <div className="crest">Д</div>
-        <div className="playingCard right">A♥</div>
-        <h1>{mode === "classic" ? "Классический дурак" : "Дурак с классами"}</h1>
-        <p>
-          {mode === "classic"
-            ? "Подкидной или переводной — правила выбираешь ты."
-            : "Шесть классов меняют привычную партию."}
-        </p>
-      </section>
-
-      <section className="settings">
-        <SettingRow label="Игроков" value={String(settings.playerCount)}>
-          <input
-            type="range"
-            min="2"
-            max="6"
-            step="1"
-            value={settings.playerCount}
-            onChange={(event) =>
-              updateSettings({
-                playerCount: Number(event.target.value) as GameSettings["playerCount"]
-              })
-            }
-          />
-          <div className="rangeLabels"><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
-        </SettingRow>
-
-        {mode === "classic" && (
-          <SettingRow
-            label="Режим"
-            value={settings.variant === "throw-in" ? "Подкидной" : "Переводной"}
-          >
-            <div className="segmented">
-              <button
-                className={settings.variant === "throw-in" ? "active" : ""}
-                onClick={() => updateSettings({ variant: "throw-in" })}
-              >
-                Подкидной
-              </button>
-              <button
-                className={settings.variant === "transfer" ? "active" : ""}
-                onClick={() => updateSettings({ variant: "transfer" })}
-              >
-                Переводной
-              </button>
-            </div>
-          </SettingRow>
-        )}
-
-        <SettingRow
-          label="Подкидывают"
-          value={settings.throwInPolicy === "all" ? "Все" : "Крайние"}
-        >
-          <div className="segmented">
-            <button
-              className={settings.throwInPolicy === "all" ? "active" : ""}
-              onClick={() => updateSettings({ throwInPolicy: "all" })}
-            >
-              Все
-            </button>
-            <button
-              className={settings.throwInPolicy === "neighbors" ? "active" : ""}
-              onClick={() => updateSettings({ throwInPolicy: "neighbors" })}
-            >
-              Крайние
-            </button>
-          </div>
-        </SettingRow>
-
-        <SettingRow
-          label="Очередь"
-          value={settings.ranked ? "Рейтинговая" : "Обычная"}
-        >
-          <div className="segmented">
-            <button
-              className={!settings.ranked ? "active" : ""}
-              onClick={() =>
-                updateSettings({
-                  ranked: false,
-                  gameplayItemsEnabled: mode === "rpg"
-                })
-              }
-            >
-              Обычная
-            </button>
-            <button
-              className={settings.ranked ? "active" : ""}
-              onClick={() =>
-                updateSettings({
-                  ranked: true,
-                  gameplayItemsEnabled: false
-                })
-              }
-            >
-              Рейтинг
-            </button>
-          </div>
-          <div className="settingHint">
-            {settings.ranked
-              ? `База: победа +${baseRatingChange(settings.playerCount).winnerGain}, поражение −${baseRatingChange(settings.playerCount).loserLoss}. Сила игроков меняет итог максимум на 30%.`
-              : "Рейтинг не меняется, прогресс и статистика сохраняются."}
-          </div>
-        </SettingRow>
-
-        {mode === "rpg" && (
-          <div className="rpgNote">
-            Класс выдаётся случайно перед партией. RPG всегда подкидной + переводной.
-          </div>
-        )}
-
-        {error && <div className="errorBanner">{error}</div>}
-
-        <button
-          className="findGame"
-          disabled={connection !== "online"}
-          onClick={queueing ? leaveQueue : joinQueue}
-        >
-          {connection === "connecting"
-            ? "ПОДКЛЮЧЕНИЕ..."
-            : connection === "offline"
-              ? "СЕРВЕР НЕДОСТУПЕН"
-              : queueing
-                ? "ОТМЕНИТЬ ПОИСК"
-                : "НАЙТИ ИГРУ"}
-        </button>
-
-        {queueing && <div className="searchingPulse">Ищем игроков с такими же настройками…</div>}
-
-        {!queueing && !privateLobby && (
-          <div className="privateRoomTools">
-            <div className="settingHint">Приватные комнаты всегда без изменения рейтинга.</div>
-            <button
-              className="secondaryGameButton"
-              disabled={connection !== "online"}
-              onClick={createPrivateRoom}
-            >
-              Создать комнату
-            </button>
-            <div className="joinPrivateRow">
-              <input
-                value={privateCodeInput}
-                maxLength={6}
-                placeholder="КОД"
-                aria-label="Код приватной комнаты"
-                onChange={(event) =>
-                  setPrivateCodeInput(
-                    event.target.value
-                      .toUpperCase()
-                      .replace(/[^A-Z2-9]/g, "")
-                      .slice(0, 6)
-                  )
-                }
-              />
-              <button
-                className="secondaryGameButton"
-                disabled={connection !== "online" || privateCodeInput.length !== 6}
-                onClick={joinPrivateRoom}
-              >
-                Войти
-              </button>
-            </div>
-          </div>
-        )}
-
-        {privateLobby && (
-          <div className="privateLobbyCard">
-            <div className="privateLobbyHead">
-              <div>
-                <span>Приватная комната</span>
-                <strong>{privateLobby.currentPlayers}/{privateLobby.requiredPlayers}</strong>
-              </div>
-              <div className="privateCodeActions">
-                <button onClick={copyPrivateCode}>
-                  {copyNotice ? "Скопировано" : privateLobby.code}
+      <section className="screenBody">
+        {activeTab === "play" && (
+          <section className="tabPage playPage">
+            {queueing ? (
+              <div className="searchStage">
+                <div className="searchCards" aria-hidden="true">
+                  <span className="searchCard cardOne">6♠</span>
+                  <span className="searchCard cardTwo">A♥</span>
+                  <span className="searchCard cardThree">Д</span>
+                </div>
+                <span className="modeEyebrow">
+                  {mode === "classic" ? "КЛАССИЧЕСКАЯ ИГРА" : "RPG • СЛУЧАЙНЫЙ КЛАСС"}
+                </span>
+                <h2>Ищем соперников</h2>
+                <p>
+                  {settings.playerCount} игрока · {settings.ranked ? "рейтинг" : "обычная"} ·
+                  {" "}{settings.throwInPolicy === "all" ? "подкидывают все" : "подкидывают крайние"}
+                </p>
+                <div className="searchDots" aria-hidden="true"><i /><i /><i /></div>
+                <button className="findGame cancelSearch" onClick={leaveQueue}>
+                  ОТМЕНИТЬ ПОИСК
                 </button>
-                <button aria-label="Поделиться комнатой" onClick={sharePrivateRoom}>↗</button>
               </div>
+            ) : privateLobby ? (
+              <div className="privateLobbyStage">
+                <div className="privateLobbyHead">
+                  <div>
+                    <span>Комната</span>
+                    <strong>{privateLobby.currentPlayers}/{privateLobby.requiredPlayers}</strong>
+                  </div>
+                  <div className="privateCodeActions">
+                    <button onClick={copyPrivateCode}>
+                      {copyNotice ? "Скопировано" : privateLobby.code}
+                    </button>
+                    <button className="invitePulse" aria-label="Поделиться комнатой" onClick={sharePrivateRoom}>↗</button>
+                  </div>
+                </div>
+
+                <div className="waitingTable">
+                  <div className="waitingDeck" aria-hidden="true">
+                    <span />
+                    <span />
+                  </div>
+                  <div className="waitingSeats">
+                    {Array.from({ length: privateLobby.requiredPlayers }, (_, index) => {
+                      const member = privateLobby.members[index];
+                      return member ? (
+                        <div className="waitingSeat filled" key={index}>
+                          <div className="avatar">
+                            {member.photoUrl ? <img src={member.photoUrl} alt="" /> : index + 1}
+                          </div>
+                          <b>{member.name}</b>
+                          <small>{member.isSelf ? "ты" : member.isHost ? "хозяин" : "готов"}</small>
+                        </div>
+                      ) : (
+                        <div className="waitingSeat empty" key={index}>
+                          <div className="emptySeatPulse">+</div>
+                          <b>Ждём игрока</b>
+                          <small>место свободно</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="waitingCaption">
+                  <span className="waitingDot" />
+                  Ждём ещё {Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers)} игрок(а)
+                </div>
+
+                <div className="lobbyActions">
+                  <button className="secondaryGameButton inviteMain" onClick={sharePrivateRoom}>
+                    ПРИГЛАСИТЬ
+                  </button>
+                  <button className="secondaryGameButton dangerOutline" onClick={leavePrivateRoom}>
+                    ВЫЙТИ
+                  </button>
+                </div>
+
+                {recentPlayers.length > 0 && (
+                  <div className="recentBlock compact">
+                    <div className="recentHead"><span>Недавние игроки</span><small>сохраняются автоматически</small></div>
+                    <div className="recentPlayers">
+                      {recentPlayers.slice(0, 5).map((player) => (
+                        <button className="recentPlayer" key={player.key} onClick={inviteRecentPlayer}>
+                          <span className="avatar">
+                            {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.name.slice(0, 1)}
+                          </span>
+                          <span>{player.name}</span>
+                          <small>позвать</small>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {profile && (
+                  <section className="profileStrip compactStats">
+                    <div><span>Рейтинг</span><b>{Math.round(profile.rating)}</b></div>
+                    <div><span>Уровень</span><b>{profile.level}</b></div>
+                    <div><span>Победы</span><b>{profile.wins}</b></div>
+                    <div><span>Серия</span><b>{profile.currentStreak}</b></div>
+                  </section>
+                )}
+
+                <section className="modeSwitch">
+                  <button className={mode === "classic" ? "active" : ""} onClick={() => setMode("classic")}>
+                    Классика
+                  </button>
+                  <button className={mode === "rpg" ? "active" : ""} onClick={() => setMode("rpg")}>
+                    RPG
+                  </button>
+                </section>
+
+                <section className={`heroCard modeHero ${mode}`}>
+                  <div className="playingCard left">{mode === "classic" ? "6♠" : "J♣"}</div>
+                  <div className="crest">{mode === "classic" ? "♠" : "✦"}</div>
+                  <div className="playingCard right">{mode === "classic" ? "A♥" : "A♦"}</div>
+                  <span className="modeEyebrow">
+                    {mode === "classic" ? "36 КАРТ • ЧИСТЫЕ ПРАВИЛА" : "6 УНИКАЛЬНЫХ КЛАССОВ"}
+                  </span>
+                  <h1>{mode === "classic" ? "Классический дурак" : "Дурак RPG"}</h1>
+                  <p>
+                    {mode === "classic"
+                      ? "Зелёный стол, привычные правила и ничего лишнего."
+                      : "Каждая партия меняется из-за случайной способности."}
+                  </p>
+                </section>
+
+                <section className="settings compactSettings">
+                  <SettingRow label="Игроков" value={String(settings.playerCount)}>
+                    <input
+                      type="range"
+                      min="2"
+                      max="6"
+                      step="1"
+                      value={settings.playerCount}
+                      onChange={(event) =>
+                        updateSettings({
+                          playerCount: Number(event.target.value) as GameSettings["playerCount"]
+                        })
+                      }
+                    />
+                    <div className="rangeLabels"><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+                  </SettingRow>
+
+                  <div className="settingsGrid">
+                    {mode === "classic" ? (
+                      <SettingRow
+                        label="Режим"
+                        value={settings.variant === "throw-in" ? "Подкидной" : "Переводной"}
+                      >
+                        <div className="segmented">
+                          <button
+                            className={settings.variant === "throw-in" ? "active" : ""}
+                            onClick={() => updateSettings({ variant: "throw-in" })}
+                          >
+                            Подкидной
+                          </button>
+                          <button
+                            className={settings.variant === "transfer" ? "active" : ""}
+                            onClick={() => updateSettings({ variant: "transfer" })}
+                          >
+                            Переводной
+                          </button>
+                        </div>
+                      </SettingRow>
+                    ) : (
+                      <div className="rpgRuleCard">
+                        <span>Правила RPG</span>
+                        <b>Подкидной + переводной</b>
+                        <small>Класс выпадет перед раздачей</small>
+                      </div>
+                    )}
+
+                    <SettingRow
+                      label="Подкидывают"
+                      value={settings.throwInPolicy === "all" ? "Все" : "Крайние"}
+                    >
+                      <div className="segmented">
+                        <button
+                          className={settings.throwInPolicy === "all" ? "active" : ""}
+                          onClick={() => updateSettings({ throwInPolicy: "all" })}
+                        >
+                          Все
+                        </button>
+                        <button
+                          className={settings.throwInPolicy === "neighbors" ? "active" : ""}
+                          onClick={() => updateSettings({ throwInPolicy: "neighbors" })}
+                        >
+                          Крайние
+                        </button>
+                      </div>
+                    </SettingRow>
+                  </div>
+
+                  <SettingRow
+                    label="Матч"
+                    value={settings.ranked ? "Рейтинговый" : "Обычный"}
+                  >
+                    <div className="segmented">
+                      <button
+                        className={!settings.ranked ? "active" : ""}
+                        onClick={() =>
+                          updateSettings({
+                            ranked: false,
+                            gameplayItemsEnabled: mode === "rpg"
+                          })
+                        }
+                      >
+                        Обычный
+                      </button>
+                      <button
+                        className={settings.ranked ? "active" : ""}
+                        onClick={() =>
+                          updateSettings({
+                            ranked: true,
+                            gameplayItemsEnabled: false
+                          })
+                        }
+                      >
+                        Рейтинг
+                      </button>
+                    </div>
+                    <div className="settingHint">
+                      {settings.ranked
+                        ? `Пул ${RANKED_RATING_POOL}: дурак −30, победители делят +30. Кто вышел раньше — получает больше.`
+                        : "Без изменения рейтинга."}
+                    </div>
+                  </SettingRow>
+
+                  {error && <div className="errorBanner">{error}</div>}
+
+                  <div className="primaryActions">
+                    <button
+                      className="findGame"
+                      disabled={connection !== "online"}
+                      onClick={joinQueue}
+                    >
+                      {connection === "connecting"
+                        ? "ПОДКЛЮЧЕНИЕ..."
+                        : connection === "offline"
+                          ? "СЕРВЕР НЕДОСТУПЕН"
+                          : "НАЙТИ ИГРУ"}
+                    </button>
+                    <button
+                      className="secondaryGameButton createRoomCompact"
+                      disabled={connection !== "online"}
+                      onClick={createPrivateRoom}
+                    >
+                      + КОМНАТА
+                    </button>
+                  </div>
+
+                  <div className="joinPrivateRow compactJoin">
+                    <input
+                      value={privateCodeInput}
+                      maxLength={6}
+                      placeholder="КОД КОМНАТЫ"
+                      aria-label="Код приватной комнаты"
+                      onChange={(event) =>
+                        setPrivateCodeInput(
+                          event.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z2-9]/g, "")
+                            .slice(0, 6)
+                        )
+                      }
+                    />
+                    <button
+                      className="secondaryGameButton"
+                      disabled={connection !== "online" || privateCodeInput.length !== 6}
+                      onClick={joinPrivateRoom}
+                    >
+                      Войти
+                    </button>
+                  </div>
+                </section>
+
+                {recentPlayers.length > 0 && (
+                  <div className="recentBlock">
+                    <div className="recentHead"><span>Недавние</span><small>игроки, которых ты уже встречал</small></div>
+                    <div className="recentPlayers">
+                      {recentPlayers.slice(0, 5).map((player) => (
+                        <div className="recentPlayer passive" key={player.key}>
+                          <span className="avatar">
+                            {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.name.slice(0, 1)}
+                          </span>
+                          <span>{player.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
+        {activeTab === "profile" && (
+          <section className="tabPage contentPage">
+            <div className="pageHead">
+              <div><span>ПРОФИЛЬ</span><h2>{profile ? `Уровень ${profile.level}` : "Загрузка…"}</h2></div>
+              {profile && <strong>{Math.round(profile.rating)} <small>RP</small></strong>}
             </div>
-            <div className="privateMembers">
-              {privateLobby.members.map((member) => (
-                <div className="privateMember" key={`${member.index}-${member.name}`}>
-                  <div className="avatar">
-                    {member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.index + 1}
+            {profile && (
+              <div className="profileGrid">
+                <div><span>Игр</span><b>{profile.games}</b></div>
+                <div><span>Побед</span><b>{profile.wins}</b></div>
+                <div><span>Поражений</span><b>{profile.losses}</b></div>
+                <div><span>Лучшая серия</span><b>{profile.bestStreak}</b></div>
+              </div>
+            )}
+            <h3>Последние матчи</h3>
+            <div className="historyList innerScroll">
+              {history.length === 0 && <p className="tabMuted">История пока пустая.</p>}
+              {history.map((entry) => (
+                <div className="historyRow" key={entry.matchId}>
+                  <div>
+                    <b>{entry.result === "win" ? "Победа" : entry.result === "loss" ? "Поражение" : "Ничья"}</b>
+                    <small>{entry.ranked ? "Рейтинг" : "Обычная"}</small>
                   </div>
                   <span>
-                    {member.name}
-                    {member.isHost ? <small> хозяин</small> : null}
-                    {member.isSelf ? <small> · ты</small> : null}
+                    {entry.ranked
+                      ? `${Math.round(entry.ratingBefore)} → ${Math.round(entry.ratingAfter)}`
+                      : "без рейтинга"}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="searchingPulse">
-              Ждём ещё {Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers)} игрок(а)…
+          </section>
+        )}
+
+        {activeTab === "rating" && (
+          <section className="tabPage contentPage">
+            <div className="pageHead">
+              <div><span>РЕЙТИНГ</span><h2>Таблица игроков</h2></div>
+              <strong>±30</strong>
             </div>
-            <button className="secondaryGameButton dangerOutline" onClick={leavePrivateRoom}>
-              Выйти из комнаты
-            </button>
-          </div>
+            <div className="ratingRuleCard">
+              <b>Один матч = пул 30 рейтинга</b>
+              <span>Дурак теряет 30. Победители делят эти 30 по порядку выхода: первый получает больше всех.</span>
+              <div className="ratingExamples">
+                <small>2: +30 / −30</small>
+                <small>3: +20 · +10 / −30</small>
+                <small>4: +15 · +10 · +5 / −30</small>
+              </div>
+            </div>
+            <div className="leaderboardList innerScroll">
+              {leaderboard.length === 0 && <p className="tabMuted">Загружаем таблицу…</p>}
+              {leaderboard.map((entry) => (
+                <div className={`leaderboardRow ${entry.isSelf ? "self" : ""}`} key={`${entry.rank}-${entry.displayName}`}>
+                  <b>#{entry.rank}</b>
+                  <span>{entry.displayName}</span>
+                  <strong>{Math.round(entry.rating)}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activeTab === "shop" && (
+          <section className="tabPage contentPage">
+            <div className="pageHead">
+              <div><span>МАГАЗИН</span><h2>Stars и эмоции</h2></div>
+              <strong>★</strong>
+            </div>
+            <p className="tabMuted">В рейтинговых матчах игровые преимущества отключены.</p>
+            <div className="shopGrid innerScroll">
+              <article>
+                <strong>↩ Возврат карты</strong>
+                <span>Вернуть последнюю карту, пока поверх неё никто не сыграл.</span>
+              </article>
+              <article>
+                <strong>👁 Память стола</strong>
+                <span>На 5 секунд показать карты, уже вышедшие из игры.</span>
+              </article>
+              <article>
+                <strong>🍅 Насмешки</strong>
+                <span>Помидоры, эмоции и визуальные реакции без влияния на правила.</span>
+              </article>
+            </div>
+          </section>
         )}
       </section>
 
@@ -889,83 +1062,6 @@ export function App() {
         <button className={activeTab === "rating" ? "active" : ""} onClick={() => openTab("rating")}>Рейтинг</button>
         <button className={activeTab === "shop" ? "active" : ""} onClick={() => openTab("shop")}>Магазин</button>
       </nav>
-
-      {activeTab !== "play" && (
-        <section className="tabOverlay">
-          <button className="tabClose" onClick={() => openTab("play")}>×</button>
-
-          {activeTab === "profile" && (
-            <>
-              <h2>Профиль</h2>
-              {profile ? (
-                <div className="profileGrid">
-                  <div><span>Рейтинг</span><b>{Math.round(profile.rating)}</b></div>
-                  <div><span>Уровень</span><b>{profile.level}</b></div>
-                  <div><span>Игр</span><b>{profile.games}</b></div>
-                  <div><span>Побед</span><b>{profile.wins}</b></div>
-                  <div><span>Поражений</span><b>{profile.losses}</b></div>
-                  <div><span>Лучшая серия</span><b>{profile.bestStreak}</b></div>
-                </div>
-              ) : <p className="tabMuted">Профиль загружается…</p>}
-
-              <h3>Последние матчи</h3>
-              <div className="historyList">
-                {history.length === 0 && <p className="tabMuted">История пока пустая.</p>}
-                {history.map((entry) => (
-                  <div className="historyRow" key={entry.matchId}>
-                    <div>
-                      <b>{entry.result === "win" ? "Победа" : entry.result === "loss" ? "Поражение" : "Ничья"}</b>
-                      <small>{entry.ranked ? "Рейтинг" : "Обычная"}</small>
-                    </div>
-                    <span>
-                      {entry.ranked
-                        ? `${Math.round(entry.ratingBefore)} → ${Math.round(entry.ratingAfter)}`
-                        : "без изменения рейтинга"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {activeTab === "rating" && (
-            <>
-              <h2>Рейтинг</h2>
-              <div className="leaderboardList">
-                {leaderboard.length === 0 && <p className="tabMuted">Загружаем таблицу…</p>}
-                {leaderboard.map((entry) => (
-                  <div className={`leaderboardRow ${entry.isSelf ? "self" : ""}`} key={`${entry.rank}-${entry.displayName}`}>
-                    <b>#{entry.rank}</b>
-                    <span>{entry.displayName}</span>
-                    <strong>{Math.round(entry.rating)}</strong>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {activeTab === "shop" && (
-            <>
-              <h2>Магазин</h2>
-              <p className="tabMuted">Здесь будут покупки за Telegram Stars. В рейтинговых матчах игровые преимущества отключены.</p>
-              <div className="shopGrid">
-                <article>
-                  <strong>↩ Возврат карты</strong>
-                  <span>Вернуть свою последнюю карту, если сверху ещё ничего не положили.</span>
-                </article>
-                <article>
-                  <strong>👁 Память стола</strong>
-                  <span>На 5 секунд посмотреть уже вышедшие карты.</span>
-                </article>
-                <article>
-                  <strong>🍅 Насмешки</strong>
-                  <span>Помидоры, эмоции и другие визуальные реакции на соперников.</span>
-                </article>
-              </div>
-            </>
-          )}
-        </section>
-      )}
     </main>
   );
 }
