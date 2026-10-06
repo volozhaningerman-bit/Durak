@@ -20,6 +20,11 @@ interface Session {
   queuedSettings?: GameSettings;
 }
 
+interface QueueEntry {
+  session: Session;
+  settings: GameSettings;
+}
+
 const sessions = new Map<WebSocket, Session>();
 
 app.get("/health", (_req, res) => {
@@ -51,18 +56,29 @@ function sameQueue(a: GameSettings, b: GameSettings): boolean {
   );
 }
 
-function tryMatchmake() {
-  const queued = [...sessions.values()].filter(
-    (session): session is Session & { queuedSettings: GameSettings } =>
-      session.queuedSettings !== undefined
-  );
+function getQueueEntries(): QueueEntry[] {
+  const entries: QueueEntry[] = [];
 
-  for (const session of queued) {
-    const settings = session.queuedSettings;
-    const targetCount = settings.playerCount;
+  for (const session of sessions.values()) {
+    if (session.queuedSettings) {
+      entries.push({
+        session,
+        settings: session.queuedSettings
+      });
+    }
+  }
+
+  return entries;
+}
+
+function tryMatchmake() {
+  const queued = getQueueEntries();
+
+  for (const entry of queued) {
+    const targetCount = entry.settings.playerCount;
 
     const compatible = queued.filter((candidate) =>
-      sameQueue(settings, candidate.queuedSettings)
+      sameQueue(entry.settings, candidate.settings)
     );
 
     if (compatible.length < targetCount) continue;
@@ -71,11 +87,11 @@ function tryMatchmake() {
     const roomId = randomUUID();
 
     for (const player of players) {
-      player.queuedSettings = undefined;
-      send(player.socket, {
+      player.session.queuedSettings = undefined;
+      send(player.session.socket, {
         type: "match_found",
         roomId,
-        players: players.map((entry) => entry.id)
+        players: players.map((item) => item.session.id)
       });
     }
   }
