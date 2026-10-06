@@ -1446,30 +1446,6 @@ html, body, #root {
   100% { transform:translate(1px,-1px) rotate(2deg); }
 }
 
-@keyframes discardReceive {
-  0% { transform:translateY(-50%) scale(.84) rotate(-6deg); }
-  60% { transform:translateY(-50%) scale(1.1) rotate(3deg); }
-  100% { transform:translateY(-50%) scale(1); }
-}
-
-@keyframes cardsToDiscard {
-  0% { opacity:1; }
-  70% { opacity:1; transform:translate(calc(-50vw + 58px), 5px) scale(.48) rotate(-18deg); }
-  100% { opacity:0; transform:translate(calc(-50vw + 42px), 5px) scale(.38) rotate(-24deg); }
-}
-
-@keyframes cardsToSelf {
-  0% { opacity:1; }
-  72% { opacity:1; transform:translateY(220px) scale(.55) rotate(7deg); }
-  100% { opacity:0; transform:translateY(270px) scale(.42) rotate(9deg); }
-}
-
-@keyframes cardsToOpponent {
-  0% { opacity:1; }
-  72% { opacity:1; transform:translateY(-150px) scale(.52) rotate(-7deg); }
-  100% { opacity:0; transform:translateY(-190px) scale(.4) rotate(-10deg); }
-}
-
 @keyframes transferSweep {
   0% { opacity:0; transform:scale(.55) translateX(-28px); }
   45% { opacity:1; transform:scale(1.08) translateX(5px); }
