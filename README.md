@@ -50,3 +50,47 @@ Telegram Mini App: классический и RPG-режимы игры «Ду�
 ## Статус
 
 Базовая архитектура и игровое ядро в разработке. Основные RPG-классы и их ограничения зафиксированы тестами.
+
+
+## Production запуск на VPS
+
+Для реального Telegram Mini App нужен домен, который указывает A/AAAA-записью на VPS, и открытые порты 80/443. HTTPS выдаёт Caddy автоматически.
+
+1. Скопировать репозиторий на VPS.
+2. Перейти в папку `deploy`.
+3. Скопировать `.env.example` в `.env`.
+4. Заполнить:
+   - `DOMAIN` — домен без `https://`;
+   - `BOT_TOKEN` — токен тестового бота из @BotFather;
+   - `POSTGRES_PASSWORD` — длинный случайный пароль.
+5. Запустить:
+   ```bash
+   docker compose up -d --build
+   ```
+6. Проверить:
+   ```bash
+   WEBAPP_URL=https://your-domain.example npm run smoke
+   ```
+
+В production один Node.js-процесс отдаёт и Mini App, и API/WebSocket. PostgreSQL работает только во внутренней Docker-сети. Caddy принимает HTTPS и проксирует WebSocket автоматически.
+
+### Привязка тестового Telegram-бота
+
+После того как HTTPS-адрес уже открывается:
+
+```bash
+BOT_TOKEN="..." WEBAPP_URL="https://your-domain.example" npm run configure:telegram
+```
+
+Скрипт проверит токен через Telegram Bot API, создаст кнопку **«Играть»** в меню бота и команды `/start` и `/play`.
+
+Токен нельзя коммитить в GitHub. Он хранится только в `deploy/.env` или в переменных окружения сервера.
+
+### Минимальная проверка перед тестовой игрой
+
+- `https://DOMAIN/health` возвращает `ok: true`;
+- `/api/config` показывает `telegramConfigured: true` и `databaseConfigured: true`;
+- Mini App открывается из кнопки **«Играть»** внутри Telegram;
+- два разных Telegram-аккаунта могут выбрать одинаковые параметры и попасть в одну комнату;
+- после перезапуска/краткого обрыва сети игрок возвращается на своё место;
+- результат партии появляется в профиле и истории, а рейтинговая партия меняет Elo.
