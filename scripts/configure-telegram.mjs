@@ -1,5 +1,6 @@
 const token = process.env.BOT_TOKEN?.trim();
 const webAppUrl = process.env.WEBAPP_URL?.trim();
+const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
 
 if (!token) {
   console.error("BOT_TOKEN is required");
@@ -8,6 +9,11 @@ if (!token) {
 
 if (!webAppUrl || !/^https:\/\//i.test(webAppUrl)) {
   console.error("WEBAPP_URL must be a public https:// URL");
+  process.exit(1);
+}
+
+if (!webhookSecret || !/^[A-Za-z0-9_-]{16,256}$/.test(webhookSecret)) {
+  console.error("TELEGRAM_WEBHOOK_SECRET must be 16-256 chars: A-Z a-z 0-9 _ -");
   process.exit(1);
 }
 
@@ -29,6 +35,13 @@ async function call(method, body) {
 
 try {
   const me = await call("getMe", {});
+
+  await call("setWebhook", {
+    url: `${webAppUrl}/telegram/webhook`,
+    secret_token: webhookSecret,
+    allowed_updates: ["message"],
+    drop_pending_updates: true
+  });
 
   await call("setChatMenuButton", {
     menu_button: {
