@@ -1215,7 +1215,7 @@ html, body, #root {
 
 .handCard.motion-take {
   animation: handTakeIn .46s cubic-bezier(.16,.78,.22,1) both;
-  animation-delay: calc(var(--hand-index, 0) * 24ms);
+  animation-delay: calc(220ms + var(--hand-index, 0) * 24ms);
 }
 
 .opponent.motion-deal {
