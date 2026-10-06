@@ -1150,3 +1150,27 @@ html, body, #root {
   .compactSettings { padding: 8px; }
   .compactSettings .segmented button { font-size: 9px; }
 }
+
+
+.inviteToast {
+  margin: 3px auto 0;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  color: var(--text);
+  font-size: 9px;
+  text-align: center;
+  animation: toastIn .2s ease-out;
+}
+
+.gameApp {
+  height: 100dvh;
+  overflow: hidden;
+  padding-top: max(76px, env(safe-area-inset-top), var(--tg-content-safe-area-inset-top, 0px));
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
