@@ -787,6 +787,7 @@ function finishRoomByForfeit(room: Room, loserSeat: number) {
     phase: "finished",
     turnSeat: undefined,
     table: [],
+    lastRoundOutcome: "discard",
     roundAttackLimit: 0,
     throwInPassedSeats: [],
     defenderTaking: false,
