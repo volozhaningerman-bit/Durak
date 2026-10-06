@@ -174,6 +174,7 @@ export function App() {
 
   useEffect(() => {
     let stopped = false;
+    let authBlocked = false;
     let reconnectTimer: number | undefined;
 
     const connect = () => {
@@ -203,7 +204,7 @@ export function App() {
         setConnection("offline");
         setQueueing(false);
 
-        if (!stopped) {
+        if (!stopped && !authBlocked) {
           window.clearTimeout(reconnectTimer);
           reconnectTimer = window.setTimeout(connect, 1500);
         }
@@ -251,6 +252,7 @@ export function App() {
           }
 
           if (message.type === "auth_error") {
+            authBlocked = true;
             setConnection("offline");
             setError(readableError(message.code));
             socket.close();
