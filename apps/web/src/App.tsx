@@ -332,7 +332,6 @@ export function App() {
 
           if (message.type === "private_room_left") {
             setPrivateLobby(null);
-            setError(null);
             return;
           }
 
@@ -429,6 +428,7 @@ export function App() {
   }
 
   function leavePrivateRoom() {
+    setError(null);
     send({ type: "leave_private_room" });
   }
 
