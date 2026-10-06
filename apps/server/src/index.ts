@@ -79,6 +79,8 @@ type ClientMessage =
   | { type: "leave_room" }
   | { type: "get_leaderboard"; limit?: number }
   | { type: "get_history"; limit?: number }
+  | { type: "get_recent_players"; limit?: number }
+  | { type: "invite_recent_player"; contactId: string; code: string }
   | { type: "game_action"; action: ClientGameAction };
 
 interface Session {
@@ -118,6 +120,7 @@ interface PrivateLobby {
 const sessions = new Map<WebSocket, Session>();
 const rooms = new Map<string, Room>();
 const privateLobbies = new Map<string, PrivateLobby>();
+const inviteCooldowns = new Map<string, number>();
 const aliveSockets = new WeakSet<WebSocket>();
 
 function secureRandom(): number {
@@ -431,14 +434,20 @@ function createRoom(entries: QueueEntry[]): Room {
     session.seat = seat;
   });
 
+  const playerIds = members.map((member) => {
+    if (!member.playerId) throw new Error("AUTH_REQUIRED");
+    return member.playerId;
+  });
+
   const game = createGame(
-    members.map((member) => {
-      if (!member.playerId) throw new Error("AUTH_REQUIRED");
-      return member.playerId;
-    }),
+    playerIds,
     settings,
     { id: roomId, random: secureRandom }
   );
+
+  void profileStore.touchContacts(playerIds).catch((error) => {
+    console.error("Failed to remember room contacts", error);
+  });
 
   const room: Room = {
     id: roomId,
@@ -627,6 +636,12 @@ function joinPrivateLobby(session: Session, rawCode: string) {
   session.queuedSettings = undefined;
   session.privateLobbyCode = code;
   lobby.members.push(session);
+  const lobbyPlayerIds = lobby.members
+    .map((member) => member.playerId)
+    .filter((playerId): playerId is string => Boolean(playerId));
+  void profileStore.touchContacts(lobbyPlayerIds).catch((error) => {
+    console.error("Failed to remember private lobby contacts", error);
+  });
   startPrivateLobbyIfReady(lobby);
 }
 
@@ -900,6 +915,100 @@ async function sendHistory(session: Session, requestedLimit?: number) {
   }
 }
 
+async function sendRecentPlayers(session: Session, requestedLimit?: number) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const limit =
+    typeof requestedLimit === "number" && Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(20, Math.floor(requestedLimit)))
+      : 8;
+
+  try {
+    const entries = await profileStore.getRecentContacts(session.playerId, limit);
+    send(session.socket, {
+      type: "recent_players",
+      entries: entries.map((entry) => ({
+        contactId: entry.playerId,
+        name: entry.displayName,
+        username: entry.username,
+        photoUrl: entry.photoUrl,
+        lastSeen: entry.lastSeen
+      }))
+    });
+  } catch (error) {
+    console.error("Failed to load recent players", error);
+    send(session.socket, { type: "error", code: "RECENT_PLAYERS_LOAD_FAILED" });
+  }
+}
+
+async function inviteRecentPlayer(
+  session: Session,
+  contactId: string,
+  rawCode: string
+) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const code = String(rawCode ?? "").trim().toUpperCase();
+  const lobby = privateLobbies.get(code);
+  if (!lobby || session.privateLobbyCode !== code || !lobby.members.includes(session)) {
+    send(session.socket, { type: "error", code: "PRIVATE_ROOM_NOT_FOUND" });
+    return;
+  }
+
+  const contacts = await profileStore.getRecentContacts(session.playerId, 20);
+  const contact = contacts.find((entry) => entry.playerId === contactId);
+  if (!contact) {
+    send(session.socket, { type: "error", code: "INVITE_CONTACT_NOT_FOUND" });
+    return;
+  }
+
+  const cooldownKey = `${session.playerId}:${contactId}`;
+  const lastInvite = inviteCooldowns.get(cooldownKey) ?? 0;
+  if (Date.now() - lastInvite < 20_000) {
+    send(session.socket, { type: "error", code: "INVITE_COOLDOWN" });
+    return;
+  }
+
+  const telegramId = contactId.startsWith("tg:")
+    ? Number(contactId.slice(3))
+    : NaN;
+  if (!Number.isSafeInteger(telegramId) || !botUsername) {
+    send(session.socket, { type: "error", code: "INVITE_UNAVAILABLE" });
+    return;
+  }
+
+  const senderName = session.telegramUser?.first_name ?? "Игрок";
+  const inviteUrl =
+    `https://t.me/${botUsername}?startapp=room_${code}&mode=fullscreen`;
+
+  try {
+    await telegramApi("sendMessage", {
+      chat_id: telegramId,
+      text: `🎴 ${senderName} приглашает тебя в Durak RPG`,
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "🎮 Войти в комнату", url: inviteUrl }
+        ]]
+      }
+    });
+    inviteCooldowns.set(cooldownKey, Date.now());
+    send(session.socket, {
+      type: "invite_sent",
+      contactId,
+      name: contact.displayName
+    });
+  } catch (error) {
+    console.error("Failed to send private invite", error);
+    send(session.socket, { type: "error", code: "INVITE_FAILED" });
+  }
+}
+
 function restoreRoomMembership(session: Session): Room | undefined {
   if (!session.playerId) return undefined;
 
@@ -1004,6 +1113,8 @@ async function authenticateSession(session: Session, initData: string) {
       profile,
       restoredRoom: restoredRoom?.id
     });
+
+    void sendRecentPlayers(session, 8);
 
     if (restoredRoom && session.seat !== undefined) {
       send(session.socket, {
@@ -1131,6 +1242,16 @@ wss.on("connection", (socket, request) => {
 
     if (message.type === "get_history") {
       void sendHistory(session, message.limit);
+      return;
+    }
+
+    if (message.type === "get_recent_players") {
+      void sendRecentPlayers(session, message.limit);
+      return;
+    }
+
+    if (message.type === "invite_recent_player") {
+      void inviteRecentPlayer(session, message.contactId, message.code);
       return;
     }
 
