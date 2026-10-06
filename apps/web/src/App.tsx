@@ -119,7 +119,7 @@ function initialGameMotion(game: GameView): GameMotionState {
     deckPulse: true,
     discardPulse: false,
     takeDeclared: false,
-    trumpReveal: false,
+    trumpReveal: Boolean(game.trumpCard),
     selfFinished: false
   };
 }
