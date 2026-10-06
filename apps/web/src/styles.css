@@ -1205,17 +1205,17 @@ html, body, #root {
 
 .handCard.motion-deal {
   animation: handDealIn .48s cubic-bezier(.16,.78,.22,1) both;
-  animation-delay: calc(var(--hand-index, 0) * 70ms);
+  animation-delay: calc(var(--motion-index, 0) * 70ms);
 }
 
 .handCard.motion-draw {
   animation: handDrawIn .42s cubic-bezier(.16,.78,.22,1) both;
-  animation-delay: calc(var(--hand-index, 0) * 38ms);
+  animation-delay: calc(var(--motion-index, 0) * 38ms);
 }
 
 .handCard.motion-take {
   animation: handTakeIn .46s cubic-bezier(.16,.78,.22,1) both;
-  animation-delay: calc(220ms + var(--hand-index, 0) * 24ms);
+  animation-delay: calc(220ms + var(--motion-index, 0) * 24ms);
 }
 
 .opponent.motion-deal {
@@ -1609,7 +1609,7 @@ html, body, #root {
 .gameApp .handCard .cardFace strong { font-size: 22px; }
 
 .gameApp[data-motion="discard"] .handCard.motion-draw {
-  animation-delay: calc(230ms + var(--hand-index, 0) * 38ms);
+  animation-delay: calc(230ms + var(--motion-index, 0) * 38ms);
 }
 
 .gameApp[data-motion="discard"] .opponent.motion-draw,
