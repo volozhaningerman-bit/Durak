@@ -25,7 +25,12 @@ const isProduction = process.env.NODE_ENV === "production";
 function validateProductionConfig() {
   if (!isProduction) return;
 
-  const required = ["BOT_TOKEN", "WEBAPP_URL", "DATABASE_URL"] as const;
+  const required = [
+    "BOT_TOKEN",
+    "WEBAPP_URL",
+    "DATABASE_URL",
+    "TELEGRAM_WEBHOOK_SECRET"
+  ] as const;
   const missing = required.filter((key) => !process.env[key]?.trim());
   if (missing.length > 0) {
     throw new Error(`Missing required production env: ${missing.join(", ")}`);
@@ -142,6 +147,69 @@ app.get("/api/config", (_req, res) => {
     telegramConfigured: Boolean(process.env.BOT_TOKEN),
     databaseConfigured: Boolean(process.env.DATABASE_URL)
   });
+});
+
+
+interface TelegramUpdate {
+  message?: {
+    chat?: { id?: number };
+    text?: string;
+  };
+}
+
+async function telegramApi(method: string, body: unknown) {
+  const token = process.env.BOT_TOKEN;
+  if (!token) throw new Error("BOT_TOKEN_MISSING");
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const result = await response.json() as { ok?: boolean; description?: string };
+  if (!response.ok || !result.ok) {
+    throw new Error(result.description ?? `Telegram API ${method} failed`);
+  }
+}
+
+app.post("/telegram/webhook", async (req, res) => {
+  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const receivedSecret = req.header("x-telegram-bot-api-secret-token");
+
+  if (!expectedSecret || receivedSecret !== expectedSecret) {
+    res.sendStatus(403);
+    return;
+  }
+
+  res.sendStatus(200);
+
+  const update = req.body as TelegramUpdate;
+  const chatId = update.message?.chat?.id;
+  const text = update.message?.text?.trim();
+  if (!chatId || !text || (!text.startsWith("/start") && !text.startsWith("/play"))) {
+    return;
+  }
+
+  const webAppUrl = process.env.WEBAPP_URL;
+  if (!webAppUrl) return;
+
+  try {
+    await telegramApi("sendMessage", {
+      chat_id: chatId,
+      text: "Durak RPG — классический и RPG-режим для 2–6 игроков.",
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: "🎮 Играть",
+            web_app: { url: webAppUrl }
+          }
+        ]]
+      }
+    });
+  } catch (error) {
+    console.error("Failed to answer Telegram command", error);
+  }
 });
 
 const webDist = path.resolve(process.cwd(), "apps/web/dist");
