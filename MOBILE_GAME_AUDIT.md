@@ -65,7 +65,7 @@ Updated: 2026-10-07
 - ✅ Place shown when available.
 - ✅ Clear return-to-menu CTA.
 - ⬜ Show exact rating delta from authoritative server result.
-- ⬜ Rematch CTA for private rooms.
+- ✅ Private rematch CTA with unanimous ready-check and authoritative fresh-game restart.
 - ⬜ XP / level progress animation.
 
 ## 7. Network / mobile background behavior
@@ -103,7 +103,7 @@ Updated: 2026-10-07
 - ✅ Recent-player memory.
 - ✅ Direct repeat invitation through bot.
 - ✅ Invite cooldown.
-- ⬜ Post-match rematch invitation.
+- ✅ Post-match private rematch flow; all players opt in before the next game starts.
 - ⬜ Optional favorite players.
 
 ## 11. Progression / retention
@@ -127,5 +127,5 @@ Updated: 2026-10-07
 ## Current priority after this audit
 1. Real two-device playtest of the complete match.
 2. Tune card size, motion duration and table spacing from actual iPhone footage.
-3. Add authoritative post-match rating delta and rematch.
+3. Verify private rematch across two real Telegram clients, including one player declining/leaving.
 4. Only then expand cosmetics / Stars.
