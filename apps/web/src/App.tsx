@@ -1669,6 +1669,7 @@ function GameScreen(props: {
     <main
       className="app gameApp"
       data-theme={props.theme}
+      data-mode={game.settings.mode}
       data-motion={motion.cleared?.kind}
     >
       <Header
