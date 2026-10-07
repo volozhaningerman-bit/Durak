@@ -240,6 +240,20 @@ function readableError(code?: string): string {
   return errorMessages[code] ?? "Не удалось выполнить действие";
 }
 
+function playersLabel(count: number): string {
+  const mod100 = Math.abs(count) % 100;
+  const mod10 = mod100 % 10;
+  const word =
+    mod100 >= 11 && mod100 <= 14
+      ? "игроков"
+      : mod10 === 1
+        ? "игрок"
+        : mod10 >= 2 && mod10 <= 4
+          ? "игрока"
+          : "игроков";
+  return `${count} ${word}`;
+}
+
 const backendOrigin = (import.meta.env.VITE_BACKEND_ORIGIN as string | undefined)
   ?.trim()
   .replace(/\/$/, "");
@@ -832,7 +846,7 @@ export function App() {
                 </span>
                 <h2>Ищем соперников</h2>
                 <p>
-                  {settings.playerCount} игрока · {settings.ranked ? "рейтинг" : "обычная"} ·
+                  {playersLabel(settings.playerCount)} · {settings.ranked ? "рейтинг" : "обычная"} ·
                   {" "}{settings.throwInPolicy === "all" ? "подкидывают все" : "подкидывают крайние"}
                 </p>
                 <div className="searchDots" aria-hidden="true"><i /><i /><i /></div>
@@ -888,7 +902,7 @@ export function App() {
 
                 <div className="waitingCaption">
                   <span className="waitingDot" />
-                  Ждём ещё {Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers)} игрок(а)
+                  Ждём ещё {playersLabel(Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers))}
                 </div>
 
                 <div className="lobbyActions">
