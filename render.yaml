@@ -1,5 +1,14 @@
 services:
   - type: web
+    name: durak-rpg-app
+    runtime: static
+    buildCommand: npm install && npm run build -w @durak/game-core && npm run build -w @durak/web
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: VITE_BACKEND_ORIGIN
+        value: https://durak-rpg.onrender.com
+
+  - type: web
     name: durak-rpg
     runtime: docker
     plan: free
@@ -8,6 +17,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: WEBAPP_URL
+        value: https://durak-rpg-app.onrender.com
       - key: BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
