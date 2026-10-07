@@ -837,9 +837,15 @@ export function App() {
             {queueing ? (
               <div className="searchStage">
                 <div className="searchCards" aria-hidden="true">
-                  <span className="searchCard cardOne">6♠</span>
-                  <span className="searchCard cardTwo">A♥</span>
-                  <span className="searchCard cardThree">Д</span>
+                  <span className="searchCard cardOne">
+                    <CardFace card={{ id: "search-6", kind: "standard", suit: "spades", rank: "6" }} mode={mode} />
+                  </span>
+                  <span className="searchCard cardTwo">
+                    <CardBack mode={mode} />
+                  </span>
+                  <span className="searchCard cardThree">
+                    <CardFace card={{ id: "search-a", kind: "standard", suit: "hearts", rank: "A" }} mode={mode} />
+                  </span>
                 </div>
                 <span className="modeEyebrow">
                   {mode === "classic" ? "КЛАССИЧЕСКАЯ ИГРА" : "RPG • СЛУЧАЙНЫЙ КЛАСС"}
@@ -871,8 +877,8 @@ export function App() {
 
                 <div className="waitingTable">
                   <div className="waitingDeck" aria-hidden="true">
-                    <span />
-                    <span />
+                    <CardBack mode={mode} compact />
+                    <CardBack mode={mode} compact />
                   </div>
                   <div className={`waitingSeats seats-${privateLobby.requiredPlayers}`}>
                     {Array.from({ length: privateLobby.requiredPlayers }, (_, index) => {
@@ -974,9 +980,23 @@ export function App() {
                 </section>
 
                 <section className={`heroCard modeHero ${mode}`}>
-                  <div className="playingCard left">{mode === "classic" ? "6♠" : "J♣"}</div>
+                  <div className="playingCard left">
+                    <CardFace
+                      card={mode === "classic"
+                        ? { id: "hero-left", kind: "standard", suit: "spades", rank: "6" }
+                        : { id: "hero-left", kind: "standard", suit: "clubs", rank: "J" }}
+                      mode={mode}
+                    />
+                  </div>
                   <div className="crest">{mode === "classic" ? "♠" : "✦"}</div>
-                  <div className="playingCard right">{mode === "classic" ? "A♥" : "A♦"}</div>
+                  <div className="playingCard right">
+                    <CardFace
+                      card={mode === "classic"
+                        ? { id: "hero-right", kind: "standard", suit: "hearts", rank: "A" }
+                        : { id: "hero-right", kind: "joker" }}
+                      mode={mode}
+                    />
+                  </div>
                   <span className="modeEyebrow">
                     {mode === "classic" ? "36 КАРТ • ЧИСТЫЕ ПРАВИЛА" : "6 УНИКАЛЬНЫХ КЛАССОВ"}
                   </span>
@@ -1795,7 +1815,9 @@ function GameScreen(props: {
               style={{ "--seat-index": player.seat } as CSSProperties}
             >
               <div className="opponentCards" aria-hidden="true">
-                <i /><i /><i />
+                <i><CardBack mode={game.settings.mode} compact /></i>
+                <i><CardBack mode={game.settings.mode} compact /></i>
+                <i><CardBack mode={game.settings.mode} compact /></i>
               </div>
               <div className="avatar">
                 {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.seat + 1}
@@ -1825,8 +1847,8 @@ function GameScreen(props: {
         </div>
 
         <div className={`deckPile ${motion.deckPulse ? "pulseDraw" : ""}`} aria-label={`Колода: ${game.deckCount}`}>
-          <span className="pileCard backOne" />
-          <span className="pileCard backTwo" />
+          <span className="pileCard backOne"><CardBack mode={game.settings.mode} compact /></span>
+          <span className="pileCard backTwo"><CardBack mode={game.settings.mode} compact /></span>
           {game.trumpCard && game.deckCount > 0 && (
             <span className={[
               "trumpPeek",
@@ -1870,7 +1892,7 @@ function GameScreen(props: {
                   "--ghost-index": index
                 } as CSSProperties}
               >
-                <CardFace card={card} />
+                <CardFace card={card} mode={game.settings.mode} />
               </div>
             ))}
           </div>
@@ -1888,7 +1910,7 @@ function GameScreen(props: {
                 key={card.id}
                 style={{ "--ghost-index": index } as CSSProperties}
               >
-                <CardFace card={card} />
+                <CardFace card={card} mode={game.settings.mode} />
               </div>
             ))}
           </div>
@@ -1952,7 +1974,7 @@ function GameScreen(props: {
                       : ""
                   ].join(" ")}
                 >
-                  <CardFace card={pair.attack} />
+                  <CardFace card={pair.attack} mode={game.settings.mode} />
                 </div>
                 {pair.defense && (
                   <div
@@ -1963,7 +1985,7 @@ function GameScreen(props: {
                         : ""
                     ].join(" ")}
                   >
-                    <CardFace card={pair.defense} />
+                    <CardFace card={pair.defense} mode={game.settings.mode} />
                   </div>
                 )}
               </button>
@@ -2062,7 +2084,7 @@ function GameScreen(props: {
                 !cardPlayable(card)
               }
             >
-              <CardFace card={card} />
+              <CardFace card={card} mode={game.settings.mode} />
             </button>
           ))}
         </div>
@@ -2075,15 +2097,89 @@ function isRed(card: Card): boolean {
   return card.kind === "standard" && (card.suit === "hearts" || card.suit === "diamonds");
 }
 
-function CardFace({ card }: { card: Card }) {
+const pipCountByRank: Partial<Record<"6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K" | "A", number>> = {
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10
+};
+
+function CardFace({ card, mode = "classic" }: { card: Card; mode?: GameMode }) {
   if (card.kind === "joker") {
-    return <span className="cardFace jokerFace"><b>★</b><small>JOKER</small></span>;
+    return (
+      <span className={`cardFace jokerFace cardStyle-${mode}`}>
+        <span className="cardCorner top">
+          <b>★</b>
+          <i>J</i>
+        </span>
+        <span className="jokerMedallion" aria-hidden="true">
+          <i>♠</i><i>↝</i><strong>★</strong><i>↶</i><i>✦</i>
+        </span>
+        <small>JOKER</small>
+        <span className="cardCorner bottom">
+          <b>★</b>
+          <i>J</i>
+        </span>
+      </span>
+    );
   }
 
+  const symbol = suitSymbol[card.suit];
+  const pipCount = pipCountByRank[card.rank];
+  const faceLetter = card.rank === "J" ? "В" : card.rank === "Q" ? "Д" : card.rank === "K" ? "К" : null;
+
   return (
-    <span className={`cardFace ${isRed(card) ? "red" : ""}`}>
-      <b>{card.rank}</b>
-      <strong>{suitSymbol[card.suit]}</strong>
+    <span className={`cardFace cardStyle-${mode} suit-${card.suit} ${isRed(card) ? "red" : ""}`}>
+      <span className="cardCorner top">
+        <b>{card.rank}</b>
+        <i>{symbol}</i>
+      </span>
+
+      {pipCount ? (
+        <span className={`pipField pips-${pipCount}`} aria-hidden="true">
+          {Array.from({ length: pipCount }, (_, index) => (
+            <i key={index}>{symbol}</i>
+          ))}
+        </span>
+      ) : faceLetter ? (
+        <span className="courtFace" aria-hidden="true">
+          <span className="courtCrown">{card.rank === "K" ? "♜" : card.rank === "Q" ? "✦" : "◆"}</span>
+          <strong>{faceLetter}</strong>
+          <i>{symbol}</i>
+          <small>{card.rank === "K" ? "КОРОЛЬ" : card.rank === "Q" ? "ДАМА" : "ВАЛЕТ"}</small>
+        </span>
+      ) : (
+        <span className="aceFace" aria-hidden="true">
+          <i>{symbol}</i>
+          <small>ДУРАК</small>
+        </span>
+      )}
+
+      <span className="cardCorner bottom">
+        <b>{card.rank}</b>
+        <i>{symbol}</i>
+      </span>
+    </span>
+  );
+}
+
+function CardBack({ mode = "classic", compact = false }: { mode?: GameMode; compact?: boolean }) {
+  return (
+    <span className={`cardBack cardBack-${mode} ${compact ? "compact" : ""}`} aria-hidden="true">
+      <span className="backFrame">
+        {mode === "classic" ? (
+          <span className="classicBackMark">
+            <i>♠</i><i>♣</i><strong>Д</strong><i>♥</i><i>♦</i>
+          </span>
+        ) : (
+          <span className="rpgBackSeal">
+            <i>♠</i><i>↝</i><i>Ⅴ</i>
+            <strong>Д</strong>
+            <i>✦</i><i>↶</i><i>★</i>
+          </span>
+        )}
+      </span>
     </span>
   );
 }
