@@ -1260,7 +1260,7 @@ export function App() {
         )}
 
         {activeTab === "profile" && (
-          <section className="tabPage contentPage">
+          <section className="tabPage contentPage profilePage">
             <div className="pageHead">
               <div><span>ПРОФИЛЬ</span><h2>Карточка игрока</h2></div>
               {profile && <strong>{Math.round(profile.rating)} <small>RP</small></strong>}
@@ -1316,7 +1316,7 @@ export function App() {
         )}
 
         {activeTab === "rating" && (
-          <section className="tabPage contentPage">
+          <section className="tabPage contentPage ratingPage">
             <div className="pageHead">
               <div><span>РЕЙТИНГ</span><h2>Таблица игроков</h2></div>
               <strong>±30</strong>
@@ -1346,6 +1346,13 @@ export function App() {
                   <strong>{Math.round(entry.rating)}</strong>
                 </div>
               ))}
+              {leaderboard.length > 0 && leaderboard.length < 5 && (
+                <div className="ratingSeasonHint">
+                  <small>СТАРТ ТАБЛИЦЫ</small>
+                  <b>Здесь скоро появятся соперники</b>
+                  <span>Сыгранные рейтинговые матчи автоматически заполняют лидерборд.</span>
+                </div>
+              )}
             </div>
           </section>
         )}
