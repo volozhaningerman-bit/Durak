@@ -68,6 +68,9 @@ interface GameView {
   id: string;
   settings: GameSettings;
   phase: "awaiting-trump" | "attacking" | "defending" | "throwing" | "finished";
+  privateMatch: boolean;
+  rematchAvailable: boolean;
+  rematchReadySeats: number[];
   players: GameViewPlayer[];
   self: {
     seat: number;
@@ -262,7 +265,9 @@ const errorMessages: Record<string, string> = {
   INVITE_COOLDOWN: "Этому игроку уже отправлено приглашение — подожди немного",
   INVITE_UNAVAILABLE: "Сейчас этому игроку нельзя отправить приглашение",
   INVITE_FAILED: "Не удалось отправить приглашение",
-  RECENT_PLAYERS_LOAD_FAILED: "Не удалось загрузить недавних игроков"
+  RECENT_PLAYERS_LOAD_FAILED: "Не удалось загрузить недавних игроков",
+  REMATCH_UNAVAILABLE: "Ремatch недоступен: один из игроков уже покинул стол",
+  REMATCH_RESULT_PENDING: "Сохраняем результат партии — рематч станет доступен сразу после этого"
 };
 
 function readableError(code?: string): string {
@@ -770,6 +775,11 @@ export function App() {
     send({ type: "leave_room" });
   }
 
+  function requestRematch() {
+    setError(null);
+    send({ type: "request_rematch" });
+  }
+
   function openTab(tab: LobbyTab) {
     setActiveTab(tab);
     setError(null);
@@ -885,6 +895,7 @@ export function App() {
         setSelectedHandId={setSelectedHandId}
         onAction={gameAction}
         onLeaveRoom={leaveRoom}
+        onRematch={requestRematch}
         matchProgress={lastMatchProgress}
       />
     );
@@ -1555,6 +1566,7 @@ function GameScreen(props: {
   setSelectedHandId: (value: string | null) => void;
   onAction: (action: Record<string, unknown>) => void;
   onLeaveRoom: () => void;
+  onRematch: () => void;
   matchProgress: MatchProgressView | null;
 }) {
   const { game } = props;
@@ -1586,6 +1598,8 @@ function GameScreen(props: {
     props.connection !== "online" ||
     props.actionPending ||
     (motionBusy && !prefersReducedMotion);
+  const rematchReady = game.rematchReadySeats.includes(game.self.seat);
+  const rematchReadyCount = game.rematchReadySeats.length;
 
   useEffect(() => {
     if (props.connection !== "online") {
@@ -2114,9 +2128,32 @@ function GameScreen(props: {
                 )}
               </div>
             )}
-            <button className="resultButton" onClick={props.onLeaveRoom}>
-              В МЕНЮ
-            </button>
+            {game.privateMatch && game.rematchAvailable && (
+              <div className="rematchStatus">
+                <span>
+                  {rematchReadyCount > 0
+                    ? `Готовы: ${rematchReadyCount}/${game.players.length}`
+                    : "Сыграть тем же составом?"}
+                </span>
+                <div className="resultActions">
+                  <button
+                    className="resultButton rematchButton"
+                    disabled={rematchReady || props.connection !== "online"}
+                    onClick={props.onRematch}
+                  >
+                    {rematchReady ? "ЖДЁМ ОСТАЛЬНЫХ" : "РЕМАТЧ"}
+                  </button>
+                  <button className="resultButton menuResultButton" onClick={props.onLeaveRoom}>
+                    В МЕНЮ
+                  </button>
+                </div>
+              </div>
+            )}
+            {(!game.privateMatch || !game.rematchAvailable) && (
+              <button className="resultButton" onClick={props.onLeaveRoom}>
+                В МЕНЮ
+              </button>
+            )}
           </section>
         ) : game.phase === "awaiting-trump" && isMyTurn ? (
           <section className="trumpChoice tableTrumpChoice">
