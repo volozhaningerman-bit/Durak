@@ -227,7 +227,21 @@ function readableError(code?: string): string {
   return errorMessages[code] ?? "Не удалось выполнить действие";
 }
 
+const backendOrigin = (import.meta.env.VITE_BACKEND_ORIGIN as string | undefined)
+  ?.trim()
+  .replace(/\/$/, "");
+
+function apiUrl(path: string): string {
+  return backendOrigin ? `${backendOrigin}${path}` : path;
+}
+
 function websocketUrl(): string {
+  if (backendOrigin) {
+    const url = new URL(backendOrigin);
+    const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${url.host}/ws`;
+  }
+
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host =
     window.location.hostname === "localhost"
@@ -281,7 +295,7 @@ export function App() {
   );
 
   useEffect(() => {
-    void fetch("/api/config")
+    void fetch(apiUrl("/api/config"))
       .then((response) => response.json())
       .then((config: { botUsername?: string }) => {
         if (config.botUsername) setBotUsername(config.botUsername);
