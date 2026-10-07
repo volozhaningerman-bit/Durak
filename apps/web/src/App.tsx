@@ -1963,16 +1963,16 @@ function GameScreen(props: {
 
       {game.phase === "defending" && isMyTurn && (
         <section className="gameActions">
-          <button disabled={controlsDisabled || !canSelectedDefend} onClick={defend}>
+          <button className="primaryAction" disabled={controlsDisabled || !canSelectedDefend} onClick={defend}>
             Отбить
           </button>
           {game.settings.variant === "transfer" && (
-            <button disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(false)}>
+            <button className="transferAction" disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(false)}>
               Перевести
             </button>
           )}
           {game.self.classId === "reverse-transfer" && (
-            <button disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(true)}>
+            <button className="reverseAction" disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(true)}>
               Развернуть
             </button>
           )}
@@ -1984,13 +1984,13 @@ function GameScreen(props: {
 
       {game.phase === "throwing" && isMyTurn && (
         <section className="gameActions single">
-          <button disabled={controlsDisabled} onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
+          <button className="passAction" disabled={controlsDisabled} onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
         </section>
       )}
 
       {game.phase === "finished" && (
         <section className="gameActions single">
-          <button onClick={props.onLeaveRoom}>В меню</button>
+          <button className="primaryAction" onClick={props.onLeaveRoom}>В меню</button>
         </section>
       )}
 
