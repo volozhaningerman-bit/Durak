@@ -102,6 +102,205 @@ interface GameView {
   draw: boolean;
 }
 
+type QaScenarioId = "2p" | "4p" | "6p" | "rpg" | "result";
+
+function qaCard(
+  id: string,
+  suit: Suit,
+  rank: Extract<Card, { kind: "standard" }>["rank"]
+): Card {
+  return { id, kind: "standard", suit, rank };
+}
+
+function qaPlayers(count: number, classes: Array<RpgClassId | undefined> = []): GameViewPlayer[] {
+  const names = ["Ты", "Марина", "Антон", "Лис", "Ворон", "Mika"];
+  return Array.from({ length: count }, (_, seat) => ({
+    seat,
+    classId: classes[seat],
+    handCount: seat === 0 ? 6 : Math.max(2, 7 - seat),
+    finished: false,
+    name: names[seat] ?? `Игрок ${seat + 1}`
+  }));
+}
+
+function buildQaGame(scenario: QaScenarioId): GameView {
+  if (scenario === "2p") {
+    return {
+      id: "qa-2p",
+      settings: { ...DEFAULT_CLASSIC_SETTINGS, playerCount: 2, variant: "transfer" },
+      phase: "defending",
+      privateMatch: true,
+      rematchAvailable: false,
+      rematchReadySeats: [],
+      players: qaPlayers(2),
+      self: {
+        seat: 0,
+        hand: [
+          qaCard("qa-2-7c", "clubs", "7"),
+          qaCard("qa-2-9h", "hearts", "9"),
+          qaCard("qa-2-js", "spades", "J"),
+          qaCard("qa-2-qd", "diamonds", "Q"),
+          qaCard("qa-2-kc", "clubs", "K"),
+          qaCard("qa-2-ah", "hearts", "A")
+        ],
+        ability: { wildTransfersLeft: 0, jokerAvailable: false },
+        finished: false,
+        name: "Ты"
+      },
+      deckCount: 23,
+      discardCount: 4,
+      trumpSuits: ["hearts"],
+      trumpCard: qaCard("qa-2-trump", "hearts", "6"),
+      table: [{ attack: qaCard("qa-2-attack", "clubs", "9") }],
+      attackerSeat: 1,
+      defenderSeat: 0,
+      turnSeat: 0,
+      direction: 1,
+      roundAttackLimit: 6,
+      defenderTaking: false,
+      draw: false
+    };
+  }
+
+  if (scenario === "4p") {
+    return {
+      id: "qa-4p",
+      settings: { ...DEFAULT_CLASSIC_SETTINGS, playerCount: 4, variant: "throw-in" },
+      phase: "throwing",
+      privateMatch: true,
+      rematchAvailable: false,
+      rematchReadySeats: [],
+      players: qaPlayers(4),
+      self: {
+        seat: 0,
+        hand: [
+          qaCard("qa-4-6c", "clubs", "6"),
+          qaCard("qa-4-8d", "diamonds", "8"),
+          qaCard("qa-4-10s", "spades", "10"),
+          qaCard("qa-4-qh", "hearts", "Q"),
+          qaCard("qa-4-as", "spades", "A")
+        ],
+        ability: { wildTransfersLeft: 0, jokerAvailable: false },
+        finished: false,
+        name: "Ты"
+      },
+      deckCount: 9,
+      discardCount: 12,
+      trumpSuits: ["diamonds"],
+      trumpCard: qaCard("qa-4-trump", "diamonds", "7"),
+      table: [
+        { attack: qaCard("qa-4-a1", "clubs", "8"), defense: qaCard("qa-4-d1", "clubs", "10") },
+        { attack: qaCard("qa-4-a2", "hearts", "8"), defense: qaCard("qa-4-d2", "hearts", "K") },
+        { attack: qaCard("qa-4-a3", "spades", "K"), defense: qaCard("qa-4-d3", "diamonds", "9") }
+      ],
+      attackerSeat: 2,
+      defenderSeat: 3,
+      turnSeat: 0,
+      direction: 1,
+      roundAttackLimit: 5,
+      defenderTaking: false,
+      draw: false
+    };
+  }
+
+  const classes: RpgClassId[] = [
+    "wild-transfer",
+    "trump-master",
+    "five-limit",
+    "first-thrower",
+    "reverse-transfer",
+    "joker"
+  ];
+
+  if (scenario === "result") {
+    const players = qaPlayers(6, classes).map((player, index) => ({
+      ...player,
+      finished: index !== 5,
+      place: index !== 5 ? index + 1 : undefined
+    }));
+    return {
+      id: "qa-result",
+      settings: { ...DEFAULT_RPG_SETTINGS, playerCount: 6, ranked: true },
+      phase: "finished",
+      privateMatch: true,
+      rematchAvailable: true,
+      rematchReadySeats: [1, 3],
+      players,
+      self: {
+        seat: 0,
+        hand: [],
+        classId: "wild-transfer",
+        ability: { wildTransfersLeft: 1, jokerAvailable: false },
+        finished: true,
+        place: 1,
+        name: "Ты"
+      },
+      deckCount: 0,
+      discardCount: 31,
+      trumpSuits: ["spades"],
+      trumpCard: qaCard("qa-r-trump", "spades", "6"),
+      table: [],
+      attackerSeat: 4,
+      defenderSeat: 5,
+      direction: -1,
+      roundAttackLimit: 0,
+      defenderTaking: false,
+      lastRoundOutcome: "discard",
+      loserSeat: 5,
+      draw: false
+    };
+  }
+
+  const playerCount = scenario === "6p" ? 6 : 4;
+  const players = qaPlayers(playerCount, classes);
+  const selfClass: RpgClassId = scenario === "rpg" ? "joker" : "wild-transfer";
+  players[0].classId = selfClass;
+
+  return {
+    id: `qa-${scenario}`,
+    settings: { ...DEFAULT_RPG_SETTINGS, playerCount, ranked: false },
+    phase: "defending",
+    privateMatch: true,
+    rematchAvailable: false,
+    rematchReadySeats: [],
+    players,
+    self: {
+      seat: 0,
+      hand: [
+        qaCard(`qa-${scenario}-6c`, "clubs", "6"),
+        qaCard(`qa-${scenario}-8h`, "hearts", "8"),
+        qaCard(`qa-${scenario}-10d`, "diamonds", "10"),
+        qaCard(`qa-${scenario}-js`, "spades", "J"),
+        qaCard(`qa-${scenario}-kh`, "hearts", "K"),
+        ...(selfClass === "joker" ? [{ id: `qa-${scenario}-joker`, kind: "joker" as const }] : [])
+      ],
+      classId: selfClass,
+      ability: {
+        wildTransfersLeft: selfClass === "wild-transfer" ? 2 : 0,
+        jokerAvailable: selfClass === "joker"
+      },
+      finished: false,
+      name: "Ты"
+    },
+    deckCount: 14,
+    discardCount: 8,
+    trumpSuits: ["spades"],
+    trumpCard: qaCard(`qa-${scenario}-trump`, "spades", "7"),
+    table: [
+      { attack: qaCard(`qa-${scenario}-a1`, "hearts", "10") },
+      { attack: qaCard(`qa-${scenario}-a2`, "clubs", "10"), defense: qaCard(`qa-${scenario}-d2`, "clubs", "Q") }
+    ],
+    attackerSeat: 2,
+    defenderSeat: 0,
+    turnSeat: 0,
+    direction: scenario === "6p" ? -1 : 1,
+    roundAttackLimit: selfClass === "five-limit" ? 5 : 6,
+    defenderTaking: false,
+    draw: false
+  };
+}
+
+
 type HandMotion = "deal" | "draw" | "take";
 type TableMotion = "self" | "opponent";
 type OpponentMotion = "deal" | "draw" | "take" | "play" | "finish";
@@ -315,6 +514,12 @@ function websocketUrl(): string {
 
 export function App() {
   const [mode, setMode] = useState<GameMode>("classic");
+  const [qaMode, setQaMode] = useState(() => {
+    const queryQa = new URLSearchParams(window.location.search).get("qa");
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+    return queryQa === "1" || startParam === "qa";
+  });
+  const qaTapCountRef = useRef(0);
   const [theme, setTheme] = useState<ThemeId>(() => {
     try {
       const saved = window.localStorage.getItem("durak-theme");
@@ -858,6 +1063,15 @@ export function App() {
     });
   }
 
+  function unlockQaMode() {
+    qaTapCountRef.current += 1;
+    if (qaTapCountRef.current >= 5) {
+      qaTapCountRef.current = 0;
+      setQaMode(true);
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+    }
+  }
+
   function inviteRecentPlayer(player: RecentPlayer) {
     if (!privateLobby) {
       setError("Сначала создай приватную комнату — после этого можно отправить приглашение.");
@@ -899,6 +1113,16 @@ export function App() {
       backButton.offClick(handleBack);
     };
   }, [activeTab, game?.phase]);
+
+  if (qaMode) {
+    return (
+      <QaHarness
+        theme={theme}
+        setTheme={setTheme}
+        onExit={() => setQaMode(false)}
+      />
+    );
+  }
 
   if (!initialReady) {
     return (
@@ -946,6 +1170,7 @@ export function App() {
                 : "Косметика, эмоции и расходники"
         }
         connection={connection}
+        onBrandTap={unlockQaMode}
       />
 
       <section className="screenBody">
@@ -1564,11 +1789,17 @@ function Header(props: {
   setTheme: (theme: ThemeId) => void;
   subtitle: string;
   connection?: ConnectionState;
+  onBrandTap?: () => void;
 }) {
   return (
     <header className="topbar">
       <div className="headerCopy">
-        <strong className="brand">DURAK <span>RPG</span></strong>
+        <strong
+          className={`brand ${props.onBrandTap ? "brandInteractive" : ""}`}
+          onClick={props.onBrandTap}
+        >
+          DURAK <span>RPG</span>
+        </strong>
         <div className="subtitle">
           <span className="subtitleText">{props.subtitle}</span>
           {props.connection && (
@@ -1604,6 +1835,89 @@ function Header(props: {
         </button>
       </div>
     </header>
+  );
+}
+
+function QaHarness(props: {
+  theme: ThemeId;
+  setTheme: (theme: ThemeId) => void;
+  onExit: () => void;
+}) {
+  const [scenario, setScenario] = useState<QaScenarioId>("2p");
+  const [dockOpen, setDockOpen] = useState(true);
+  const [selectedAttackId, setSelectedAttackId] = useState<string | null>(null);
+  const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
+  const game = useMemo(() => buildQaGame(scenario), [scenario]);
+
+  useEffect(() => {
+    setSelectedAttackId(null);
+    setSelectedHandId(null);
+  }, [scenario]);
+
+  return (
+    <>
+      <GameScreen
+        game={game}
+        connection="online"
+        actionPending={false}
+        theme={props.theme}
+        setTheme={props.setTheme}
+        error={null}
+        selectedAttackId={selectedAttackId}
+        setSelectedAttackId={setSelectedAttackId}
+        selectedHandId={selectedHandId}
+        setSelectedHandId={setSelectedHandId}
+        onAction={() => {
+          window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("light");
+        }}
+        onLeaveRoom={props.onExit}
+        onRematch={() => setScenario("2p")}
+        matchProgress={
+          scenario === "result"
+            ? {
+                result: "win",
+                ranked: true,
+                ratingBefore: 1240,
+                ratingAfter: 1250,
+                ratingDelta: 10
+              }
+            : null
+        }
+      />
+
+      <aside className={`qaDock ${dockOpen ? "open" : ""}`}>
+        <button
+          className="qaDockToggle"
+          onClick={() => setDockOpen((value) => !value)}
+          aria-label={dockOpen ? "Скрыть QA-панель" : "Показать QA-панель"}
+        >
+          QA
+        </button>
+        {dockOpen && (
+          <div className="qaDockPanel">
+            <small>ВИЗУАЛЬНЫЙ ТЕСТ</small>
+            <div className="qaScenarioButtons">
+              {([
+                ["2p", "2"],
+                ["4p", "4"],
+                ["6p", "6"],
+                ["rpg", "RPG"],
+                ["result", "Финиш"]
+              ] as Array<[QaScenarioId, string]>).map(([id, label]) => (
+                <button
+                  key={id}
+                  className={scenario === id ? "active" : ""}
+                  onClick={() => setScenario(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button className="qaExit" onClick={props.onExit}>ВЫЙТИ</button>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
 
