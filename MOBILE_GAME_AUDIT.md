@@ -129,3 +129,44 @@ Updated: 2026-10-07
 2. Tune card size, motion duration and table spacing from actual iPhone footage.
 3. Verify private rematch across two real Telegram clients, including one player declining/leaving.
 4. Only then expand cosmetics / Stars.
+
+
+## Screenshot + architecture audit — 2026-10-07, second pass
+
+Reviewed the full Oct 7 mobile screenshot sequence against the current `main` branch.
+
+### Fixed in this pass
+- ✅ Matchmaking search no longer inherits the late 90–150 px top-padding regression; its ceremony is centered and compact again.
+- ✅ Lobby uses Telegram's stable viewport CSS variable with browser fallback; fixed navigation also respects Telegram content-safe bottom inset.
+- ✅ Short phones can scroll the lobby rather than clipping the primary CTA. The active match remains a one-screen, non-scrolling surface.
+- ✅ Light/dark choice persists locally and updates Telegram header/background/bottom-bar colors when supported.
+- ✅ Telegram WebApp bridge updated to the current official script revision used by Telegram documentation.
+- ✅ Private lobby seats survive transient mobile/WebSocket disconnects for the reconnect grace period.
+- ✅ A disconnected private-lobby member is shown as reconnecting; the reserved seat cannot accidentally start a match with a dead socket.
+- ✅ Deep-link reconnect does not issue a duplicate `join_private_room` after restoring the reserved seat.
+- ✅ Public matchmaking is FIFO by queue-entry time rather than WebSocket connection age.
+- ✅ Static Mini App URL and authoritative backend URL are now distinct. Telegram webhook targets the backend, while menu/deep links target the static Mini App.
+- ✅ Telegram API configuration has a request timeout and no longer blocks the backend from beginning to listen after the database is ready.
+
+### Verified / no change required
+- ✅ Telegram initData is HMAC-validated server-side with freshness checks.
+- ✅ Production WebSocket origin is restricted to the configured Mini App origin.
+- ✅ WebSocket payload and per-session message rate are bounded.
+- ✅ SQL queries use parameters; match progression is transactional and idempotent by match id.
+- ✅ Ranked play disables gameplay-item advantages.
+- ✅ Core game actions are server-authoritative and the six RPG classes have direct rules/tests.
+- ✅ Transfer capacity uses the target defender's actual hand count, capped by the class/round limit.
+
+### Still requires real-device evidence
+- 🟡 In-match table/card spacing for 2, 4 and 6 players: no in-match screenshot was included in the recovered screenshot set.
+- 🟡 30–120 second iOS background suspension during an active match.
+- 🟡 Private-lobby reconnect while the host opens Telegram sharing and returns.
+- 🟡 Rematch acceptance/decline across two real Telegram accounts.
+- 🟡 VoiceOver pass and animation/FPS tuning on an older iPhone.
+
+### Rule variant to decide explicitly
+- 🟡 In a chain of transfers, current engine state treats the most recent transferring player as the current attacker for round ordering/refill. Durak rule sets differ on how refill priority is described after transfers. Keep the current behavior until the product rule is explicitly chosen and documented; do not silently change a live rule during UI polishing.
+
+### Code-health debt
+- 🟡 `apps/web/src/styles.css` still contains many historical screenshot-correction layers. The cascade is stable after this pass, but it should be consolidated after the next real-device visual approval rather than during active visual iteration.
+- 🟡 `apps/server/src/index.ts` remains monolithic. Split matchmaking/private-lobby/Telegram integration after the real two-device flow is proven, to avoid refactoring unvalidated behavior.
