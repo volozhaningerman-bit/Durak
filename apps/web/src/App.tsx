@@ -1926,7 +1926,34 @@ function GameScreen(props: {
           </div>
         )}
 
-        {game.phase === "awaiting-trump" && isMyTurn ? (
+        {game.phase === "finished" ? (
+          <section className={[
+            "matchResult",
+            game.draw ? "draw" : game.loserSeat === game.self.seat ? "loss" : "win"
+          ].join(" ")}>
+            <span className="resultSeal" aria-hidden="true">
+              {game.draw ? "◆" : game.loserSeat === game.self.seat ? "Д" : "♛"}
+            </span>
+            <small>{game.settings.mode === "rpg" ? "DURAK RPG" : "КЛАССИКА"}</small>
+            <h2>
+              {game.draw
+                ? "Ничья"
+                : game.loserSeat === game.self.seat
+                  ? "Ты — дурак"
+                  : "Партия выиграна"}
+            </h2>
+            <p>
+              {game.draw
+                ? "За столом не осталось проигравшего."
+                : game.self.place
+                  ? `Твоё место: #${game.self.place}`
+                  : resultText}
+            </p>
+            <button className="resultButton" onClick={props.onLeaveRoom}>
+              В МЕНЮ
+            </button>
+          </section>
+        ) : game.phase === "awaiting-trump" && isMyTurn ? (
           <section className="trumpChoice tableTrumpChoice">
             <span className="modeEyebrow">КОЗЫРНИК</span>
             <h2>Выбери козырь</h2>
