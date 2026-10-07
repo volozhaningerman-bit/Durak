@@ -178,6 +178,14 @@ interface MatchHistoryEntry {
   createdAt: string;
 }
 
+interface MatchProgressView {
+  result: "win" | "loss" | "draw";
+  ranked: boolean;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingDelta: number;
+}
+
 interface TelegramUserView {
   id: number;
   firstName: string;
@@ -319,6 +327,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<LobbyTab>("play");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [history, setHistory] = useState<MatchHistoryEntry[]>([]);
+  const [lastMatchProgress, setLastMatchProgress] = useState<MatchProgressView | null>(null);
   const [privateLobby, setPrivateLobby] = useState<PrivateLobbyView | null>(null);
   const [privateCodeInput, setPrivateCodeInput] = useState("");
   const [copyNotice, setCopyNotice] = useState(false);
@@ -422,6 +431,7 @@ export function App() {
             code?: string;
             state?: GameView;
             profile?: PlayerProgress;
+            progress?: MatchProgressView;
             user?: TelegramUserView;
             entries?: unknown[];
             name?: string;
@@ -458,6 +468,7 @@ export function App() {
 
           if (message.type === "profile_updated") {
             if (message.profile) setProfile(message.profile);
+            if (message.progress) setLastMatchProgress(message.progress);
             return;
           }
 
@@ -566,6 +577,7 @@ export function App() {
 
           if ((message.type === "match_found" || message.type === "game_state") && message.state) {
             if (message.type === "match_found") {
+              setLastMatchProgress(null);
               window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
             }
             setActionPending(false);
@@ -1508,6 +1520,7 @@ function GameScreen(props: {
   setSelectedHandId: (value: string | null) => void;
   onAction: (action: Record<string, unknown>) => void;
   onLeaveRoom: () => void;
+  matchProgress: MatchProgressView | null;
 }) {
   const { game } = props;
   const isMyTurn = game.turnSeat === game.self.seat;
@@ -2044,6 +2057,28 @@ function GameScreen(props: {
                   ? `Твоё место: #${game.self.place}`
                   : resultText}
             </p>
+            {props.matchProgress && (
+              <div className={[
+                "resultRating",
+                props.matchProgress.ratingDelta > 0
+                  ? "positive"
+                  : props.matchProgress.ratingDelta < 0
+                    ? "negative"
+                    : ""
+              ].join(" ")}>
+                <small>{props.matchProgress.ranked ? "РЕЙТИНГ" : "ОБЫЧНЫЙ МАТЧ"}</small>
+                <strong>
+                  {props.matchProgress.ranked
+                    ? `${props.matchProgress.ratingDelta > 0 ? "+" : ""}${props.matchProgress.ratingDelta} RP`
+                    : "без изменений"}
+                </strong>
+                {props.matchProgress.ranked && (
+                  <span>
+                    {Math.round(props.matchProgress.ratingBefore)} → {Math.round(props.matchProgress.ratingAfter)}
+                  </span>
+                )}
+              </div>
+            )}
             <button className="resultButton" onClick={props.onLeaveRoom}>
               В МЕНЮ
             </button>
