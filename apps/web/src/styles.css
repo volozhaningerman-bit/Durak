@@ -3398,3 +3398,38 @@ html, body, #root {
     max-width:105px;
   }
 }
+
+
+/* Layering correction after the table hierarchy rebuild. */
+.gameApp .tableArea > * {
+  z-index:1;
+}
+
+.gameApp .tableArea > .deckPile,
+.gameApp .tableArea > .discardPile,
+.gameApp .tableArea > .clearMotion,
+.gameApp .tableArea > .transferMotion,
+.gameApp .tableArea > .takeAnnounce {
+  position:absolute;
+}
+
+.gameApp .tableArea::before {
+  z-index:0;
+}
+
+.gameApp .takeAnnounce {
+  top:42px;
+  border-radius:3px;
+  background:color-mix(in srgb,var(--danger) 10%,var(--bg));
+}
+
+.gameApp .deckPile,
+.gameApp .discardPile {
+  z-index:3;
+}
+
+.gameApp .clearMotion,
+.gameApp .transferMotion,
+.gameApp .takeAnnounce {
+  z-index:10;
+}
