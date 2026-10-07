@@ -19,6 +19,8 @@ services:
         value: production
       - key: WEBAPP_URL
         value: https://durak-rpg-app.onrender.com
+      - key: SERVER_PUBLIC_URL
+        value: https://durak-rpg.onrender.com
       - key: BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
