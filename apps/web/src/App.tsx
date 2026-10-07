@@ -991,7 +991,7 @@ export function App() {
                     {Array.from({ length: privateLobby.requiredPlayers }, (_, index) => {
                       const member = privateLobby.members[index];
                       return member ? (
-                        <div className="waitingSeat filled" key={index}>
+                        <div className={`waitingSeat filled ${member.connected === false ? "reconnecting" : ""}`} key={index}>
                           <div className="avatar">
                             {member.photoUrl ? <img src={member.photoUrl} alt="" /> : index + 1}
                           </div>
