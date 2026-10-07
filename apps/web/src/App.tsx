@@ -1321,17 +1321,22 @@ export function App() {
               <div><span>РЕЙТИНГ</span><h2>Таблица игроков</h2></div>
               <strong>±30</strong>
             </div>
-            <div className="ratingRuleCard">
-              <b>Один матч = пул 30 рейтинга</b>
-              <span>Дурак теряет 30. Победители делят эти 30 по порядку выхода: первый получает больше всех.</span>
-              <div className="ratingExamples">
-                <small>2: +30 / −30</small>
-                <small>3: +20 · +10 / −30</small>
-                <small>4: +15 · +10 · +5 / −30</small>
-                <small>5: +12 · +9 · +6 · +3 / −30</small>
-                <small>6: +10 · +8 · +6 · +4 · +2 / −30</small>
+            <details className="ratingRuleCard">
+              <summary>
+                <span>Как начисляется рейтинг</span>
+                <b>пул 30 RP</b>
+              </summary>
+              <div className="ratingRuleBody">
+                <span>Дурак теряет 30. Победители делят эти 30 по порядку выхода: первый получает больше всех.</span>
+                <div className="ratingExamples">
+                  <small>2: +30 / −30</small>
+                  <small>3: +20 · +10 / −30</small>
+                  <small>4: +15 · +10 · +5 / −30</small>
+                  <small>5: +12 · +9 · +6 · +3 / −30</small>
+                  <small>6: +10 · +8 · +6 · +4 · +2 / −30</small>
+                </div>
               </div>
-            </div>
+            </details>
             <div className="leaderboardList innerScroll">
               {leaderboard.length === 0 && <p className="tabMuted">Загружаем таблицу…</p>}
               {leaderboard.map((entry) => (
@@ -1346,7 +1351,7 @@ export function App() {
         )}
 
         {activeTab === "shop" && (
-          <section className="tabPage contentPage">
+          <section className="tabPage contentPage shopPage">
             <div className="pageHead">
               <div><span>МАГАЗИН</span><h2>Stars и эмоции</h2></div>
               <strong>★</strong>
@@ -1441,60 +1446,34 @@ function Header(props: {
   subtitle: string;
   connection?: ConnectionState;
 }) {
-  const [isFullscreen, setIsFullscreen] = useState(
-    window.Telegram?.WebApp?.isFullscreen === true
-  );
-
-  useEffect(() => {
-    const webApp = window.Telegram?.WebApp;
-    if (!webApp?.onEvent || !webApp?.offEvent) return;
-
-    const syncFullscreen = () => setIsFullscreen(webApp.isFullscreen === true);
-    webApp.onEvent("fullscreenChanged", syncFullscreen);
-    return () => webApp.offEvent?.("fullscreenChanged", syncFullscreen);
-  }, []);
-
-  function toggleFullscreen() {
-    const webApp = window.Telegram?.WebApp;
-    if (!webApp) return;
-
-    try {
-      if (webApp.isFullscreen) {
-        webApp.exitFullscreen?.();
-      } else {
-        webApp.requestFullscreen?.();
-      }
-      window.setTimeout(
-        () => setIsFullscreen(window.Telegram?.WebApp?.isFullscreen === true),
-        150
-      );
-    } catch {
-      // Fullscreen is optional on older Telegram clients.
-    }
-  }
-
   return (
     <header className="topbar">
-      <div>
+      <div className="headerCopy">
         <strong className="brand">DURAK <span>RPG</span></strong>
         <div className="subtitle">
-          {props.subtitle}
+          <span className="subtitleText">{props.subtitle}</span>
           {props.connection && (
-            <span className={`connectionDot ${props.connection}`}>
-              {props.connection === "online" ? " online" : ""}
-            </span>
+            <span
+              className={`connectionDot ${props.connection}`}
+              aria-label={
+                props.connection === "online"
+                  ? "Онлайн"
+                  : props.connection === "connecting"
+                    ? "Подключение"
+                    : "Нет соединения"
+              }
+              title={
+                props.connection === "online"
+                  ? "Онлайн"
+                  : props.connection === "connecting"
+                    ? "Подключение"
+                    : "Нет соединения"
+              }
+            />
           )}
         </div>
       </div>
       <div className="headerActions">
-        <button
-          className="fullscreenButton"
-          onClick={toggleFullscreen}
-          aria-label={isFullscreen ? "Выйти из полного экрана" : "На весь экран"}
-          title={isFullscreen ? "Выйти из полного экрана" : "На весь экран"}
-        >
-          {isFullscreen ? "↙" : "⛶"}
-        </button>
         <button
           className="themeToggle"
           onClick={() => props.setTheme(props.theme === "dark" ? "light" : "dark")}
