@@ -3433,3 +3433,125 @@ html, body, #root {
 .gameApp .takeAnnounce {
   z-index:10;
 }
+
+
+/* Dense match HUD: reserve vertical space for cards, not chrome. */
+.gameApp .topbar {
+  margin-bottom:6px;
+  min-height:38px;
+}
+
+.gameApp .brand {
+  font-size:15px;
+}
+
+.gameApp .subtitle {
+  margin-top:2px;
+  font-size:8px;
+}
+
+.gameApp .themeToggle {
+  height:34px;
+  min-width:50px;
+}
+
+.gameApp .fullscreenButton {
+  width:34px;
+  height:34px;
+  font-size:16px;
+}
+
+.gameApp .classAbilityBar {
+  min-height:40px;
+  margin-bottom:6px;
+  padding:6px 9px;
+}
+
+.gameApp .classAbilityText span {
+  font-size:8px;
+  line-height:1.2;
+}
+
+.gameApp .classAbilityBar em {
+  max-width:78px;
+  text-align:right;
+  font-size:7px;
+  line-height:1.15;
+}
+
+.gameApp .gameMeta {
+  min-height:32px;
+  margin-bottom:6px;
+  padding:4px 7px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  border-width:1px 0;
+  background:transparent;
+}
+
+.gameApp .gameMeta span {
+  min-width:0;
+  flex:1 1 0;
+  flex-direction:row;
+  justify-content:center;
+  gap:4px;
+  padding:0 6px;
+  border-right:1px solid var(--line);
+  font-size:7px;
+  white-space:nowrap;
+}
+
+.gameApp .gameMeta span:last-child {
+  border-right:0;
+}
+
+.gameApp .gameMeta b {
+  font-size:10px;
+  font-family:Georgia,serif;
+}
+
+.gameApp .opponents {
+  margin-bottom:5px;
+}
+
+.gameApp .turnInfo {
+  margin-top:4px;
+}
+
+@media (max-height:760px) {
+  .gameApp .topbar {
+    margin-bottom:4px;
+  }
+
+  .gameApp .classAbilityBar {
+    min-height:34px;
+    padding:4px 7px;
+  }
+
+  .gameApp .gameMeta {
+    min-height:28px;
+    margin-bottom:4px;
+  }
+
+  .gameApp .opponent {
+    min-height:64px;
+    padding-top:15px;
+  }
+
+  .gameApp .opponentCards {
+    top:2px;
+    transform:translateX(-50%) scale(.88);
+    transform-origin:center top;
+  }
+
+  .gameApp .tableArea {
+    min-height:205px;
+  }
+
+  .gameApp .handCards {
+    min-height:100px;
+    padding-bottom:8px;
+  }
+}
