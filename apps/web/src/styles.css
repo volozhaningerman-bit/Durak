@@ -5407,3 +5407,53 @@ input[type="range"]::-moz-range-thumb {
     padding:0 7px;
   }
 }
+
+
+/* ===== Private rematch result controls ===== */
+.rematchStatus {
+  width:min(100%,260px);
+  display:grid;
+  gap:6px;
+  justify-items:center;
+}
+
+.rematchStatus > span {
+  color:var(--muted);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.06em;
+}
+
+.resultActions {
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(92px,.75fr);
+  gap:6px;
+}
+
+.resultActions .resultButton {
+  min-width:0;
+  width:100%;
+}
+
+.rematchButton {
+  border-color:color-mix(in srgb,var(--accent) 68%,var(--line));
+}
+
+.rematchButton:disabled {
+  opacity:.68;
+  background:color-mix(in srgb,var(--accent) 45%,var(--panelStrong));
+  color:var(--text);
+}
+
+.menuResultButton {
+  border-color:var(--line);
+  background:var(--panelStrong);
+  color:var(--text);
+}
+
+@media (max-width:360px) {
+  .resultActions {
+    grid-template-columns:1fr;
+  }
+}
