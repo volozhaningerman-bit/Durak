@@ -3555,3 +3555,44 @@ html, body, #root {
     padding-bottom:8px;
   }
 }
+
+
+/* Anti-AI cleanup: no ambient glow without gameplay meaning. */
+.lobbyApp[data-mode="classic"] {
+  background:
+    linear-gradient(180deg,rgba(79,146,101,.055) 0,transparent 150px),
+    var(--bg);
+}
+
+.lobbyApp[data-mode="rpg"] {
+  background:
+    linear-gradient(180deg,rgba(189,138,58,.055) 0,transparent 150px),
+    var(--bg);
+}
+
+.waitingTable {
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
+    #14251b;
+}
+
+.app[data-theme="light"] .waitingTable {
+  background:
+    linear-gradient(90deg,rgba(29,66,42,.03) 1px,transparent 1px) 0 0/30px 30px,
+    linear-gradient(rgba(29,66,42,.03) 1px,transparent 1px) 0 0/30px 30px,
+    #e4e9df;
+}
+
+.selfFinishBadge {
+  border-radius:2px;
+  clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px);
+  background:transparent;
+}
+
+.searchStage {
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
+    var(--panel);
+}
