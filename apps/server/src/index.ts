@@ -135,6 +135,7 @@ interface PrivateLobby {
   settings: GameSettings;
   members: Session[];
   createdAt: number;
+  disconnectTimers: Map<string, ReturnType<typeof setTimeout>>;
 }
 
 const sessions = new Map<WebSocket, Session>();
@@ -543,7 +544,12 @@ function generatePrivateCode(): string {
   throw new Error("PRIVATE_ROOM_CODE_EXHAUSTED");
 }
 
+function privateLobbyMemberConnected(member: Session): boolean {
+  return sessions.has(member.socket) && member.socket.readyState === WebSocket.OPEN;
+}
+
 function privateLobbyPayload(lobby: PrivateLobby, session: Session) {
+  const connectedPlayers = lobby.members.filter(privateLobbyMemberConnected).length;
   return {
     type: "private_room",
     code: lobby.code,
@@ -554,9 +560,10 @@ function privateLobbyPayload(lobby: PrivateLobby, session: Session) {
       username: member.telegramUser?.username,
       photoUrl: member.telegramUser?.photo_url,
       isSelf: member === session,
-      isHost: index === 0
+      isHost: index === 0,
+      connected: privateLobbyMemberConnected(member)
     })),
-    currentPlayers: lobby.members.length,
+    currentPlayers: connectedPlayers,
     requiredPlayers: lobby.settings.playerCount,
     isHost: lobby.members[0] === session
   };
@@ -585,9 +592,17 @@ function leavePrivateLobby(session: Session, sendConfirmation = true) {
     return;
   }
 
+  if (session.playerId) {
+    const timer = lobby.disconnectTimers.get(session.playerId);
+    if (timer) clearTimeout(timer);
+    lobby.disconnectTimers.delete(session.playerId);
+  }
+
   lobby.members = lobby.members.filter((member) => member !== session);
 
   if (lobby.members.length === 0) {
+    for (const timer of lobby.disconnectTimers.values()) clearTimeout(timer);
+    lobby.disconnectTimers.clear();
     privateLobbies.delete(code);
   } else {
     broadcastPrivateLobby(lobby);
@@ -597,11 +612,17 @@ function leavePrivateLobby(session: Session, sendConfirmation = true) {
 }
 
 function startPrivateLobbyIfReady(lobby: PrivateLobby) {
-  if (lobby.members.length < lobby.settings.playerCount) {
+  const everyoneConnected =
+    lobby.members.length === lobby.settings.playerCount &&
+    lobby.members.every(privateLobbyMemberConnected);
+
+  if (!everyoneConnected) {
     broadcastPrivateLobby(lobby);
     return;
   }
 
+  for (const timer of lobby.disconnectTimers.values()) clearTimeout(timer);
+  lobby.disconnectTimers.clear();
   privateLobbies.delete(lobby.code);
   const entries: QueueEntry[] = lobby.members.map((session) => ({
     session,
@@ -642,7 +663,8 @@ function createPrivateLobby(session: Session, input: unknown) {
     code,
     settings: privateSettings,
     members: [session],
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    disconnectTimers: new Map()
   };
   session.privateLobbyCode = code;
   privateLobbies.set(code, lobby);
@@ -1131,6 +1153,66 @@ async function inviteRecentPlayer(
   }
 }
 
+function restorePrivateLobbyMembership(session: Session): PrivateLobby | undefined {
+  if (!session.playerId) return undefined;
+
+  for (const lobby of privateLobbies.values()) {
+    const index = lobby.members.findIndex(
+      (member) => member.playerId === session.playerId
+    );
+    if (index < 0) continue;
+
+    const previous = lobby.members[index];
+    if (previous.privateLobbyCode !== lobby.code) continue;
+    if (previous === session) return lobby;
+
+    if (privateLobbyMemberConnected(previous)) {
+      return undefined;
+    }
+
+    const timer = lobby.disconnectTimers.get(session.playerId);
+    if (timer) clearTimeout(timer);
+    lobby.disconnectTimers.delete(session.playerId);
+
+    previous.privateLobbyCode = undefined;
+    lobby.members[index] = session;
+    session.privateLobbyCode = lobby.code;
+    broadcastPrivateLobby(lobby);
+    startPrivateLobbyIfReady(lobby);
+    return lobby;
+  }
+
+  return undefined;
+}
+
+function schedulePrivateLobbyDisconnect(session: Session) {
+  const code = session.privateLobbyCode;
+  const playerId = session.playerId;
+  if (!code || !playerId) return;
+
+  const lobby = privateLobbies.get(code);
+  if (!lobby || !lobby.members.includes(session)) return;
+
+  const existing = lobby.disconnectTimers.get(playerId);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(() => {
+    lobby.disconnectTimers.delete(playerId);
+
+    const stillReserved =
+      session.privateLobbyCode === code &&
+      lobby.members.includes(session) &&
+      !privateLobbyMemberConnected(session);
+
+    if (stillReserved) {
+      leavePrivateLobby(session, false);
+    }
+  }, reconnectGraceMs);
+
+  lobby.disconnectTimers.set(playerId, timer);
+  broadcastPrivateLobby(lobby);
+}
+
 function restoreRoomMembership(session: Session): Room | undefined {
   if (!session.playerId) return undefined;
 
@@ -1213,6 +1295,9 @@ async function authenticateSession(session: Session, initData: string) {
     session.playerId = playerId;
     session.telegramUser = result.user;
     const restoredRoom = restoreRoomMembership(session);
+    const restoredPrivateLobby = restoredRoom
+      ? undefined
+      : restorePrivateLobbyMembership(session);
 
     await profileStore.upsertIdentity(playerId, {
       displayName: result.user.first_name,
@@ -1233,7 +1318,8 @@ async function authenticateSession(session: Session, initData: string) {
         isPremium: result.user.is_premium === true
       },
       profile,
-      restoredRoom: restoredRoom?.id
+      restoredRoom: restoredRoom?.id,
+      restoredPrivateLobby: restoredPrivateLobby?.code
     });
 
     void sendRecentPlayers(session, 8);
@@ -1244,6 +1330,11 @@ async function authenticateSession(session: Session, initData: string) {
         roomId: restoredRoom.id,
         state: gameViewForSeat(restoredRoom, session.seat)
       });
+    } else if (restoredPrivateLobby && privateLobbies.has(restoredPrivateLobby.code)) {
+      send(
+        session.socket,
+        privateLobbyPayload(restoredPrivateLobby, session)
+      );
     }
   } catch (error) {
     session.authenticated = false;
@@ -1390,7 +1481,7 @@ wss.on("connection", (socket, request) => {
   socket.on("close", () => {
     session.queuedSettings = undefined;
     if (session.privateLobbyCode) {
-      leavePrivateLobby(session, false);
+      schedulePrivateLobbyDisconnect(session);
     }
 
     if (session.roomId) {
@@ -1436,6 +1527,8 @@ const privateLobbyCleanup = setInterval(() => {
     if (lobby.createdAt > cutoff) continue;
 
     privateLobbies.delete(code);
+    for (const timer of lobby.disconnectTimers.values()) clearTimeout(timer);
+    lobby.disconnectTimers.clear();
     for (const member of lobby.members) {
       if (member.privateLobbyCode === code) {
         member.privateLobbyCode = undefined;
@@ -1470,6 +1563,9 @@ async function shutdown() {
   clearInterval(privateLobbyCleanup);
   for (const room of rooms.values()) {
     for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
+  }
+  for (const lobby of privateLobbies.values()) {
+    for (const timer of lobby.disconnectTimers.values()) clearTimeout(timer);
   }
   privateLobbies.clear();
   wss.close();
