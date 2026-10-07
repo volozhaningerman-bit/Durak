@@ -410,7 +410,7 @@ describe("match engine", () => {
     }
   });
 
-  it("discards the joker after use even if the defender later takes", () => {
+  it("returns the joker to the defender when the round is taken", () => {
     let game = state({
       settings: { ...DEFAULT_RPG_SETTINGS, playerCount: 3 },
       phase: "defending",
@@ -452,9 +452,9 @@ describe("match engine", () => {
       playerSeat: 1
     });
 
-    expect(game.players[1].hand.some((card) => card.kind === "joker")).toBe(false);
-    expect(game.players[1].ability.jokerAvailable).toBe(false);
-    expect(game.discard.some((card) => card.kind === "joker")).toBe(true);
+    expect(game.players[1].hand.some((card) => card.kind === "joker")).toBe(true);
+    expect(game.players[1].ability.jokerAvailable).toBe(true);
+    expect(game.discard.some((card) => card.kind === "joker")).toBe(false);
   });
 
   it("rejects transfer after the defender has already covered a card", () => {
