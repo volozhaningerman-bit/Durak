@@ -1798,6 +1798,15 @@ function GameScreen(props: {
             ? "ПОДКИД"
             : "КОНЕЦ ПАРТИИ";
 
+  const resultText =
+    game.phase === "finished"
+      ? game.draw
+        ? "Ничья"
+        : game.loserSeat === game.self.seat
+          ? "Ты остался дураком"
+          : `Дурак — игрок #${(game.loserSeat ?? 0) + 1}`
+      : null;
+
   const turnHint =
     game.phase === "finished"
       ? resultText
@@ -1818,15 +1827,6 @@ function GameScreen(props: {
                     : canSelectedTransfer
                       ? "Карта подходит для перевода"
                       : "Эта карта не подходит — выбери другую или возьми";
-
-  const resultText =
-    game.phase === "finished"
-      ? game.draw
-        ? "Ничья"
-        : game.loserSeat === game.self.seat
-          ? "Ты остался дураком"
-          : `Дурак — игрок #${(game.loserSeat ?? 0) + 1}`
-      : null;
 
   return (
     <main
