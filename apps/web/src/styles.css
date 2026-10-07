@@ -4882,3 +4882,127 @@ input[type="range"]::-moz-range-thumb {
     padding-right:14px;
   }
 }
+
+
+/* ===== iPhone screenshot correction pass ===== */
+
+/* Keep our header below Telegram's floating chrome instead of visually colliding with it. */
+.lobbyApp .topbar,
+.gameApp .topbar {
+  margin-top:18px;
+}
+
+.headerCopy {
+  min-width:0;
+}
+
+.subtitle {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.subtitleText {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.connectionDot {
+  flex:0 0 auto;
+}
+
+/* Sparse pages should not look like a giant empty modal. */
+.profilePage,
+.ratingPage {
+  flex:0 0 auto;
+  height:auto;
+  max-height:calc(100dvh - 250px);
+  align-self:flex-start;
+}
+
+.profilePage .historyList,
+.ratingPage .leaderboardList {
+  flex:0 1 auto;
+  max-height:260px;
+}
+
+.ratingSeasonHint {
+  margin-top:10px;
+  padding:14px 12px;
+  display:grid;
+  gap:3px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+}
+
+.ratingSeasonHint small {
+  color:var(--accent);
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.ratingSeasonHint b {
+  color:var(--text);
+  font-size:11px;
+}
+
+.ratingSeasonHint span {
+  font-size:8px;
+  line-height:1.35;
+}
+
+/* Shop owns the scroll, with enough room above the fixed tab bar. */
+.shopPage {
+  padding-bottom:12px;
+}
+
+.shopPage .shopGrid {
+  padding-bottom:72px;
+}
+
+/* Search should feel intentionally centered rather than vertically empty. */
+.searchStage {
+  justify-content:flex-start;
+  padding-top:clamp(90px,14vh,150px);
+}
+
+.searchStage .cancelSearch {
+  margin-top:34px !important;
+}
+
+/* A little tighter on the exact narrow iPhone layout shown in screenshots. */
+@media (max-width:430px) {
+  .lobbyApp .topbar,
+  .gameApp .topbar {
+    margin-top:22px;
+  }
+
+  .topbar {
+    gap:10px;
+  }
+
+  .brand {
+    font-size:19px;
+  }
+
+  .subtitle {
+    font-size:10px;
+  }
+
+  .headerActions {
+    flex:0 0 auto;
+  }
+
+  .themeToggle {
+    min-width:46px;
+  }
+
+  .profilePage,
+  .ratingPage {
+    max-height:calc(100dvh - 265px);
+  }
+}
