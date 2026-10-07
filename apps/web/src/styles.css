@@ -2625,3 +2625,133 @@ html, body, #root {
     justify-self:start;
   }
 }
+
+
+/* Match identity: Classic and RPG are different tables, not skins of one screen. */
+.gameApp[data-mode="classic"] {
+  --accent:var(--classic);
+  --accentText:#f8f4e8;
+  background:
+    linear-gradient(180deg,rgba(79,146,101,.045),transparent 26%),
+    var(--bg);
+}
+
+.gameApp[data-mode="rpg"] {
+  --accent:var(--rpg);
+  --accentText:#1d160a;
+  background:
+    linear-gradient(180deg,rgba(189,138,58,.055),transparent 30%),
+    var(--bg);
+}
+
+.gameApp[data-mode="classic"] .tableArea {
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px) 0 0/26px 26px,
+    #13271b;
+  border-color:#35533e;
+}
+
+.gameApp[data-mode="rpg"] .tableArea {
+  background:
+    linear-gradient(135deg,rgba(189,138,58,.035) 25%,transparent 25%) 0 0/24px 24px,
+    #211b14;
+  border-color:#5c4932;
+}
+
+.gameApp[data-mode="classic"] .tableArea::before,
+.gameApp[data-mode="rpg"] .tableArea::before {
+  position:absolute;
+  z-index:0;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  font-family:Georgia,serif;
+  opacity:.055;
+}
+
+.gameApp[data-mode="classic"] .tableArea::before {
+  content:"♠";
+  color:#b9d6c0;
+  font-size:130px;
+}
+
+.gameApp[data-mode="rpg"] .tableArea::before {
+  content:"Д";
+  width:112px;
+  height:112px;
+  display:grid;
+  place-items:center;
+  border:1px solid #d4ad64;
+  border-radius:50%;
+  color:#d4ad64;
+  font-size:58px;
+}
+
+.gameApp[data-mode="classic"] .classAbilityBar {
+  display:none;
+}
+
+.gameApp[data-mode="rpg"] .classAbilityBar {
+  position:relative;
+  border-color:#59452e;
+  background:#1d1812;
+  clip-path:polygon(0 6px,6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px));
+}
+
+.app[data-theme="light"].gameApp[data-mode="rpg"] .classAbilityBar {
+  background:#eee3cf;
+  border-color:#c6aa79;
+}
+
+.gameApp[data-mode="rpg"] .classAbilityBar strong,
+.gameApp[data-mode="rpg"] .classAbilityBar b {
+  color:var(--rpgSoft);
+}
+
+.app[data-theme="light"].gameApp[data-mode="rpg"] .classAbilityBar strong,
+.app[data-theme="light"].gameApp[data-mode="rpg"] .classAbilityBar b {
+  color:var(--rpg);
+}
+
+.gameApp[data-mode="classic"] .gameMeta {
+  border-bottom:2px solid color-mix(in srgb,var(--classic) 44%,var(--line));
+}
+
+.gameApp[data-mode="rpg"] .gameMeta {
+  border-bottom:2px solid color-mix(in srgb,var(--rpg) 44%,var(--line));
+}
+
+.gameApp[data-mode="rpg"] .opponent small {
+  color:var(--rpgSoft);
+}
+
+.gameApp[data-mode="classic"] .opponent small {
+  color:var(--classicSoft);
+}
+
+.app[data-theme="light"].gameApp[data-mode="classic"] .tableArea {
+  background:
+    linear-gradient(90deg,rgba(26,76,46,.035) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(rgba(26,76,46,.035) 1px,transparent 1px) 0 0/26px 26px,
+    #dfe8dd;
+  border-color:#a4b7a6;
+}
+
+.app[data-theme="light"].gameApp[data-mode="rpg"] .tableArea {
+  background:
+    linear-gradient(135deg,rgba(173,121,38,.04) 25%,transparent 25%) 0 0/24px 24px,
+    #eee5d6;
+  border-color:#c9ad7d;
+}
+
+.gameApp[data-mode="rpg"] .transferMotion span {
+  border-color:#8d6a34;
+  color:var(--rpgSoft);
+}
+
+.gameApp[data-mode="classic"] .transferMotion span {
+  border-color:#4f9265;
+  color:var(--classicSoft);
+}
