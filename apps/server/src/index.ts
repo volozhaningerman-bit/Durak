@@ -115,6 +115,7 @@ interface Session {
   playerId?: string;
   telegramUser?: TelegramMiniAppUser;
   queuedSettings?: GameSettings;
+  queuedAt?: number;
   roomId?: string;
   seat?: number;
   privateLobbyCode?: string;
@@ -383,7 +384,11 @@ function getQueueEntries(): QueueEntry[] {
     }
   }
 
-  return entries;
+  return entries.sort(
+    (a, b) =>
+      (a.session.queuedAt ?? Number.MAX_SAFE_INTEGER) -
+      (b.session.queuedAt ?? Number.MAX_SAFE_INTEGER)
+  );
 }
 
 function gameViewForSeat(room: Room, seat: number) {
@@ -479,6 +484,7 @@ function createRoom(
 
   members.forEach((session, seat) => {
     session.queuedSettings = undefined;
+    session.queuedAt = undefined;
     session.privateLobbyCode = undefined;
     session.roomId = roomId;
     session.seat = seat;
@@ -667,6 +673,7 @@ function createPrivateLobby(session: Session, input: unknown) {
   };
 
   session.queuedSettings = undefined;
+  session.queuedAt = undefined;
   const code = generatePrivateCode();
   const lobby: PrivateLobby = {
     code,
@@ -710,6 +717,7 @@ function joinPrivateLobby(session: Session, rawCode: string) {
   }
 
   session.queuedSettings = undefined;
+  session.queuedAt = undefined;
   session.privateLobbyCode = code;
   lobby.members.push(session);
   const lobbyPlayerIds = lobby.members
@@ -1295,6 +1303,7 @@ async function authenticateSession(session: Session, initData: string) {
     if (duplicate) {
       duplicate.authenticated = false;
       duplicate.queuedSettings = undefined;
+      duplicate.queuedAt = undefined;
       sessions.delete(duplicate.socket);
       duplicate.socket.close(4001, "SESSION_REPLACED");
     }
@@ -1426,6 +1435,7 @@ wss.on("connection", (socket, request) => {
       }
 
       session.queuedSettings = settings;
+      session.queuedAt = Date.now();
       send(socket, { type: "queue_joined", settings });
       tryMatchmake();
       return;
@@ -1433,6 +1443,7 @@ wss.on("connection", (socket, request) => {
 
     if (message.type === "leave_queue") {
       session.queuedSettings = undefined;
+      session.queuedAt = undefined;
       send(socket, { type: "queue_left" });
       return;
     }
@@ -1489,6 +1500,7 @@ wss.on("connection", (socket, request) => {
 
   socket.on("close", () => {
     session.queuedSettings = undefined;
+    session.queuedAt = undefined;
     if (session.privateLobbyCode) {
       schedulePrivateLobbyDisconnect(session);
     }
