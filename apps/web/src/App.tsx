@@ -258,6 +258,7 @@ export function App() {
   const [classic, setClassic] = useState<GameSettings>({ ...DEFAULT_CLASSIC_SETTINGS });
   const [rpg, setRpg] = useState<GameSettings>({ ...DEFAULT_RPG_SETTINGS });
   const [connection, setConnection] = useState<ConnectionState>("connecting");
+  const [initialReady, setInitialReady] = useState(false);
   const [queueing, setQueueing] = useState(false);
   const [profile, setProfile] = useState<PlayerProgress | null>(null);
   const [game, setGame] = useState<GameView | null>(null);
@@ -295,6 +296,15 @@ export function App() {
   );
 
   useEffect(() => {
+    const telegram = window.Telegram?.WebApp;
+    telegram?.ready();
+    telegram?.expand();
+    try {
+      telegram?.requestFullscreen?.();
+    } catch {
+      // Fullscreen is optional on older Telegram clients.
+    }
+
     void fetch(apiUrl("/api/config"))
       .then((response) => response.json())
       .then((config: { botUsername?: string }) => {
@@ -315,15 +325,6 @@ export function App() {
 
       socket.onopen = () => {
         setError(null);
-
-        const telegram = window.Telegram?.WebApp;
-        telegram?.ready();
-        telegram?.expand();
-        try {
-          telegram?.requestFullscreen?.();
-        } catch {
-          // Older Telegram clients may not support fullscreen.
-        }
 
         socket.send(JSON.stringify({
           type: "auth",
@@ -371,6 +372,7 @@ export function App() {
           };
 
           if (message.type === "auth_ok") {
+            setInitialReady(true);
             setConnection("online");
             if (message.profile) setProfile(message.profile);
             setError(null);
@@ -439,6 +441,7 @@ export function App() {
 
           if (message.type === "auth_error") {
             authBlocked = true;
+            setInitialReady(true);
             setConnection("offline");
             setError(readableError(message.code));
             socket.close();
@@ -751,6 +754,16 @@ export function App() {
       backButton.offClick(handleBack);
     };
   }, [activeTab, game?.phase]);
+
+  if (!initialReady) {
+    return (
+      <BootScreen
+        theme={theme}
+        connection={connection}
+        error={error}
+      />
+    );
+  }
 
   if (game) {
     return (
@@ -1186,6 +1199,42 @@ export function App() {
         <button className={activeTab === "rating" ? "active" : ""} onClick={() => openTab("rating")}>Рейтинг</button>
         <button className={activeTab === "shop" ? "active" : ""} onClick={() => openTab("shop")}>Магазин</button>
       </nav>
+    </main>
+  );
+}
+
+
+function BootScreen(props: {
+  theme: ThemeId;
+  connection: ConnectionState;
+  error: string | null;
+}) {
+  return (
+    <main className="bootScreen" data-theme={props.theme}>
+      <div className="bootMark" aria-hidden="true">
+        <span className="bootCard bootCardLeft">6♠</span>
+        <span className="bootSeal">Д</span>
+        <span className="bootCard bootCardRight">A♥</span>
+      </div>
+      <div className="bootWordmark">
+        <b>DURAK</b>
+        <span>RPG</span>
+      </div>
+      <div className="bootStatus">
+        <div className="bootProgress" aria-hidden="true"><i /><i /><i /></div>
+        <strong>
+          {props.connection === "connecting"
+            ? "Открываем игровой стол"
+            : "Поднимаем игровой сервер"}
+        </strong>
+        <small>
+          {props.error
+            ? props.error
+            : props.connection === "connecting"
+              ? "Интерфейс уже загружен. Подключаем правила и игроков…"
+              : "Сервер просыпается автоматически — повторяем подключение."}
+        </small>
+      </div>
     </main>
   );
 }
