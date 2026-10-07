@@ -541,6 +541,12 @@ export function App() {
             typeof message.requiredPlayers === "number"
           ) {
             setQueueing(false);
+            setMode(message.settings.mode);
+            if (message.settings.mode === "classic") {
+              setClassic(message.settings);
+            } else {
+              setRpg(message.settings);
+            }
             setPrivateLobby({
               code: message.code,
               settings: message.settings,
@@ -931,15 +937,31 @@ export function App() {
                 </button>
               </div>
             ) : privateLobby ? (
-              <div className="privateLobbyStage">
+              <div className={`privateLobbyStage ${privateLobby.settings.mode}`}>
                 <div className="privateLobbyHead">
-                  <div>
-                    <span>Комната</span>
-                    <strong>{privateLobby.currentPlayers}/{privateLobby.requiredPlayers}</strong>
+                  <div className="privateLobbyTitle">
+                    <span>ПРИВАТНЫЙ СТОЛ</span>
+                    <strong>{privateLobby.settings.mode === "classic" ? "Классика" : "Durak RPG"}</strong>
+                    <small>
+                      {privateLobby.settings.mode === "classic"
+                        ? `${privateLobby.settings.variant === "throw-in" ? "Подкидной" : "Переводной"} · ${privateLobby.settings.throwInPolicy === "all" ? "подкидывают все" : "подкидывают крайние"}`
+                        : `Подкидной + переводной · ${privateLobby.settings.throwInPolicy === "all" ? "подкидывают все" : "подкидывают крайние"}`}
+                    </small>
+                  </div>
+                  <div className="privateSeatCounter">
+                    <small>ИГРОКИ</small>
+                    <b>{privateLobby.currentPlayers}/{privateLobby.requiredPlayers}</b>
+                  </div>
+                </div>
+
+                <div className="privateCodePanel">
+                  <div className="privateCodeLabel">
+                    <small>КОД КОМНАТЫ</small>
+                    <strong>{privateLobby.code}</strong>
                   </div>
                   <div className="privateCodeActions">
                     <button onClick={copyPrivateCode}>
-                      {copyNotice ? "Скопировано" : privateLobby.code}
+                      {copyNotice ? "ГОТОВО" : "КОПИРОВАТЬ"}
                     </button>
                     <button className="invitePulse" aria-label="Поделиться комнатой" onClick={sharePrivateRoom}>↗</button>
                   </div>
@@ -947,8 +969,8 @@ export function App() {
 
                 <div className="waitingTable">
                   <div className="waitingDeck" aria-hidden="true">
-                    <CardBack mode={mode} compact />
-                    <CardBack mode={mode} compact />
+                    <CardBack mode={privateLobby.settings.mode} compact />
+                    <CardBack mode={privateLobby.settings.mode} compact />
                   </div>
                   <div className={`waitingSeats seats-${privateLobby.requiredPlayers}`}>
                     {Array.from({ length: privateLobby.requiredPlayers }, (_, index) => {
@@ -978,7 +1000,14 @@ export function App() {
 
                 <div className="waitingCaption">
                   <span className="waitingDot" />
-                  Ждём ещё {playersLabel(Math.max(0, privateLobby.requiredPlayers - privateLobby.currentPlayers))}
+                  <div>
+                    <b>
+                      {privateLobby.requiredPlayers - privateLobby.currentPlayers > 0
+                        ? `Ждём ещё ${playersLabel(privateLobby.requiredPlayers - privateLobby.currentPlayers)}`
+                        : "Все на месте — запускаем матч"}
+                    </b>
+                    <small>Матч начнётся автоматически, когда стол заполнится</small>
+                  </div>
                 </div>
 
                 <div className="lobbyActions">
@@ -1040,12 +1069,30 @@ export function App() {
                   </section>
                 )}
 
-                <section className="modeSwitch">
-                  <button className={mode === "classic" ? "active" : ""} onClick={() => setMode("classic")}>
-                    Классика
+                <section className="modeSwitch modeChooser" aria-label="Выбор режима">
+                  <button
+                    className={mode === "classic" ? "active" : ""}
+                    aria-pressed={mode === "classic"}
+                    onClick={() => setMode("classic")}
+                  >
+                    <span className="modeChoiceSigil">♠</span>
+                    <span className="modeChoiceCopy">
+                      <b>Классика</b>
+                      <small>знакомые правила</small>
+                    </span>
+                    <span className="modeChoiceState">{mode === "classic" ? "ВЫБРАНО" : "ВЫБРАТЬ"}</span>
                   </button>
-                  <button className={mode === "rpg" ? "active" : ""} onClick={() => setMode("rpg")}>
-                    RPG
+                  <button
+                    className={mode === "rpg" ? "active" : ""}
+                    aria-pressed={mode === "rpg"}
+                    onClick={() => setMode("rpg")}
+                  >
+                    <span className="modeChoiceSigil">✦</span>
+                    <span className="modeChoiceCopy">
+                      <b>RPG</b>
+                      <small>6 уникальных классов</small>
+                    </span>
+                    <span className="modeChoiceState">{mode === "rpg" ? "ВЫБРАНО" : "ВЫБРАТЬ"}</span>
                   </button>
                 </section>
 
