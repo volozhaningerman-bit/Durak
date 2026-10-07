@@ -2064,12 +2064,6 @@ function GameScreen(props: {
         </section>
       )}
 
-      {game.phase === "finished" && (
-        <section className="gameActions single">
-          <button className="primaryAction" onClick={props.onLeaveRoom}>В меню</button>
-        </section>
-      )}
-
       <section className={`myHand ${motion.selfFinished ? "motion-finish" : ""}`}>
         {game.self.finished && game.self.place && (
           <div className={`selfFinishBadge ${motion.selfFinished ? "animate" : ""}`}>
