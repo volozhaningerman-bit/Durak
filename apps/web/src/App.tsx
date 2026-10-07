@@ -22,6 +22,15 @@ const suitSymbol: Record<Suit, string> = {
   spades: "♠"
 };
 
+const rpgClassSigil: Record<RpgClassId, string> = {
+  "trump-master": "♠",
+  "wild-transfer": "↝",
+  "five-limit": "Ⅴ",
+  "first-thrower": "✦",
+  "reverse-transfer": "↶",
+  joker: "★"
+};
+
 interface GameViewPlayer {
   seat: number;
   classId?: RpgClassId;
@@ -1687,8 +1696,13 @@ function GameScreen(props: {
 
       {myClassDescription && (
         <section className="classAbilityBar">
-          <b>{myClass}</b>
-          <span>{myClassDescription}</span>
+          <i className="classSeal" aria-hidden="true">
+            {game.self.classId ? rpgClassSigil[game.self.classId] : "✦"}
+          </i>
+          <div className="classAbilityText">
+            <b>{myClass}</b>
+            <span>{myClassDescription}</span>
+          </div>
           {game.self.classId === "wild-transfer" && (
             <em>Осталось особых переводов: {game.self.ability.wildTransfersLeft}</em>
           )}
@@ -1724,7 +1738,12 @@ function GameScreen(props: {
               </div>
               <strong>{player.name}</strong>
               <span>{player.handCount} карт</span>
-              {player.classId && <small>{RPG_CLASS_NAMES[player.classId]}</small>}
+              {player.classId && (
+                <small className="opponentClass">
+                  <i aria-hidden="true">{rpgClassSigil[player.classId]}</i>
+                  {RPG_CLASS_NAMES[player.classId]}
+                </small>
+              )}
             </div>
           ))}
       </section>
