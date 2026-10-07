@@ -2755,3 +2755,71 @@ html, body, #root {
   border-color:#4f9265;
   color:var(--classicSoft);
 }
+
+
+.classAbilityBar {
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+}
+
+.classSeal {
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid color-mix(in srgb,var(--accent) 46%,var(--line));
+  border-radius:50%;
+  background:color-mix(in srgb,var(--accent) 8%,var(--panelStrong));
+  color:var(--accent);
+  font:900 17px Georgia,serif;
+  font-style:normal;
+}
+
+.classAbilityText {
+  min-width:0;
+  display:grid;
+  gap:1px;
+}
+
+.classAbilityText b {
+  font-size:10px;
+  letter-spacing:.04em;
+}
+
+.classAbilityText span {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.opponentClass {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+}
+
+.opponentClass i {
+  width:14px;
+  height:14px;
+  display:grid;
+  place-items:center;
+  border:1px solid currentColor;
+  border-radius:50%;
+  font:800 8px Georgia,serif;
+  font-style:normal;
+}
+
+@media (max-height:760px) {
+  .classAbilityBar {
+    grid-template-columns:28px minmax(0,1fr) auto;
+    gap:6px;
+  }
+  .classSeal {
+    width:28px;
+    height:28px;
+    font-size:14px;
+  }
+}
