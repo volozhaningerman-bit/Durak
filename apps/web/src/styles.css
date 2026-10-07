@@ -5006,3 +5006,404 @@ input[type="range"]::-moz-range-thumb {
     max-height:calc(100dvh - 265px);
   }
 }
+
+
+/* ===== Mode chooser + private lobby focus pass ===== */
+
+/* The game mode is a decision, not a tiny segmented control. */
+.lobbyApp .modeChooser {
+  min-height:0;
+  padding:5px;
+  gap:6px;
+  border-radius:8px;
+  background:color-mix(in srgb,var(--panel) 72%,transparent);
+}
+
+.lobbyApp .modeChooser button {
+  min-width:0;
+  min-height:58px;
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  padding:7px 8px;
+  border:1px solid var(--line);
+  border-radius:5px;
+  background:var(--panelStrong);
+  color:var(--text);
+  text-align:left;
+  box-shadow:none;
+  transition:transform .14s ease,border-color .14s ease,background .14s ease;
+}
+
+.lobbyApp .modeChooser button:not(.active) {
+  opacity:.72;
+}
+
+.lobbyApp .modeChooser button:not(:disabled):active {
+  transform:translateY(1px);
+}
+
+.lobbyApp[data-mode="classic"] .modeChooser button.active {
+  border-color:color-mix(in srgb,var(--classic,#4f805d) 72%,var(--line));
+  background:color-mix(in srgb,var(--classic,#4f805d) 15%,var(--panelStrong));
+  color:var(--text);
+}
+
+.lobbyApp[data-mode="rpg"] .modeChooser button.active {
+  border-color:color-mix(in srgb,var(--rpg,#b8894e) 72%,var(--line));
+  background:color-mix(in srgb,var(--rpg,#b8894e) 14%,var(--panelStrong));
+  color:var(--text);
+}
+
+.modeChoiceSigil {
+  width:30px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--bg);
+  font:900 18px Georgia,"Times New Roman",serif;
+}
+
+.modeChooser button:first-child .modeChoiceSigil {
+  color:var(--classicSoft,#8fc09a);
+}
+
+.modeChooser button:last-child .modeChoiceSigil {
+  color:var(--rpgSoft,#d4ad64);
+}
+
+.modeChoiceCopy {
+  min-width:0;
+  display:grid;
+  gap:1px;
+}
+
+.modeChoiceCopy b {
+  overflow:hidden;
+  color:var(--text);
+  font-size:11px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.modeChoiceCopy small {
+  overflow:hidden;
+  color:var(--muted);
+  font-size:7.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.modeChoiceState {
+  color:var(--muted);
+  font-size:6.5px;
+  font-weight:900;
+  letter-spacing:.11em;
+}
+
+.modeChooser button.active .modeChoiceState {
+  color:var(--text);
+}
+
+/* The hero now supports the choice instead of competing with it. */
+.modeHero {
+  min-height:120px;
+}
+
+.modeHero h1 {
+  letter-spacing:-.02em;
+}
+
+.modeHero p {
+  max-width:330px;
+}
+
+/* Private room: clear hierarchy — rules, code, table, automatic start. */
+.privateLobbyStage {
+  width:100%;
+  gap:8px;
+}
+
+.privateLobbyHead {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:1px 2px 0;
+}
+
+.privateLobbyTitle {
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+
+.privateLobbyTitle > span {
+  color:var(--muted) !important;
+  font-size:7px !important;
+  font-weight:900;
+  letter-spacing:.15em;
+}
+
+.privateLobbyTitle > strong {
+  overflow:hidden;
+  color:var(--text) !important;
+  font-size:18px !important;
+  line-height:1.05;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.privateLobbyTitle > small {
+  overflow:hidden;
+  color:var(--muted);
+  font-size:8px;
+  line-height:1.3;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.privateSeatCounter {
+  min-width:58px;
+  padding:7px 9px;
+  display:grid;
+  justify-items:end;
+  gap:1px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--panel);
+}
+
+.privateSeatCounter small {
+  color:var(--muted);
+  font-size:6.5px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+
+.privateSeatCounter b {
+  color:var(--text);
+  font-size:15px;
+}
+
+.privateLobbyStage.classic .privateSeatCounter {
+  border-color:color-mix(in srgb,var(--classic,#4f805d) 34%,var(--line));
+}
+
+.privateLobbyStage.rpg .privateSeatCounter {
+  border-color:color-mix(in srgb,var(--rpg,#b8894e) 34%,var(--line));
+}
+
+.privateCodePanel {
+  width:100%;
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:7px 8px 7px 10px;
+  border:1px solid var(--line);
+  border-radius:5px;
+  background:var(--panelStrong);
+}
+
+.privateCodeLabel {
+  min-width:0;
+  display:grid;
+  gap:1px;
+}
+
+.privateCodeLabel small {
+  color:var(--muted);
+  font-size:6.5px;
+  font-weight:900;
+  letter-spacing:.13em;
+}
+
+.privateCodeLabel strong {
+  color:var(--text);
+  font:900 15px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.16em;
+}
+
+.privateCodeActions {
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.privateCodeActions button {
+  min-height:32px;
+  padding:0 9px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--bg);
+  color:var(--text);
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+.privateCodeActions .invitePulse {
+  width:34px;
+  padding:0;
+  font-size:15px;
+  letter-spacing:0;
+}
+
+.privateLobbyStage.classic .privateCodePanel {
+  border-color:color-mix(in srgb,var(--classic,#4f805d) 30%,var(--line));
+}
+
+.privateLobbyStage.rpg .privateCodePanel {
+  border-color:color-mix(in srgb,var(--rpg,#b8894e) 30%,var(--line));
+}
+
+.privateLobbyStage .waitingTable {
+  position:relative;
+  overflow:hidden;
+  border-radius:7px;
+  border:1px solid var(--line);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.015);
+}
+
+.privateLobbyStage.classic .waitingTable {
+  background:
+    radial-gradient(circle at 50% 47%,rgba(103,157,116,.08),transparent 38%),
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px) 0 0/28px 28px,
+    #0f1d14;
+  border-color:color-mix(in srgb,var(--classic,#4f805d) 36%,var(--line));
+}
+
+.privateLobbyStage.rpg .waitingTable {
+  background:
+    radial-gradient(circle at 50% 47%,rgba(191,143,74,.08),transparent 38%),
+    linear-gradient(135deg,rgba(189,138,58,.045) 25%,transparent 25%) 0 0/24px 24px,
+    #1d1812;
+  border-color:color-mix(in srgb,var(--rpg,#b8894e) 36%,var(--line));
+}
+
+.app[data-theme="light"] .privateLobbyStage.classic .waitingTable {
+  background:
+    radial-gradient(circle at 50% 47%,rgba(65,122,80,.07),transparent 38%),
+    #e9efe8;
+}
+
+.app[data-theme="light"] .privateLobbyStage.rpg .waitingTable {
+  background:
+    radial-gradient(circle at 50% 47%,rgba(173,121,38,.07),transparent 38%),
+    #eee5d7;
+}
+
+.waitingCaption {
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin:0;
+  padding:5px 10px;
+  text-align:left;
+}
+
+.waitingCaption > div {
+  min-width:0;
+  display:grid;
+  gap:1px;
+}
+
+.waitingCaption b {
+  color:var(--text);
+  font-size:9px;
+}
+
+.waitingCaption small {
+  color:var(--muted);
+  font-size:7px;
+  line-height:1.25;
+}
+
+.lobbyActions {
+  display:grid;
+  grid-template-columns:1fr 88px;
+  gap:6px;
+}
+
+.lobbyActions .secondaryGameButton {
+  min-height:40px;
+  margin:0;
+  border-radius:4px;
+  font-size:9px;
+}
+
+.privateLobbyStage.classic .inviteMain {
+  border-color:color-mix(in srgb,var(--classic,#4f805d) 58%,var(--line));
+  background:color-mix(in srgb,var(--classic,#4f805d) 14%,var(--panelStrong));
+}
+
+.privateLobbyStage.rpg .inviteMain {
+  border-color:color-mix(in srgb,var(--rpg,#b8894e) 58%,var(--line));
+  background:color-mix(in srgb,var(--rpg,#b8894e) 14%,var(--panelStrong));
+}
+
+@media (max-width:430px) {
+  .lobbyApp .modeChooser {
+    gap:4px;
+    padding:4px;
+  }
+
+  .lobbyApp .modeChooser button {
+    grid-template-columns:27px minmax(0,1fr);
+    min-height:54px;
+    gap:6px;
+    padding:6px;
+  }
+
+  .modeChoiceSigil {
+    width:27px;
+    height:32px;
+    font-size:16px;
+  }
+
+  .modeChoiceState {
+    display:none;
+  }
+
+  .modeChoiceCopy b {
+    font-size:10px;
+  }
+
+  .modeChoiceCopy small {
+    font-size:7px;
+  }
+
+  .privateLobbyTitle > small {
+    max-width:225px;
+  }
+
+  .privateCodeLabel strong {
+    font-size:14px;
+  }
+
+  .privateCodeActions button:first-child {
+    max-width:84px;
+  }
+}
+
+@media (max-width:360px) {
+  .modeChoiceCopy small {
+    display:none;
+  }
+
+  .privateLobbyTitle > small {
+    max-width:180px;
+  }
+
+  .privateCodeActions button:first-child {
+    font-size:6.5px;
+    padding:0 7px;
+  }
+}
