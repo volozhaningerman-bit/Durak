@@ -25,6 +25,10 @@ const resolvedWebAppUrl =
   process.env.WEBAPP_URL?.trim() ||
   process.env.RENDER_EXTERNAL_URL?.trim() ||
   "";
+const resolvedServerUrl =
+  process.env.SERVER_PUBLIC_URL?.trim() ||
+  process.env.RENDER_EXTERNAL_URL?.trim() ||
+  resolvedWebAppUrl;
 
 function validateProductionConfig() {
   if (!isProduction) return;
@@ -36,12 +40,16 @@ function validateProductionConfig() {
   ] as const;
   const missing: string[] = required.filter((key) => !process.env[key]?.trim());
   if (!resolvedWebAppUrl) missing.push("WEBAPP_URL");
+  if (!resolvedServerUrl) missing.push("SERVER_PUBLIC_URL");
   if (missing.length > 0) {
     throw new Error(`Missing required production env: ${missing.join(", ")}`);
   }
 
   if (!/^https:\/\//i.test(resolvedWebAppUrl)) {
     throw new Error("WEBAPP_URL must use https:// in production");
+  }
+  if (!/^https:\/\//i.test(resolvedServerUrl)) {
+    throw new Error("SERVER_PUBLIC_URL must use https:// in production");
   }
 }
 
@@ -193,7 +201,8 @@ async function telegramApi<T = unknown>(method: string, body: unknown): Promise<
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000)
   });
 
   const result = await response.json() as { ok?: boolean; description?: string; result?: T };
@@ -207,13 +216,13 @@ async function configureTelegramIntegration(): Promise<void> {
   const token = process.env.BOT_TOKEN;
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-  if (!token || !resolvedWebAppUrl || !webhookSecret) return;
+  if (!token || !resolvedWebAppUrl || !resolvedServerUrl || !webhookSecret) return;
 
   const me = await telegramApi<{ username?: string }>("getMe", {});
   botUsername = me?.username;
 
   await telegramApi("setWebhook", {
-    url: `${resolvedWebAppUrl.replace(/\/$/, "")}/telegram/webhook`,
+    url: `${resolvedServerUrl.replace(/\/$/, "")}/telegram/webhook`,
     secret_token: webhookSecret,
     allowed_updates: ["message"],
     drop_pending_updates: false
@@ -1543,20 +1552,21 @@ privateLobbyCleanup.unref();
 
 await profileStore.init();
 
-if (process.env.BOT_TOKEN) {
-  try {
-    await configureTelegramIntegration();
-    console.log(
-      `Telegram bot configured${botUsername ? ` @${botUsername}` : ""}`
-    );
-  } catch (error) {
-    console.error("Failed to configure Telegram bot", error);
-  }
-}
-
 server.listen(port, () => {
   console.log(`Durak RPG server listening on :${port}`);
 });
+
+if (process.env.BOT_TOKEN) {
+  void configureTelegramIntegration()
+    .then(() => {
+      console.log(
+        `Telegram bot configured${botUsername ? ` @${botUsername}` : ""}`
+      );
+    })
+    .catch((error) => {
+      console.error("Failed to configure Telegram bot", error);
+    });
+}
 
 async function shutdown() {
   clearInterval(heartbeat);
