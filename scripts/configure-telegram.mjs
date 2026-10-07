@@ -1,5 +1,6 @@
 const token = process.env.BOT_TOKEN?.trim();
 const webAppUrl = process.env.WEBAPP_URL?.trim();
+const serverPublicUrl = process.env.SERVER_PUBLIC_URL?.trim() || webAppUrl;
 const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
 
 if (!token) {
@@ -9,6 +10,11 @@ if (!token) {
 
 if (!webAppUrl || !/^https:\/\//i.test(webAppUrl)) {
   console.error("WEBAPP_URL must be a public https:// URL");
+  process.exit(1);
+}
+
+if (!serverPublicUrl || !/^https:\/\//i.test(serverPublicUrl)) {
+  console.error("SERVER_PUBLIC_URL must be a public https:// URL");
   process.exit(1);
 }
 
@@ -23,7 +29,8 @@ async function call(method, body) {
   const response = await fetch(`${base}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000)
   });
 
   const result = await response.json();
@@ -37,7 +44,7 @@ try {
   const me = await call("getMe", {});
 
   await call("setWebhook", {
-    url: `${webAppUrl}/telegram/webhook`,
+    url: `${serverPublicUrl.replace(/\/$/, "")}/telegram/webhook`,
     secret_token: webhookSecret,
     allowed_updates: ["message"],
     drop_pending_updates: true
@@ -60,6 +67,7 @@ try {
 
   console.log(`Configured @${me.username ?? me.id}`);
   console.log(`Mini App: ${webAppUrl}`);
+  console.log(`Webhook: ${serverPublicUrl.replace(/\/$/, "")}/telegram/webhook`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exit(1);
