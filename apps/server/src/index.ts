@@ -93,6 +93,7 @@ type ClientMessage =
   | { type: "join_private_room"; code: string }
   | { type: "leave_private_room" }
   | { type: "leave_room" }
+  | { type: "request_rematch" }
   | { type: "get_leaderboard"; limit?: number }
   | { type: "get_history"; limit?: number }
   | { type: "get_recent_players"; limit?: number }
@@ -123,6 +124,9 @@ interface Room {
   members: Session[];
   game: GameState;
   progressApplied: boolean;
+  progressPersisted: boolean;
+  privateMatch: boolean;
+  rematchReadySeats: Set<number>;
   disconnectTimers: Map<number, ReturnType<typeof setTimeout>>;
 }
 
@@ -395,10 +399,26 @@ function gameViewForSeat(room: Room, seat: number) {
   const selfMember = room.members[seat];
   const selfUser = selfMember?.telegramUser;
 
+  const rematchMembersPresent =
+    room.members.length === game.settings.playerCount &&
+    room.members.every(
+      (member) =>
+        member.roomId === room.id &&
+        member.seat !== undefined &&
+        member.socket.readyState === WebSocket.OPEN
+    );
+
   return {
     id: game.id,
     settings: game.settings,
     phase: game.phase,
+    privateMatch: room.privateMatch,
+    rematchAvailable:
+      room.privateMatch &&
+      game.phase === "finished" &&
+      room.progressPersisted &&
+      rematchMembersPresent,
+    rematchReadySeats: [...room.rematchReadySeats].sort((a, b) => a - b),
     players: game.players.map(publicPlayer),
     self: {
       seat: self.seat,
@@ -439,7 +459,10 @@ function broadcastRoom(room: Room, event = "game_state") {
   }
 }
 
-function createRoom(entries: QueueEntry[]): Room {
+function createRoom(
+  entries: QueueEntry[],
+  options: { privateMatch?: boolean } = {}
+): Room {
   const roomId = randomUUID();
   const settings = entries[0].settings;
   const members = entries.map((entry) => entry.session);
@@ -473,6 +496,9 @@ function createRoom(entries: QueueEntry[]): Room {
     members,
     game,
     progressApplied: false,
+    progressPersisted: false,
+    privateMatch: options.privateMatch === true,
+    rematchReadySeats: new Set(),
     disconnectTimers: new Map()
   };
 
@@ -581,7 +607,7 @@ function startPrivateLobbyIfReady(lobby: PrivateLobby) {
     session,
     settings: lobby.settings
   }));
-  const room = createRoom(entries);
+  const room = createRoom(entries, { privateMatch: true });
   broadcastRoom(room, "match_found");
 }
 
@@ -757,8 +783,12 @@ async function applyRoomProgress(room: Room) {
         progress
       });
     }
+
+    room.progressPersisted = true;
+    if (room.privateMatch) broadcastRoom(room);
   } catch (error) {
     room.progressApplied = false;
+    room.progressPersisted = false;
     console.error("Failed to persist match progression", error);
     for (const member of room.members) {
       send(member.socket, {
@@ -859,6 +889,60 @@ function scheduleDisconnectForfeit(session: Session) {
   room.disconnectTimers.set(seat, timer);
 }
 
+function requestPrivateRematch(session: Session) {
+  if (!session.roomId || session.seat === undefined) {
+    send(session.socket, { type: "game_error", code: "NOT_IN_ROOM" });
+    return;
+  }
+
+  const room = rooms.get(session.roomId);
+  if (!room || !room.privateMatch || room.game.phase !== "finished") {
+    send(session.socket, { type: "game_error", code: "REMATCH_UNAVAILABLE" });
+    return;
+  }
+
+  if (!room.progressPersisted) {
+    send(session.socket, { type: "game_error", code: "REMATCH_RESULT_PENDING" });
+    return;
+  }
+
+  const everyonePresent =
+    room.members.length === room.game.settings.playerCount &&
+    room.members.every(
+      (member) =>
+        member.roomId === room.id &&
+        member.seat !== undefined &&
+        member.socket.readyState === WebSocket.OPEN
+    );
+
+  if (!everyonePresent) {
+    room.rematchReadySeats.clear();
+    broadcastRoom(room);
+    send(session.socket, { type: "game_error", code: "REMATCH_UNAVAILABLE" });
+    return;
+  }
+
+  room.rematchReadySeats.add(session.seat);
+
+  if (room.rematchReadySeats.size < room.members.length) {
+    broadcastRoom(room);
+    return;
+  }
+
+  const oldRoomId = room.id;
+  const entries: QueueEntry[] = room.members.map((member) => ({
+    session: member,
+    settings: room.game.settings
+  }));
+
+  for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
+  room.disconnectTimers.clear();
+
+  const rematchRoom = createRoom(entries, { privateMatch: true });
+  rooms.delete(oldRoomId);
+  broadcastRoom(rematchRoom, "match_found");
+}
+
 function leaveFinishedRoom(session: Session) {
   if (!session.roomId) {
     send(session.socket, { type: "error", code: "NOT_IN_ROOM" });
@@ -887,6 +971,9 @@ function leaveFinishedRoom(session: Session) {
   if (!hasMembers) {
     for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
     rooms.delete(roomId);
+  } else if (room.privateMatch) {
+    room.rematchReadySeats.clear();
+    broadcastRoom(room);
   }
 }
 
@@ -1270,6 +1357,11 @@ wss.on("connection", (socket, request) => {
       return;
     }
 
+    if (message.type === "request_rematch") {
+      requestPrivateRematch(session);
+      return;
+    }
+
     if (message.type === "get_leaderboard") {
       void sendLeaderboard(session, message.limit);
       return;
@@ -1310,6 +1402,9 @@ wss.on("connection", (socket, request) => {
         if (!room.members.some((member) => member.roomId === roomId)) {
           for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
           rooms.delete(roomId);
+        } else if (room.privateMatch) {
+          room.rematchReadySeats.clear();
+          broadcastRoom(room);
         }
       } else {
         scheduleDisconnectForfeit(session);
