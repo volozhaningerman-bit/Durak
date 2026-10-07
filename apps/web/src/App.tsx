@@ -22,6 +22,28 @@ const suitSymbol: Record<Suit, string> = {
   spades: "♠"
 };
 
+const suitName: Record<Suit, string> = {
+  clubs: "треф",
+  diamonds: "бубен",
+  hearts: "червей",
+  spades: "пик"
+};
+
+function cardAriaLabel(card: Card): string {
+  if (card.kind === "joker") return "Джокер";
+  const rank =
+    card.rank === "J"
+      ? "валет"
+      : card.rank === "Q"
+        ? "дама"
+        : card.rank === "K"
+          ? "король"
+          : card.rank === "A"
+            ? "туз"
+            : card.rank;
+  return `${rank} ${suitName[card.suit]}`;
+}
+
 const rpgClassSigil: Record<RpgClassId, string> = {
   "trump-master": "♠",
   "wild-transfer": "↝",
@@ -2052,6 +2074,9 @@ function GameScreen(props: {
             {game.table.map((pair) => (
               <button
                 key={pair.attack.id}
+                aria-label={pair.defense
+                  ? `${cardAriaLabel(pair.attack)}, покрыта картой ${cardAriaLabel(pair.defense)}`
+                  : `Атакующая карта ${cardAriaLabel(pair.attack)}`}
                 className={[
                   "tablePair",
                   !pair.defense && openAttack?.attack.id === pair.attack.id ? "selected" : ""
@@ -2148,6 +2173,8 @@ function GameScreen(props: {
           {game.self.hand.map((card) => (
             <button
               key={card.id}
+              aria-label={cardAriaLabel(card)}
+              aria-pressed={card.id === props.selectedHandId}
               className={[
                 "handCard",
                 card.id === props.selectedHandId ? "selected" : "",
