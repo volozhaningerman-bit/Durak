@@ -15,11 +15,6 @@ import {
   type ThemeId
 } from "@durak/game-core";
 
-const themes: { id: ThemeId; label: string }[] = [
-  { id: "light", label: "Светлая" },
-  { id: "dark", label: "Тёмная" }
-];
-
 const suitSymbol: Record<Suit, string> = {
   clubs: "♣",
   diamonds: "♦",
@@ -1299,16 +1294,15 @@ function Header(props: {
         >
           {isFullscreen ? "↙" : "⛶"}
         </button>
-        <select
-          className="themeSelect"
-          value={props.theme}
-          onChange={(event) => props.setTheme(event.target.value as ThemeId)}
-          aria-label="Тема"
+        <button
+          className="themeToggle"
+          onClick={() => props.setTheme(props.theme === "dark" ? "light" : "dark")}
+          aria-label={props.theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
+          title={props.theme === "dark" ? "Светлая тема" : "Тёмная тема"}
         >
-          {themes.map((item) => (
-            <option key={item.id} value={item.id}>{item.label}</option>
-          ))}
-        </select>
+          <span aria-hidden="true">{props.theme === "dark" ? "☼" : "◐"}</span>
+          <b>{props.theme === "dark" ? "Свет" : "Ночь"}</b>
+        </button>
       </div>
     </header>
   );
