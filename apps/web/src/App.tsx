@@ -343,9 +343,17 @@ export function App() {
     let stopped = false;
     let authBlocked = false;
     let reconnectTimer: number | undefined;
+    let reconnectAttempt = 0;
 
     const connect = () => {
-      if (stopped) return;
+      if (stopped || authBlocked) return;
+      const current = socketRef.current;
+      if (
+        current &&
+        (current.readyState === WebSocket.OPEN || current.readyState === WebSocket.CONNECTING)
+      ) {
+        return;
+      }
 
       setConnection("connecting");
       const socket = new WebSocket(websocketUrl());
@@ -375,7 +383,9 @@ export function App() {
 
         if (!stopped && !authBlocked) {
           window.clearTimeout(reconnectTimer);
-          reconnectTimer = window.setTimeout(connect, 1500);
+          const delay = Math.min(1500 * Math.pow(1.6, reconnectAttempt), 8000);
+          reconnectAttempt += 1;
+          reconnectTimer = window.setTimeout(connect, delay);
         }
       };
 
@@ -401,6 +411,7 @@ export function App() {
           };
 
           if (message.type === "auth_ok") {
+            reconnectAttempt = 0;
             setInitialReady(true);
             setConnection("online");
             if (message.profile) setProfile(message.profile);
@@ -565,11 +576,34 @@ export function App() {
       };
     };
 
+    const reconnectNow = () => {
+      if (stopped || authBlocked) return;
+      window.clearTimeout(reconnectTimer);
+      reconnectAttempt = 0;
+
+      const socket = socketRef.current;
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "ping" }));
+        return;
+      }
+
+      if (socket?.readyState === WebSocket.CONNECTING) return;
+      reconnectTimer = window.setTimeout(connect, 0);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") reconnectNow();
+    };
+
     connect();
+    window.addEventListener("online", reconnectNow);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       stopped = true;
       window.clearTimeout(reconnectTimer);
+      window.removeEventListener("online", reconnectNow);
+      document.removeEventListener("visibilitychange", handleVisibility);
       socketRef.current?.close();
       socketRef.current = null;
     };
