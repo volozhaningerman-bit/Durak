@@ -760,6 +760,7 @@ export function App() {
   }
 
   function leaveRoom() {
+    setLastMatchProgress(null);
     send({ type: "leave_room" });
   }
 
@@ -878,6 +879,7 @@ export function App() {
         setSelectedHandId={setSelectedHandId}
         onAction={gameAction}
         onLeaveRoom={leaveRoom}
+        matchProgress={lastMatchProgress}
       />
     );
   }
