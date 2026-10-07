@@ -2473,3 +2473,155 @@ html, body, #root {
 
   .themeToggle b { display:none; }
 }
+
+
+.playerPassport {
+  display:grid;
+  grid-template-columns:54px 1fr auto;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  border:1px solid var(--line);
+  background:var(--panelStrong);
+  clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+}
+
+.passportAvatar {
+  width:54px;
+  height:54px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--accent) 42%,var(--line));
+  border-radius:50%;
+  background:var(--panel);
+  color:var(--accent);
+  font-weight:900;
+  font-size:20px;
+}
+
+.passportAvatar img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.passportName {
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+
+.passportName small,
+.passportLevel small {
+  color:var(--muted);
+  font-size:7px;
+  letter-spacing:.16em;
+}
+
+.passportName b {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:14px;
+}
+
+.passportName span {
+  color:var(--muted);
+  font-size:9px;
+}
+
+.passportLevel {
+  min-width:52px;
+  display:grid;
+  justify-items:center;
+  gap:2px;
+  padding-left:10px;
+  border-left:1px solid var(--line);
+}
+
+.passportLevel strong {
+  color:var(--accent);
+  font-size:24px;
+  font-family:Georgia,serif;
+}
+
+.shopTicket {
+  display:grid !important;
+  grid-template-columns:42px 1fr auto;
+  align-items:center;
+  gap:11px;
+  padding:12px !important;
+  min-height:90px;
+  border-left:3px solid color-mix(in srgb,var(--accent) 52%,var(--line)) !important;
+}
+
+.shopGlyph {
+  width:36px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--paperInk);
+  border-radius:4px;
+  font:900 20px Georgia,serif;
+  transform:rotate(-2deg);
+}
+
+.shopTicket > div {
+  min-width:0;
+}
+
+.shopTicket > div small {
+  display:block;
+  margin-bottom:3px;
+  color:var(--accent);
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.shopTicket > div strong {
+  display:block;
+  margin:0;
+  font-size:12px;
+}
+
+.shopTicket > div p {
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+}
+
+.shopTicket > b {
+  align-self:start;
+  padding:4px 5px;
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-size:7px;
+  letter-spacing:.09em;
+}
+
+@media (max-width:390px) {
+  .playerPassport {
+    grid-template-columns:46px 1fr auto;
+    gap:9px;
+  }
+  .passportAvatar {
+    width:46px;
+    height:46px;
+  }
+  .shopTicket {
+    grid-template-columns:34px 1fr;
+  }
+  .shopGlyph {
+    width:32px;
+    height:42px;
+  }
+  .shopTicket > b {
+    grid-column:2;
+    justify-self:start;
+  }
+}
