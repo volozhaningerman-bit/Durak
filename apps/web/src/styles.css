@@ -1843,3 +1843,594 @@ html, body, #root {
     animation-delay: 0ms !important;
   }
 }
+
+
+/* ===== Durak RPG visual identity v1 ===== */
+:root {
+  --cut: 12px;
+}
+
+.bootScreen,
+.app[data-theme="dark"] {
+  --bg:#0b1210;
+  --panel:#121b17;
+  --panelStrong:#19231e;
+  --line:#344039;
+  --text:#f0eadf;
+  --muted:#8d968f;
+  --classic:#4f9265;
+  --classicSoft:#79ad88;
+  --rpg:#bd8a3a;
+  --rpgSoft:#d4ad64;
+  --danger:#c85f55;
+  --paper:#efe7d5;
+  --paperInk:#191d1a;
+}
+
+.bootScreen[data-theme="light"],
+.app[data-theme="light"] {
+  --bg:#e8e4d8;
+  --panel:#f3eee3;
+  --panelStrong:#fbf7ee;
+  --line:#c8c4b8;
+  --text:#1d231f;
+  --muted:#73776f;
+  --classic:#397a50;
+  --classicSoft:#5f9b70;
+  --rpg:#ad7926;
+  --rpgSoft:#c99845;
+  --danger:#b94d45;
+  --paper:#fffaf0;
+  --paperInk:#1b201d;
+}
+
+.bootScreen,
+.lobbyApp,
+.gameApp {
+  background:
+    linear-gradient(rgba(255,255,255,.012), rgba(255,255,255,0)),
+    var(--bg);
+}
+
+.lobbyApp[data-mode="classic"] {
+  --accent:var(--classic);
+  --accentText:#f8f4e8;
+}
+
+.lobbyApp[data-mode="rpg"] {
+  --accent:var(--rpg);
+  --accentText:#1d160a;
+}
+
+.lobbyApp[data-theme="light"][data-mode="rpg"] {
+  --accentText:#fffaf0;
+}
+
+/* Instant boot screen: static frontend is visible while backend wakes. */
+.bootScreen {
+  height:100dvh;
+  overflow:hidden;
+  color:var(--text);
+  display:grid;
+  grid-template-rows:1fr auto 1fr;
+  place-items:center;
+  padding:
+    max(72px, env(safe-area-inset-top), var(--tg-content-safe-area-inset-top, 0px))
+    24px
+    max(28px, env(safe-area-inset-bottom));
+}
+
+.bootMark {
+  position:relative;
+  align-self:end;
+  width:190px;
+  height:148px;
+}
+
+.bootCard {
+  position:absolute;
+  top:28px;
+  width:76px;
+  height:108px;
+  padding:11px;
+  background:var(--paper);
+  color:var(--paperInk);
+  border:1px solid rgba(25,29,26,.2);
+  border-radius:8px;
+  font:800 20px Georgia,serif;
+  box-shadow:0 16px 32px rgba(0,0,0,.18);
+}
+
+.bootCardLeft {
+  left:18px;
+  transform:rotate(-13deg);
+}
+
+.bootCardRight {
+  right:18px;
+  color:#a73834;
+  transform:rotate(13deg);
+}
+
+.bootSeal {
+  position:absolute;
+  z-index:2;
+  left:50%;
+  top:45px;
+  width:72px;
+  height:72px;
+  display:grid;
+  place-items:center;
+  transform:translateX(-50%);
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:var(--panelStrong);
+  color:var(--rpg);
+  font:900 34px Georgia,serif;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+}
+
+.bootWordmark {
+  align-self:start;
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+  font-size:30px;
+  letter-spacing:.12em;
+}
+
+.bootWordmark b { color:var(--text); }
+.bootWordmark span { color:var(--classic); font-weight:900; }
+
+.bootStatus {
+  align-self:start;
+  width:min(100%,360px);
+  margin-top:30px;
+  text-align:center;
+}
+
+.bootStatus strong {
+  display:block;
+  font-size:15px;
+}
+
+.bootStatus small {
+  display:block;
+  max-width:300px;
+  margin:9px auto 0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+
+.bootProgress {
+  display:flex;
+  justify-content:center;
+  gap:6px;
+  margin-bottom:16px;
+}
+
+.bootProgress i {
+  width:18px;
+  height:3px;
+  background:var(--classic);
+  animation:bootTick 1.15s ease-in-out infinite;
+}
+
+.bootProgress i:nth-child(2){ animation-delay:.13s; }
+.bootProgress i:nth-child(3){ animation-delay:.26s; }
+
+@keyframes bootTick {
+  0%,100%{ opacity:.2; transform:scaleX(.6); }
+  50%{ opacity:1; transform:scaleX(1); }
+}
+
+/* Brand rail */
+.topbar {
+  position:relative;
+}
+
+.brand {
+  font-weight:950;
+  letter-spacing:.16em;
+}
+
+.brand span {
+  color:var(--accent);
+}
+
+.subtitle {
+  letter-spacing:.015em;
+}
+
+.themeSelect,
+.fullscreenButton {
+  border-radius:5px;
+  background:var(--panelStrong);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.fullscreenButton {
+  border-bottom-color:color-mix(in srgb,var(--accent) 38%,var(--line));
+}
+
+/* Main surfaces use cut card-table corners instead of generic pills. */
+.modeHero,
+.compactSettings,
+.contentPage,
+.searchStage,
+.privateLobbyStage,
+.waitingTable,
+.ratingRuleCard,
+.recentBlock {
+  border-radius:0;
+  clip-path:polygon(
+    0 var(--cut),
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut))
+  );
+}
+
+/* Mode switch behaves like a physical selector strip. */
+.lobbyApp .modeSwitch {
+  border-radius:4px;
+  padding:3px;
+  background:var(--panelStrong);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);
+}
+
+.lobbyApp .modeSwitch button {
+  border-radius:2px;
+  letter-spacing:.02em;
+}
+
+.lobbyApp .modeSwitch button.active {
+  box-shadow:
+    inset 0 -3px 0 color-mix(in srgb,var(--accent) 66%,transparent),
+    inset 0 0 0 1px color-mix(in srgb,var(--accent) 32%,transparent);
+}
+
+/* Classic = felt table. */
+.modeHero.classic {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px) 0 0/28px 28px,
+    #183225;
+  border-color:#3d624b;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);
+}
+
+.app[data-theme="light"] .modeHero.classic {
+  background:
+    linear-gradient(90deg, rgba(20,54,34,.045) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(rgba(20,54,34,.045) 1px, transparent 1px) 0 0/28px 28px,
+    #dce7d8;
+  border-color:#9db6a3;
+}
+
+.modeHero.classic .crest {
+  border-radius:50%;
+  border:1px solid #52775d;
+  background:#10261a;
+  color:#8fc09a;
+  box-shadow:none;
+}
+
+.app[data-theme="light"] .modeHero.classic .crest {
+  background:#f6f4eb;
+  color:#397a50;
+}
+
+.modeHero.classic .modeEyebrow {
+  color:#8fc09a;
+}
+
+/* RPG = tavern ledger + brass seal. */
+.modeHero.rpg {
+  background:
+    linear-gradient(135deg, rgba(189,138,58,.065) 25%, transparent 25%) 0 0/22px 22px,
+    #211b14;
+  border-color:#5a4730;
+  box-shadow:inset 0 0 0 1px rgba(212,173,100,.045);
+}
+
+.app[data-theme="light"] .modeHero.rpg {
+  background:
+    linear-gradient(135deg, rgba(173,121,38,.055) 25%, transparent 25%) 0 0/22px 22px,
+    #eee3cf;
+  border-color:#c9ad7d;
+}
+
+.modeHero.rpg .crest {
+  border-radius:50%;
+  border:1px solid #6c5432;
+  background:#17130e;
+  color:#d4ad64;
+  box-shadow:none;
+}
+
+.app[data-theme="light"] .modeHero.rpg .crest {
+  background:#faf3e5;
+  color:#ad7926;
+}
+
+.modeHero.rpg .modeEyebrow {
+  color:#d4ad64;
+}
+
+/* Real card silhouette, less mockup-like. */
+.playingCard,
+.cardFace,
+.searchCard,
+.bootCard {
+  border-radius:7px;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.018),transparent 18%,transparent 82%,rgba(0,0,0,.018)),
+    var(--paper);
+}
+
+/* Settings read like a card table control board. */
+.compactSettings {
+  background:var(--panel);
+  border-color:var(--line);
+  box-shadow:none;
+}
+
+.settingsGrid .settingRow,
+.rpgRuleCard {
+  border-radius:6px;
+  background:var(--panelStrong);
+}
+
+.settingTitle b,
+.rpgRuleCard b {
+  font-weight:900;
+}
+
+.compactSettings .segmented {
+  border-radius:4px;
+  background:color-mix(in srgb,var(--bg) 18%,var(--panelStrong));
+}
+
+.compactSettings .segmented button {
+  border-radius:2px;
+}
+
+.compactSettings .segmented button.active {
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.16);
+}
+
+/* Primary actions are printed game controls, not glossy app pills. */
+.findGame,
+.secondaryGameButton,
+.lobbyActions button,
+.gameActions button {
+  border-radius:5px;
+  box-shadow:none;
+}
+
+.findGame,
+.inviteMain {
+  position:relative;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);
+  text-shadow:0 1px 0 rgba(0,0,0,.12);
+}
+
+.findGame::after,
+.inviteMain::after {
+  content:"";
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(255,255,255,.16);
+  pointer-events:none;
+}
+
+.joinPrivateRow input {
+  border-radius:4px;
+  background:var(--panelStrong);
+  letter-spacing:.18em;
+}
+
+/* Bottom navigation becomes a game HUD rail. */
+.bottomNav {
+  border-radius:4px;
+  padding:4px;
+  background:color-mix(in srgb,var(--bg) 96%,transparent);
+  backdrop-filter:none;
+  box-shadow:0 -1px 0 color-mix(in srgb,var(--accent) 12%,transparent);
+}
+
+.bottomNav button {
+  position:relative;
+  border-radius:2px;
+  min-height:50px;
+}
+
+.bottomNav button.active {
+  background:transparent;
+  color:var(--text);
+}
+
+.bottomNav button.active::after {
+  content:"";
+  position:absolute;
+  left:22%;
+  right:22%;
+  bottom:4px;
+  height:2px;
+  background:var(--accent);
+}
+
+/* Profile / leaderboard / shop become ledger pages, not empty modals. */
+.contentPage {
+  background:var(--panel);
+  border-color:var(--line);
+}
+
+.pageHead {
+  padding-bottom:10px;
+  border-bottom:1px solid var(--line);
+}
+
+.pageHead span {
+  color:var(--accent);
+  letter-spacing:.18em;
+}
+
+.profileGrid div,
+.historyRow,
+.leaderboardRow,
+.shopGrid article {
+  border-radius:5px;
+  background:var(--panelStrong);
+}
+
+.profileGrid div {
+  position:relative;
+  overflow:hidden;
+}
+
+.profileGrid div::before {
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:color-mix(in srgb,var(--accent) 56%,transparent);
+}
+
+.leaderboardRow.self {
+  outline:none;
+  border-left:3px solid var(--accent);
+}
+
+.ratingRuleCard {
+  background:color-mix(in srgb,var(--accent) 8%,var(--panelStrong));
+}
+
+.ratingExamples small {
+  border-radius:2px;
+  border:1px solid var(--line);
+}
+
+/* Search = table ceremony. */
+.searchStage {
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px) 0 0/30px 30px,
+    var(--panel);
+}
+
+.searchCard {
+  border-radius:7px;
+}
+
+.searchDots i {
+  border-radius:1px;
+  width:14px;
+  height:3px;
+}
+
+/* Private lobby = actual table, not an empty panel. */
+.privateLobbyStage {
+  background:var(--panel);
+}
+
+.waitingTable {
+  background:
+    radial-gradient(ellipse at center, color-mix(in srgb,var(--accent) 10%,transparent), transparent 58%),
+    #14251b;
+  border-color:#34513e;
+}
+
+.app[data-theme="light"] .waitingTable {
+  background:
+    radial-gradient(ellipse at center,rgba(57,122,80,.09),transparent 58%),
+    #e4e9df;
+  border-color:#b6c4b8;
+}
+
+.waitingSeat .avatar,
+.emptySeatPulse {
+  border-radius:50%;
+}
+
+.emptySeatPulse {
+  border-style:solid;
+  position:relative;
+}
+
+.emptySeatPulse::after {
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border:1px dashed color-mix(in srgb,var(--accent) 46%,transparent);
+  border-radius:50%;
+}
+
+/* Match table gets a more physical card-room identity. */
+.gameApp .tableArea {
+  border-radius:2px;
+  clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px));
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px) 0 0/26px 26px,
+    #13271b;
+  border-color:#35533e;
+}
+
+.app[data-theme="light"].gameApp .tableArea {
+  background:
+    linear-gradient(90deg,rgba(26,76,46,.035) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(rgba(26,76,46,.035) 1px,transparent 1px) 0 0/26px 26px,
+    #dfe8dd;
+  border-color:#a4b7a6;
+}
+
+.gameMeta {
+  border-radius:3px;
+  background:var(--panelStrong);
+}
+
+.opponent {
+  border-radius:4px;
+  background:var(--panelStrong);
+}
+
+.opponent.turn {
+  box-shadow:none;
+  border-bottom-color:var(--accent);
+}
+
+.handCard,
+.tablePair {
+  border-radius:7px;
+}
+
+.gameActions button {
+  background:var(--panelStrong);
+}
+
+.gameActions button:not(:disabled):active {
+  transform:translateY(1px);
+  box-shadow:inset 0 2px 0 rgba(0,0,0,.1);
+}
+
+/* Decorative noise is intentionally minimal. */
+.heroCard,
+.searchStage,
+.privateLobbyStage,
+.contentPage,
+.compactSettings {
+  box-shadow:none;
+}
+
+@media (max-height:760px) {
+  .bootMark { transform:scale(.86); transform-origin:center bottom; }
+  .bootStatus { margin-top:14px; }
+}
