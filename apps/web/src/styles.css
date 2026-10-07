@@ -3651,3 +3651,35 @@ html, body, #root {
     font-size:8px;
   }
 }
+
+
+@media (max-width:390px) {
+  .gameApp .opponents {
+    grid-template-columns:repeat(auto-fit,minmax(54px,1fr));
+    gap:2px;
+  }
+
+  .gameApp .opponent {
+    min-height:60px;
+    padding-top:13px;
+  }
+
+  .gameApp .opponent .avatar {
+    width:27px;
+    height:27px;
+  }
+
+  .gameApp .opponentCards {
+    width:38px;
+    transform:translateX(-50%) scale(.78);
+  }
+
+  .gameApp .opponent strong {
+    max-width:52px;
+    font-size:7.5px;
+  }
+
+  .gameApp .opponent > span:not(.avatar) {
+    font-size:7px;
+  }
+}
