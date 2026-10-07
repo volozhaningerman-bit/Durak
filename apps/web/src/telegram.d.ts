@@ -14,6 +14,9 @@ declare global {
         isFullscreen?: boolean;
         requestFullscreen?: () => void;
         exitFullscreen?: () => void;
+        setHeaderColor?: (color: string) => void;
+        setBackgroundColor?: (color: string) => void;
+        setBottomBarColor?: (color: string) => void;
         onEvent?: (eventType: string, callback: (...args: unknown[]) => void) => void;
         offEvent?: (eventType: string, callback: (...args: unknown[]) => void) => void;
         close?: () => void;
