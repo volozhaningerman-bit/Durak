@@ -1187,7 +1187,6 @@ function restorePrivateLobbyMembership(session: Session): PrivateLobby | undefin
     lobby.members[index] = session;
     session.privateLobbyCode = lobby.code;
     broadcastPrivateLobby(lobby);
-    startPrivateLobbyIfReady(lobby);
     return lobby;
   }
 
@@ -1344,6 +1343,7 @@ async function authenticateSession(session: Session, initData: string) {
         session.socket,
         privateLobbyPayload(restoredPrivateLobby, session)
       );
+      startPrivateLobbyIfReady(restoredPrivateLobby);
     }
   } catch (error) {
     session.authenticated = false;
