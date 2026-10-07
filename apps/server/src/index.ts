@@ -58,6 +58,22 @@ const privateLobbyTtlMs = Math.max(
 const profileStore = createProfileStore(process.env.DATABASE_URL);
 let botUsername: string | undefined;
 const app = express();
+
+app.use((req, res, next) => {
+  if (resolvedWebAppUrl) {
+    try {
+      const allowedOrigin = new URL(resolvedWebAppUrl).origin;
+      const requestOrigin = req.headers.origin;
+      if (requestOrigin === allowedOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+        res.setHeader("Vary", "Origin");
+      }
+    } catch {
+      // Production validation reports malformed WEBAPP_URL separately.
+    }
+  }
+  next();
+});
 app.use(express.json());
 
 type ClientGameAction =
