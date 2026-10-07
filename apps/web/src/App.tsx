@@ -920,11 +920,33 @@ export function App() {
             ) : (
               <>
                 {profile && (
-                  <section className="profileStrip compactStats">
-                    <div><span>Рейтинг</span><b>{Math.round(profile.rating)}</b></div>
-                    <div><span>Уровень</span><b>{profile.level}</b></div>
-                    <div><span>Победы</span><b>{profile.wins}</b></div>
-                    <div><span>Серия</span><b>{profile.currentStreak}</b></div>
+                  <section className="lobbyIdentityRail">
+                    <div className="lobbyAvatar">
+                      {telegramUser?.photoUrl
+                        ? <img src={telegramUser.photoUrl} alt="" />
+                        : <span>{telegramUser?.firstName?.slice(0, 1) ?? "Д"}</span>}
+                    </div>
+                    <div className="lobbyIdentity">
+                      <small>ИГРОК</small>
+                      <b>
+                        {telegramUser
+                          ? [telegramUser.firstName, telegramUser.lastName].filter(Boolean).join(" ")
+                          : "Durak RPG"}
+                      </b>
+                      <span>{telegramUser?.username ? `@${telegramUser.username}` : `уровень ${profile.level}`}</span>
+                    </div>
+                    <div className="lobbyRating">
+                      <small>RP</small>
+                      <strong>{Math.round(profile.rating)}</strong>
+                    </div>
+                    <div className="lobbyMiniStat">
+                      <small>W</small>
+                      <b>{profile.wins}</b>
+                    </div>
+                    <div className="lobbyMiniStat">
+                      <small>STREAK</small>
+                      <b>{profile.currentStreak}</b>
+                    </div>
                   </section>
                 )}
 
@@ -1665,6 +1687,18 @@ function GameScreen(props: {
     });
   }
 
+  const turnPlayer = game.players.find((player) => player.seat === game.turnSeat);
+  const phaseLabel =
+    game.phase === "awaiting-trump"
+      ? "ВЫБОР КОЗЫРЯ"
+      : game.phase === "attacking"
+        ? "АТАКА"
+        : game.phase === "defending"
+          ? "ЗАЩИТА"
+          : game.phase === "throwing"
+            ? "ПОДКИД"
+            : "КОНЕЦ ПАРТИИ";
+
   const resultText =
     game.phase === "finished"
       ? game.draw
@@ -1733,6 +1767,9 @@ function GameScreen(props: {
               ].join(" ")}
               style={{ "--seat-index": player.seat } as CSSProperties}
             >
+              <div className="opponentCards" aria-hidden="true">
+                <i /><i /><i />
+              </div>
               <div className="avatar">
                 {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.seat + 1}
               </div>
@@ -1749,6 +1786,17 @@ function GameScreen(props: {
       </section>
 
       <section className={`tableArea ${game.defenderTaking ? "defenderTaking" : ""}`}>
+        <div className={`tablePhaseBadge ${isMyTurn ? "mine" : ""}`}>
+          <small>{phaseLabel}</small>
+          <b>
+            {game.phase === "finished"
+              ? resultText
+              : isMyTurn
+                ? "ТВОЙ ХОД"
+                : turnPlayer?.name ?? `Игрок #${(game.turnSeat ?? 0) + 1}`}
+          </b>
+        </div>
+
         <div className={`deckPile ${motion.deckPulse ? "pulseDraw" : ""}`} aria-label={`Колода: ${game.deckCount}`}>
           <span className="pileCard backOne" />
           <span className="pileCard backTwo" />
@@ -1952,11 +2000,19 @@ function GameScreen(props: {
             ВЫШЕЛ #{game.self.place}
           </div>
         )}
-        <div className="handHeader">
-          <span>Твои карты</span>
+        <div className="handHeader selfHandHeader">
+          <div className="selfHandIdentity">
+            <span className="selfHandAvatar">
+              {game.self.photoUrl ? <img src={game.self.photoUrl} alt="" /> : game.self.name.slice(0, 1)}
+            </span>
+            <span>
+              <small>ТВОЯ РУКА</small>
+              <strong>{game.self.name}</strong>
+            </span>
+          </div>
           <b>{game.self.hand.length}</b>
           {game.self.classId === "wild-transfer" && (
-            <small>особых переводов: {game.self.ability.wildTransfersLeft}</small>
+            <small>↝ {game.self.ability.wildTransfersLeft}</small>
           )}
         </div>
         <div className="handCards">
