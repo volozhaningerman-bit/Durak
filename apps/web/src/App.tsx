@@ -860,7 +860,7 @@ export function App() {
                     <span />
                     <span />
                   </div>
-                  <div className="waitingSeats">
+                  <div className={`waitingSeats seats-${privateLobby.requiredPlayers}`}>
                     {Array.from({ length: privateLobby.requiredPlayers }, (_, index) => {
                       const member = privateLobby.members[index];
                       return member ? (
@@ -1224,6 +1224,8 @@ export function App() {
                 <small>2: +30 / −30</small>
                 <small>3: +20 · +10 / −30</small>
                 <small>4: +15 · +10 · +5 / −30</small>
+                <small>5: +12 · +9 · +6 · +3 / −30</small>
+                <small>6: +10 · +8 · +6 · +4 · +2 / −30</small>
               </div>
             </div>
             <div className="leaderboardList innerScroll">
@@ -1248,7 +1250,7 @@ export function App() {
             <p className="tabMuted">В рейтинговых матчах игровые преимущества отключены.</p>
             <div className="shopGrid innerScroll">
               <article className="shopTicket">
-                <span className="shopGlyph">↩</span>
+                <span className="shopGlyph">↶</span>
                 <div><small>РАСХОДНИК</small><strong>Возврат карты</strong><p>Вернуть последнюю карту, пока поверх неё никто не сыграл.</p></div>
                 <b>СКОРО</b>
               </article>
