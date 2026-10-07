@@ -972,6 +972,17 @@ export function App() {
                       ? "Зелёный стол, привычные правила и ничего лишнего."
                       : "Каждая партия меняется из-за случайной способности."}
                   </p>
+                  <div className="heroMarks" aria-hidden="true">
+                    {mode === "classic" ? (
+                      <>
+                        <i>♠</i><i>♣</i><i className="redMark">♥</i><i className="redMark">♦</i>
+                      </>
+                    ) : (
+                      <>
+                        <i>♠</i><i>↝</i><i>Ⅴ</i><i>✦</i><i>↶</i><i>★</i>
+                      </>
+                    )}
+                  </div>
                 </section>
 
                 <section className="settings compactSettings">
