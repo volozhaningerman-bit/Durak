@@ -1282,6 +1282,18 @@ export function App() {
               <strong>★</strong>
             </div>
             <p className="tabMuted">В рейтинговых матчах игровые преимущества отключены.</p>
+            <div className="deckShelf">
+              <article>
+                <div className="deckPreview"><CardBack mode="classic" /></div>
+                <div><small>КОЛОДА</small><strong>Зелёный стол</strong><span>Базовая классическая рубашка</span></div>
+                <b>ВКЛЮЧЕНА</b>
+              </article>
+              <article>
+                <div className="deckPreview"><CardBack mode="rpg" /></div>
+                <div><small>КОЛОДА</small><strong>Печать классов</strong><span>Базовая рубашка режима RPG</span></div>
+                <b>ВКЛЮЧЕНА</b>
+              </article>
+            </div>
             <div className="shopGrid innerScroll">
               <article className="shopTicket">
                 <span className="shopGlyph">↶</span>
