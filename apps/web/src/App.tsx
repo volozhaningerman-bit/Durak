@@ -315,9 +315,15 @@ function websocketUrl(): string {
 
 export function App() {
   const [mode, setMode] = useState<GameMode>("classic");
-  const [theme, setTheme] = useState<ThemeId>(() =>
-    window.Telegram?.WebApp?.colorScheme === "light" ? "light" : "dark"
-  );
+  const [theme, setTheme] = useState<ThemeId>(() => {
+    try {
+      const saved = window.localStorage.getItem("durak-theme");
+      if (saved === "light" || saved === "dark") return saved;
+    } catch {
+      // Theme persistence is optional.
+    }
+    return window.Telegram?.WebApp?.colorScheme === "light" ? "light" : "dark";
+  });
   const [classic, setClassic] = useState<GameSettings>({ ...DEFAULT_CLASSIC_SETTINGS });
   const [rpg, setRpg] = useState<GameSettings>({ ...DEFAULT_RPG_SETTINGS });
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -351,6 +357,26 @@ export function App() {
   const handledStartParamRef = useRef(false);
 
   const settings = mode === "classic" ? classic : rpg;
+
+  useEffect(() => {
+    const background = theme === "dark" ? "#101113" : "#f2f0ea";
+    const telegram = window.Telegram?.WebApp;
+
+    try {
+      window.localStorage.setItem("durak-theme", theme);
+    } catch {
+      // Theme persistence is optional.
+    }
+
+    document.documentElement.style.backgroundColor = background;
+    document.documentElement.style.colorScheme = theme;
+    document.body.style.backgroundColor = background;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", background);
+
+    telegram?.setHeaderColor?.(background);
+    telegram?.setBackgroundColor?.(background);
+    telegram?.setBottomBarColor?.(background);
+  }, [theme]);
 
   const subtitle = useMemo(
     () =>
