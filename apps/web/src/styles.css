@@ -3845,3 +3845,48 @@ html, body, #root {
     max-height:42vh;
   }
 }
+
+
+/* Player-count-aware private room seating. */
+.waitingSeats.seats-2 {
+  grid-template-columns:repeat(2,minmax(110px,1fr));
+  align-content:start;
+  justify-items:center;
+  padding-top:28px;
+}
+
+.waitingSeats.seats-3 {
+  grid-template-columns:repeat(3,minmax(82px,1fr));
+  align-content:start;
+  justify-items:center;
+  padding-top:28px;
+}
+
+.waitingSeats.seats-4 {
+  grid-template-columns:repeat(2,minmax(110px,1fr));
+  align-content:space-between;
+  justify-items:center;
+}
+
+.waitingSeats.seats-5,
+.waitingSeats.seats-6 {
+  grid-template-columns:repeat(3,minmax(74px,1fr));
+}
+
+.waitingSeats.seats-2 .waitingSeat,
+.waitingSeats.seats-3 .waitingSeat {
+  width:100%;
+  max-width:150px;
+}
+
+.ratingExamples {
+  row-gap:5px;
+}
+
+.ratingExamples small {
+  white-space:nowrap;
+}
+
+.shopGlyph {
+  font-family:Georgia,serif;
+}
