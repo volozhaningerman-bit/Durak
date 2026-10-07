@@ -294,7 +294,7 @@ function buildQaGame(scenario: QaScenarioId): GameView {
     defenderSeat: 0,
     turnSeat: 0,
     direction: scenario === "6p" ? -1 : 1,
-    roundAttackLimit: selfClass === "five-limit" ? 5 : 6,
+    roundAttackLimit: 6,
     defenderTaking: false,
     draw: false
   };
