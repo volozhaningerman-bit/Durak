@@ -739,9 +739,22 @@ async function applyRoomProgress(room: Room) {
       const profile = byId.get(member.playerId);
       if (!profile) continue;
 
+      const [latest] = await profileStore.getHistory(member.playerId, 1);
+      const progress =
+        latest?.matchId === room.id
+          ? {
+              result: latest.result,
+              ranked: latest.ranked,
+              ratingBefore: latest.ratingBefore,
+              ratingAfter: latest.ratingAfter,
+              ratingDelta: latest.ratingAfter - latest.ratingBefore
+            }
+          : undefined;
+
       send(member.socket, {
         type: "profile_updated",
-        profile
+        profile,
+        progress
       });
     }
   } catch (error) {
