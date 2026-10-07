@@ -1978,11 +1978,7 @@ function GameScreen(props: {
           </section>
         ) : game.table.length === 0 ? (
           <div className="emptyTable">
-            {game.phase === "finished"
-              ? resultText
-              : isMyTurn
-                ? "Твой ход"
-                : "Ожидаем ход соперника"}
+            {isMyTurn ? "Твой ход" : "Ожидаем ход соперника"}
           </div>
         ) : (
           <div className="tablePairs">
