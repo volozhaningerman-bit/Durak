@@ -3596,3 +3596,58 @@ html, body, #root {
     linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
     var(--panel);
 }
+
+
+.heroMarks {
+  position:absolute;
+  left:50%;
+  bottom:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  transform:translateX(-50%);
+}
+
+.heroMarks i {
+  width:19px;
+  height:19px;
+  display:grid;
+  place-items:center;
+  border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));
+  border-radius:50%;
+  background:color-mix(in srgb,var(--bg) 22%,transparent);
+  color:color-mix(in srgb,var(--accent) 84%,var(--text));
+  font:800 9px Georgia,serif;
+  font-style:normal;
+}
+
+.heroMarks .redMark {
+  color:#b84b46;
+}
+
+.modeHero.rpg .heroMarks i {
+  border-color:color-mix(in srgb,var(--rpg) 34%,var(--line));
+  color:var(--rpgSoft);
+}
+
+.modeHero.classic .heroMarks i {
+  border-color:color-mix(in srgb,var(--classic) 34%,var(--line));
+  color:var(--classicSoft);
+}
+
+.modeHero.classic .heroMarks .redMark {
+  color:#b84b46;
+}
+
+@media (max-height:760px) {
+  .heroMarks {
+    bottom:8px;
+    gap:4px;
+  }
+  .heroMarks i {
+    width:16px;
+    height:16px;
+    font-size:8px;
+  }
+}
