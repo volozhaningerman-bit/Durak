@@ -88,10 +88,10 @@ Telegram Mini App: классический и RPG-режимы игры «Ду�
 После того как HTTPS-адрес уже открывается:
 
 ```bash
-BOT_TOKEN="..." TELEGRAM_WEBHOOK_SECRET="..." WEBAPP_URL="https://your-domain.example" npm run configure:telegram
+BOT_TOKEN="..." TELEGRAM_WEBHOOK_SECRET="..." WEBAPP_URL="https://your-domain.example" SERVER_PUBLIC_URL="https://your-domain.example" npm run configure:telegram
 ```
 
-Скрипт проверит токен через Telegram Bot API, установит защищённый webhook, создаст кнопку **«Играть»** в меню бота и команды `/start` и `/play`. Команды отвечают сообщением с Web App-кнопкой, поэтому бот работает без отдельного polling-процесса.
+Скрипт проверит токен через Telegram Bot API, установит защищённый webhook на `SERVER_PUBLIC_URL`, создаст кнопку **«Играть»** в меню бота и команды `/start` и `/play`. Команды отвечают сообщением с Web App-кнопкой, поэтому бот работает без отдельного polling-процесса.
 
 Для ссылок-приглашений вида `https://t.me/BOT_USERNAME?startapp=room_ABC123` дополнительно открой @BotFather и включи для этого же бота **Main Mini App**, указав тот же `WEBAPP_URL`. После этого друг сможет нажать ссылку и автоматически попасть в нужную приватную комнату без ручного ввода кода.
 
@@ -100,6 +100,7 @@ BOT_TOKEN="..." TELEGRAM_WEBHOOK_SECRET="..." WEBAPP_URL="https://your-domain.ex
 ### Минимальная проверка перед тестовой игрой
 
 - `https://DOMAIN/health` возвращает `ok: true`;
+- webhook Telegram указывает на backend, а не на отдельный static Mini App;
 - `/api/config` показывает `telegramConfigured: true` и `databaseConfigured: true`;
 - Mini App открывается из кнопки **«Играть»** внутри Telegram;
 - два разных Telegram-аккаунта могут выбрать одинаковые параметры и попасть в одну комнату;
