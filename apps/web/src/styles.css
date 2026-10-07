@@ -4360,3 +4360,77 @@ html, body, #root {
   .gameApp .courtFace strong { font-size:17px; }
   .gameApp .aceFace > i { font-size:30px; }
 }
+
+
+/* Mobile game payoff: compact end-of-match ceremony. */
+.matchResult {
+  width:min(100%,320px);
+  min-height:180px;
+  margin:auto;
+  padding:18px 18px 16px;
+  display:grid;
+  justify-items:center;
+  align-content:center;
+  gap:5px;
+  border:1px solid var(--line);
+  background:color-mix(in srgb,var(--panelStrong) 94%,transparent);
+  clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px));
+}
+
+.matchResult .resultSeal {
+  width:52px;
+  height:52px;
+  display:grid;
+  place-items:center;
+  margin-bottom:3px;
+  border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));
+  border-radius:50%;
+  color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent);
+  font:900 24px Georgia,serif;
+}
+
+.matchResult > small {
+  color:var(--muted);
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.17em;
+}
+
+.matchResult h2 {
+  margin:2px 0 0;
+  font-size:20px;
+  letter-spacing:-.02em;
+}
+
+.matchResult p {
+  margin:0 0 8px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.matchResult.win {
+  border-color:color-mix(in srgb,var(--classic) 42%,var(--line));
+}
+
+.matchResult.loss {
+  border-color:color-mix(in srgb,var(--danger) 42%,var(--line));
+}
+
+.matchResult.loss .resultSeal {
+  color:var(--danger);
+  border-color:color-mix(in srgb,var(--danger) 48%,var(--line));
+  background:color-mix(in srgb,var(--danger) 8%,transparent);
+}
+
+.resultButton {
+  min-width:150px;
+  min-height:42px;
+  border:1px solid color-mix(in srgb,var(--accent) 52%,var(--line));
+  border-radius:3px;
+  background:var(--accent);
+  color:var(--accentText);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
