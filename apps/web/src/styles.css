@@ -4635,3 +4635,48 @@ input[type="range"]::-moz-range-thumb {
   background:var(--accent);
   transform:rotate(45deg);
 }
+
+
+.resultRating {
+  min-width:138px;
+  margin:2px 0 8px;
+  padding:7px 10px;
+  display:grid;
+  justify-items:center;
+  gap:2px;
+  border:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 78%,transparent);
+}
+
+.resultRating small {
+  color:var(--muted);
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.resultRating strong {
+  color:var(--text);
+  font-size:14px;
+}
+
+.resultRating span {
+  color:var(--muted);
+  font-size:7px;
+}
+
+.resultRating.positive {
+  border-color:color-mix(in srgb,var(--classic) 42%,var(--line));
+}
+
+.resultRating.positive strong {
+  color:var(--classicSoft);
+}
+
+.resultRating.negative {
+  border-color:color-mix(in srgb,var(--danger) 42%,var(--line));
+}
+
+.resultRating.negative strong {
+  color:var(--danger);
+}
