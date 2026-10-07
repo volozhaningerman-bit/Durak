@@ -1322,9 +1322,13 @@ function BootScreen(props: {
   return (
     <main className="bootScreen" data-theme={props.theme}>
       <div className="bootMark" aria-hidden="true">
-        <span className="bootCard bootCardLeft">6♠</span>
+        <span className="bootCard bootCardLeft">
+          <CardFace card={{ id: "boot-6", kind: "standard", suit: "spades", rank: "6" }} mode="classic" />
+        </span>
         <span className="bootSeal">Д</span>
-        <span className="bootCard bootCardRight">A♥</span>
+        <span className="bootCard bootCardRight">
+          <CardFace card={{ id: "boot-a", kind: "standard", suit: "hearts", rank: "A" }} mode="rpg" />
+        </span>
       </div>
       <div className="bootWordmark">
         <b>DURAK</b>
@@ -1707,11 +1711,13 @@ function GameScreen(props: {
     if (!isMyTurn) return;
 
     if (game.phase === "attacking" || game.phase === "throwing") {
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("light");
       props.onAction({ type: "attack", cardId: card.id });
       return;
     }
 
     if (game.phase === "defending") {
+      window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
       props.setSelectedHandId(card.id);
     }
   }
