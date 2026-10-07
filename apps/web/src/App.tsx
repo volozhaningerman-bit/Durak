@@ -217,6 +217,7 @@ interface PrivateLobbyView {
     photoUrl?: string;
     isSelf: boolean;
     isHost: boolean;
+    connected?: boolean;
   }>;
   currentPlayers: number;
   requiredPlayers: number;
@@ -445,6 +446,7 @@ export function App() {
             currentPlayers?: number;
             requiredPlayers?: number;
             isHost?: boolean;
+            restoredPrivateLobby?: string;
           };
 
           if (message.type === "auth_ok") {
@@ -462,7 +464,9 @@ export function App() {
               const roomMatch = startParam?.match(/^room_([A-Z2-9]{6})$/i);
 
               handledStartParamRef.current = true;
-              if (roomMatch) {
+              if (message.restoredPrivateLobby) {
+                setPrivateCodeInput(message.restoredPrivateLobby);
+              } else if (roomMatch) {
                 const code = roomMatch[1].toUpperCase();
                 setPrivateCodeInput(code);
                 socket.send(JSON.stringify({ type: "join_private_room", code }));
@@ -992,7 +996,15 @@ export function App() {
                             {member.photoUrl ? <img src={member.photoUrl} alt="" /> : index + 1}
                           </div>
                           <b>{member.name}</b>
-                          <small>{member.isSelf ? "ты" : member.isHost ? "хозяин" : "готов"}</small>
+                          <small>
+                            {member.connected === false
+                              ? "переподключается"
+                              : member.isSelf
+                                ? "ты"
+                                : member.isHost
+                                  ? "хозяин"
+                                  : "готов"}
+                          </small>
                         </div>
                       ) : (
                         <div className="waitingSeat empty" key={index}>
