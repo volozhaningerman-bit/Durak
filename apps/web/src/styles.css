@@ -4680,3 +4680,205 @@ input[type="range"]::-moz-range-thumb {
 .resultRating.negative strong {
   color:var(--danger);
 }
+
+
+/* ===== Real iPhone / Telegram chrome correction pass ===== */
+
+/* Telegram's own close/menu controls occupy more vertical room than the
+   iOS hardware safe-area. Keep our HUD below the content-safe zone. */
+.lobbyApp,
+.gameApp {
+  padding-top:max(
+    94px,
+    calc(env(safe-area-inset-top) + 12px),
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 12px)
+  );
+}
+
+.lobbyApp .topbar,
+.gameApp .topbar {
+  margin-bottom:6px;
+}
+
+.topbar {
+  align-items:flex-end;
+  gap:10px;
+}
+
+.headerCopy {
+  min-width:0;
+  flex:1 1 auto;
+}
+
+.headerActions {
+  flex:0 0 auto;
+}
+
+.subtitle {
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.subtitleText {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.connectionDot {
+  width:7px;
+  height:7px;
+  flex:0 0 7px;
+  margin:0;
+  font-size:0;
+  line-height:0;
+}
+
+.connectionDot::before {
+  width:7px;
+  height:7px;
+  margin:0;
+  vertical-align:0;
+}
+
+/* One app control is enough next to Telegram's own system chrome. */
+.headerActions .themeToggle {
+  flex:0 0 auto;
+}
+
+/* Search should feel like one focused state, not an enormous empty sheet. */
+.searchStage {
+  padding-top:18px;
+  padding-bottom:18px;
+  background:
+    radial-gradient(
+      ellipse at 50% 46%,
+      color-mix(in srgb,var(--accent) 8%,transparent),
+      transparent 34%
+    ),
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px) 0 0/30px 30px,
+    var(--panel);
+}
+
+.searchCards {
+  transform:scale(1.04);
+  transform-origin:center bottom;
+}
+
+.cancelSearch {
+  width:min(100%,340px);
+  margin-top:16px !important;
+}
+
+/* The store scrolls as a page; product cards are never clipped in an
+   independent nested viewport. */
+.shopPage {
+  height:100% !important;
+  max-height:100% !important;
+  align-self:stretch !important;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding-bottom:22px;
+}
+
+.shopPage::-webkit-scrollbar {
+  display:none;
+}
+
+.shopPage .shopGrid.innerScroll {
+  flex:0 0 auto;
+  max-height:none !important;
+  overflow:visible;
+}
+
+/* Leaderboard rules are secondary information on a phone. */
+.ratingRuleCard {
+  display:block;
+  padding:0;
+  overflow:hidden;
+}
+
+.ratingRuleCard summary {
+  min-height:46px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto 18px;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  cursor:pointer;
+  list-style:none;
+  user-select:none;
+}
+
+.ratingRuleCard summary::-webkit-details-marker {
+  display:none;
+}
+
+.ratingRuleCard summary > span {
+  color:var(--text);
+  font-size:10px;
+  font-weight:800;
+}
+
+.ratingRuleCard summary > b {
+  color:var(--accent);
+  font-size:9px;
+  white-space:nowrap;
+}
+
+.ratingRuleCard summary::after {
+  content:"+";
+  width:18px;
+  color:var(--muted);
+  font-size:17px;
+  font-weight:500;
+  text-align:center;
+}
+
+.ratingRuleCard[open] summary::after {
+  content:"−";
+}
+
+.ratingRuleCard[open] summary {
+  border-bottom:1px solid var(--line);
+}
+
+.ratingRuleBody {
+  display:grid;
+  gap:8px;
+  padding:10px 12px 12px;
+}
+
+.ratingRuleBody > span {
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+}
+
+@media (max-width:430px) {
+  .lobbyApp,
+  .gameApp {
+    padding-left:12px;
+    padding-right:12px;
+  }
+
+  .lobbyApp .brand {
+    font-size:17px;
+  }
+
+  .themeToggle {
+    width:40px;
+    min-width:40px;
+  }
+
+  .contentPage {
+    padding-left:14px;
+    padding-right:14px;
+  }
+}
