@@ -147,6 +147,15 @@ interface MatchHistoryEntry {
   createdAt: string;
 }
 
+interface TelegramUserView {
+  id: number;
+  firstName: string;
+  lastName?: string;
+  username?: string;
+  photoUrl?: string;
+  isPremium?: boolean;
+}
+
 interface RecentPlayer {
   key: string;
   contactId?: string;
@@ -256,6 +265,7 @@ export function App() {
   const [initialReady, setInitialReady] = useState(false);
   const [queueing, setQueueing] = useState(false);
   const [profile, setProfile] = useState<PlayerProgress | null>(null);
+  const [telegramUser, setTelegramUser] = useState<TelegramUserView | null>(null);
   const [game, setGame] = useState<GameView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedAttackId, setSelectedAttackId] = useState<string | null>(null);
@@ -357,6 +367,7 @@ export function App() {
             code?: string;
             state?: GameView;
             profile?: PlayerProgress;
+            user?: TelegramUserView;
             entries?: unknown[];
             name?: string;
             settings?: GameSettings;
@@ -370,6 +381,7 @@ export function App() {
             setInitialReady(true);
             setConnection("online");
             if (message.profile) setProfile(message.profile);
+            if (message.user) setTelegramUser(message.user);
             setError(null);
 
             if (!handledStartParamRef.current) {
@@ -1104,8 +1116,30 @@ export function App() {
         {activeTab === "profile" && (
           <section className="tabPage contentPage">
             <div className="pageHead">
-              <div><span>ПРОФИЛЬ</span><h2>{profile ? `Уровень ${profile.level}` : "Загрузка…"}</h2></div>
+              <div><span>ПРОФИЛЬ</span><h2>Карточка игрока</h2></div>
               {profile && <strong>{Math.round(profile.rating)} <small>RP</small></strong>}
+            </div>
+            <div className="playerPassport">
+              <div className="passportAvatar">
+                {telegramUser?.photoUrl
+                  ? <img src={telegramUser.photoUrl} alt="" />
+                  : <span>{telegramUser?.firstName?.slice(0, 1) ?? "Д"}</span>}
+              </div>
+              <div className="passportName">
+                <small>ИГРОК</small>
+                <b>
+                  {telegramUser
+                    ? [telegramUser.firstName, telegramUser.lastName].filter(Boolean).join(" ")
+                    : "Durak RPG"}
+                </b>
+                <span>{telegramUser?.username ? `@${telegramUser.username}` : "Telegram player"}</span>
+              </div>
+              {profile && (
+                <div className="passportLevel">
+                  <small>УРОВЕНЬ</small>
+                  <strong>{profile.level}</strong>
+                </div>
+              )}
             </div>
             {profile && (
               <div className="profileGrid">
@@ -1171,17 +1205,20 @@ export function App() {
             </div>
             <p className="tabMuted">В рейтинговых матчах игровые преимущества отключены.</p>
             <div className="shopGrid innerScroll">
-              <article>
-                <strong>↩ Возврат карты</strong>
-                <span>Вернуть последнюю карту, пока поверх неё никто не сыграл.</span>
+              <article className="shopTicket">
+                <span className="shopGlyph">↩</span>
+                <div><small>РАСХОДНИК</small><strong>Возврат карты</strong><p>Вернуть последнюю карту, пока поверх неё никто не сыграл.</p></div>
+                <b>СКОРО</b>
               </article>
-              <article>
-                <strong>👁 Память стола</strong>
-                <span>На 5 секунд показать карты, уже вышедшие из игры.</span>
+              <article className="shopTicket">
+                <span className="shopGlyph">◉</span>
+                <div><small>РАСХОДНИК</small><strong>Память стола</strong><p>На 5 секунд показать карты, уже вышедшие из игры.</p></div>
+                <b>СКОРО</b>
               </article>
-              <article>
-                <strong>🍅 Насмешки</strong>
-                <span>Помидоры, эмоции и визуальные реакции без влияния на правила.</span>
+              <article className="shopTicket">
+                <span className="shopGlyph">✦</span>
+                <div><small>ЭМОЦИЯ</small><strong>Насмешки</strong><p>Визуальные реакции на соперников без влияния на правила.</p></div>
+                <b>СКОРО</b>
               </article>
             </div>
           </section>
