@@ -266,7 +266,7 @@ const errorMessages: Record<string, string> = {
   INVITE_UNAVAILABLE: "Сейчас этому игроку нельзя отправить приглашение",
   INVITE_FAILED: "Не удалось отправить приглашение",
   RECENT_PLAYERS_LOAD_FAILED: "Не удалось загрузить недавних игроков",
-  REMATCH_UNAVAILABLE: "Ремatch недоступен: один из игроков уже покинул стол",
+  REMATCH_UNAVAILABLE: "Рематч недоступен: один из игроков уже покинул стол",
   REMATCH_RESULT_PENDING: "Сохраняем результат партии — рематч станет доступен сразу после этого"
 };
 
@@ -1598,8 +1598,9 @@ function GameScreen(props: {
     props.connection !== "online" ||
     props.actionPending ||
     (motionBusy && !prefersReducedMotion);
-  const rematchReady = game.rematchReadySeats.includes(game.self.seat);
-  const rematchReadyCount = game.rematchReadySeats.length;
+  const rematchReadySeats = game.rematchReadySeats ?? [];
+  const rematchReady = rematchReadySeats.includes(game.self.seat);
+  const rematchReadyCount = rematchReadySeats.length;
 
   useEffect(() => {
     if (props.connection !== "online") {
