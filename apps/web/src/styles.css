@@ -5432,15 +5432,21 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* A reserved private seat stays visible during the reconnect grace period. */
-.waitingSeat.filled:has(small:last-child) {
+.waitingSeat.filled {
   transition:opacity .18s ease, border-color .18s ease;
 }
 
-.waitingSeat.filled small {
-  min-height:1em;
+.waitingSeat.filled.reconnecting {
+  opacity:.58;
+  border-color:color-mix(in srgb,var(--muted) 42%,var(--line));
 }
 
-.waitingSeat.filled:has(small:last-child) small {
+.waitingSeat.filled.reconnecting .avatar {
+  filter:saturate(.45);
+}
+
+.waitingSeat.filled.reconnecting small {
+  color:var(--muted);
   text-wrap:balance;
 }
 
