@@ -2434,3 +2434,42 @@ html, body, #root {
   .bootMark { transform:scale(.86); transform-origin:center bottom; }
   .bootStatus { margin-top:14px; }
 }
+
+
+.themeToggle {
+  min-width:58px;
+  height:40px;
+  display:grid;
+  grid-template-columns:18px 1fr;
+  align-items:center;
+  gap:5px;
+  padding:0 9px;
+  border:1px solid var(--line);
+  border-radius:5px;
+  background:var(--panelStrong);
+  color:var(--text);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.themeToggle span {
+  color:var(--accent);
+  font-size:17px;
+  line-height:1;
+}
+
+.themeToggle b {
+  font-size:9px;
+  letter-spacing:.06em;
+}
+
+@media (max-width:390px) {
+  .themeToggle {
+    min-width:42px;
+    width:42px;
+    grid-template-columns:1fr;
+    padding:0;
+    place-items:center;
+  }
+
+  .themeToggle b { display:none; }
+}
