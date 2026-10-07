@@ -5418,9 +5418,15 @@ input[type="range"]::-moz-range-thumb {
 .lobbyApp,
 .gameApp {
   height:var(--tg-viewport-stable-height, 100dvh);
+  min-height:var(--tg-viewport-stable-height, 100dvh);
   max-height:var(--tg-viewport-stable-height, 100dvh);
   padding-left:max(12px, env(safe-area-inset-left), var(--tg-content-safe-area-inset-left, 0px));
   padding-right:max(12px, env(safe-area-inset-right), var(--tg-content-safe-area-inset-right, 0px));
+}
+
+.profilePage,
+.ratingPage {
+  max-height:calc(var(--tg-viewport-stable-height, 100dvh) - 265px);
 }
 
 .bottomNav {
