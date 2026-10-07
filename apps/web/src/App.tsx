@@ -1025,17 +1025,33 @@ export function App() {
                   <span className="waitingDot" />
                   <div>
                     <b>
-                      {privateLobby.requiredPlayers - privateLobby.currentPlayers > 0
-                        ? `Ждём ещё ${playersLabel(privateLobby.requiredPlayers - privateLobby.currentPlayers)}`
-                        : "Все на месте — запускаем матч"}
+                      {privateLobby.members.some((member) => member.connected === false)
+                        ? "Ждём переподключение игрока"
+                        : privateLobby.requiredPlayers - privateLobby.currentPlayers > 0
+                          ? `Ждём ещё ${playersLabel(privateLobby.requiredPlayers - privateLobby.currentPlayers)}`
+                          : "Все на месте — запускаем матч"}
                     </b>
-                    <small>Матч начнётся автоматически, когда стол заполнится</small>
+                    <small>
+                      {privateLobby.members.some((member) => member.connected === false)
+                        ? "Место сохранено на короткое время"
+                        : "Матч начнётся автоматически, когда стол заполнится"}
+                    </small>
                   </div>
                 </div>
 
                 <div className="lobbyActions">
-                  <button className="secondaryGameButton inviteMain" onClick={sharePrivateRoom}>
-                    ПРИГЛАСИТЬ
+                  <button
+                    className="secondaryGameButton inviteMain"
+                    disabled={
+                      privateLobby.members.length >= privateLobby.requiredPlayers &&
+                      privateLobby.members.some((member) => member.connected === false)
+                    }
+                    onClick={sharePrivateRoom}
+                  >
+                    {privateLobby.members.length >= privateLobby.requiredPlayers &&
+                    privateLobby.members.some((member) => member.connected === false)
+                      ? "ЖДЁМ ВОЗВРАТ"
+                      : "ПРИГЛАСИТЬ"}
                   </button>
                   <button className="secondaryGameButton dangerOutline" onClick={leavePrivateRoom}>
                     ВЫЙТИ
