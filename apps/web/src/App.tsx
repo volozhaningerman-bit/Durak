@@ -1417,14 +1417,8 @@ function GameScreen(props: {
       cleared = {
         token: Date.now(),
         kind: outcome,
-        cards:
-          outcome === "take"
-            ? previousTable.filter((card) => card.kind !== "joker")
-            : previousTable,
-        discardedCards:
-          outcome === "take"
-            ? previousTable.filter((card) => card.kind === "joker")
-            : [],
+        cards: previousTable,
+        discardedCards: [],
         targetSeat: previous.defenderSeat,
         toSelf: previous.defenderSeat === previous.self.seat
       };
