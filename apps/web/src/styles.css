@@ -4964,14 +4964,16 @@ input[type="range"]::-moz-range-thumb {
   padding-bottom:72px;
 }
 
-/* Search should feel intentionally centered rather than vertically empty. */
+/* Search is an active state, not a tall empty poster. Keep the ceremony
+   centered and compact on the real Telegram viewport. */
 .searchStage {
-  justify-content:flex-start;
-  padding-top:clamp(90px,14vh,150px);
+  justify-content:center;
+  padding-top:clamp(24px,5vh,48px);
+  padding-bottom:clamp(20px,4vh,36px);
 }
 
 .searchStage .cancelSearch {
-  margin-top:34px !important;
+  margin-top:18px !important;
 }
 
 /* A little tighter on the exact narrow iPhone layout shown in screenshots. */
@@ -5408,6 +5410,109 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+
+/* ===== Audit stabilization: Telegram viewport + short phones ===== */
+
+/* Telegram exposes a stable viewport specifically for layouts pinned to its
+   chrome. 100dvh remains the browser fallback outside Telegram. */
+.lobbyApp,
+.gameApp {
+  height:var(--tg-viewport-stable-height, 100dvh);
+  max-height:var(--tg-viewport-stable-height, 100dvh);
+  padding-left:max(12px, env(safe-area-inset-left), var(--tg-content-safe-area-inset-left, 0px));
+  padding-right:max(12px, env(safe-area-inset-right), var(--tg-content-safe-area-inset-right, 0px));
+}
+
+.bottomNav {
+  bottom:max(
+    8px,
+    env(safe-area-inset-bottom),
+    var(--tg-content-safe-area-inset-bottom, 0px)
+  );
+}
+
+/* A reserved private seat stays visible during the reconnect grace period. */
+.waitingSeat.filled:has(small:last-child) {
+  transition:opacity .18s ease, border-color .18s ease;
+}
+
+.waitingSeat.filled small {
+  min-height:1em;
+}
+
+.waitingSeat.filled:has(small:last-child) small {
+  text-wrap:balance;
+}
+
+/* On short phones the lobby may scroll rather than clipping its primary CTA.
+   The actual match remains a fixed, one-screen game surface. */
+@media (max-height:720px) {
+  .lobbyApp .playPage {
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-bottom:8px;
+  }
+
+  .lobbyApp .playPage::-webkit-scrollbar {
+    display:none;
+  }
+
+  .lobbyApp .compactSettings {
+    flex:0 0 auto;
+    overflow:visible;
+  }
+
+  .lobbyApp .modeHero {
+    flex-basis:94px;
+    min-height:94px;
+    padding-top:11px;
+    padding-bottom:8px;
+  }
+
+  .lobbyApp .modeHero p,
+  .lobbyApp .heroMarks,
+  .lobbyApp .recentBlock:not(.compact) {
+    display:none;
+  }
+
+  .lobbyApp .modeChooser button {
+    min-height:48px;
+  }
+
+  .lobbyApp .searchStage,
+  .lobbyApp .privateLobbyStage {
+    height:auto;
+    min-height:100%;
+  }
+
+  .lobbyApp .privateLobbyStage {
+    overflow:visible;
+  }
+}
+
+@media (max-height:640px) {
+  .lobbyApp .lobbyIdentityRail {
+    padding-top:5px;
+    padding-bottom:5px;
+  }
+
+  .lobbyApp .modeHero {
+    flex-basis:82px;
+    min-height:82px;
+  }
+
+  .lobbyApp .modeHero .crest {
+    width:34px;
+    height:34px;
+    font-size:17px;
+  }
+
+  .lobbyApp .modeHero h1 {
+    font-size:18px;
+  }
+}
 
 /* ===== Private rematch result controls ===== */
 .rematchStatus {
