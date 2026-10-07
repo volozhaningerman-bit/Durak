@@ -1764,6 +1764,27 @@ function GameScreen(props: {
             ? "ПОДКИД"
             : "КОНЕЦ ПАРТИИ";
 
+  const turnHint =
+    game.phase === "finished"
+      ? resultText
+      : !isMyTurn
+        ? `${turnPlayer?.name ?? `Игрок #${(game.turnSeat ?? 0) + 1}`} думает…`
+        : game.phase === "awaiting-trump"
+          ? "Выбери одну козырную масть"
+          : game.phase === "attacking"
+            ? "Нажми карту — она сразу пойдёт на стол"
+            : game.phase === "throwing"
+              ? "Подкинуть можно ранг со стола. Или нажми «Пас»"
+              : !props.selectedHandId
+                ? "Выбери карту в руке — затем отбей, переведи или возьми"
+                : canSelectedDefend && canSelectedTransfer
+                  ? "Карта выбрана: можно отбить или перевести"
+                  : canSelectedDefend
+                    ? "Карта подходит — нажми «Отбить»"
+                    : canSelectedTransfer
+                      ? "Карта подходит для перевода"
+                      : "Эта карта не подходит — выбери другую или возьми";
+
   const resultText =
     game.phase === "finished"
       ? game.draw
@@ -2037,18 +2058,8 @@ function GameScreen(props: {
 
       {props.error && <div className="errorBanner gameError">{props.error}</div>}
 
-      <section className="turnInfo">
-        {resultText ?? (
-          isMyTurn
-            ? game.phase === "defending"
-              ? "Отбей, переведи или возьми"
-              : game.phase === "throwing"
-                ? "Подкинь карту или пас"
-                : game.phase === "attacking"
-                  ? "Выбери карту для хода"
-                  : "Выбери козырную масть"
-            : `Ход игрока #${(game.turnSeat ?? 0) + 1}`
-        )}
+      <section className={`turnInfo ${isMyTurn ? "activeHint" : ""}`}>
+        {turnHint}
       </section>
 
       {game.phase === "defending" && isMyTurn && (
