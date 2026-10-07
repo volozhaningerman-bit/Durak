@@ -3683,3 +3683,165 @@ html, body, #root {
     font-size:7px;
   }
 }
+
+
+/* ===== Screenshot correction pass ===== */
+
+/* Hero heraldry must live in the document flow; never overlap the description. */
+.modeHero {
+  grid-template-rows:auto auto auto auto;
+  row-gap:2px;
+  padding-bottom:9px;
+}
+
+.modeHero p {
+  margin-bottom:2px;
+}
+
+.heroMarks {
+  position:static;
+  left:auto;
+  bottom:auto;
+  transform:none;
+  margin-top:3px;
+  min-height:18px;
+}
+
+.modeHero::after {
+  display:none;
+}
+
+/* Supporting tabs should not look like giant empty modals. */
+.tabPage.contentPage {
+  height:auto;
+  max-height:100%;
+  align-self:flex-start;
+}
+
+.contentPage {
+  width:100%;
+  padding:14px 16px 15px;
+}
+
+.historyList,
+.leaderboardList,
+.shopGrid.innerScroll {
+  flex:0 1 auto;
+  max-height:min(48vh,420px);
+}
+
+.contentPage .tabMuted {
+  margin:8px 0 4px;
+}
+
+.profileGrid {
+  margin-top:1px;
+}
+
+.contentPage h3 {
+  margin-top:5px;
+}
+
+/* Leaderboard uses rows, not one huge empty stage. */
+.leaderboardList {
+  min-height:0;
+}
+
+.leaderboardRow {
+  min-height:44px;
+}
+
+.leaderboardList .tabMuted {
+  padding:18px 0;
+  text-align:center;
+}
+
+/* Private room gets a compact table proportional to the number of seats. */
+.privateLobbyStage {
+  justify-content:flex-start;
+  padding:12px;
+}
+
+.privateLobbyHead {
+  width:100%;
+}
+
+.waitingTable {
+  flex:0 0 auto;
+  height:clamp(270px,39vh,380px);
+  margin:9px 0 7px;
+}
+
+.waitingSeats {
+  padding:18px 14px;
+  align-content:space-between;
+}
+
+.waitingDeck {
+  transform:translate(-50%,-50%) scale(.86);
+}
+
+.waitingCaption {
+  margin-top:2px;
+}
+
+.lobbyActions {
+  width:100%;
+  margin-top:7px;
+}
+
+/* Search stays cinematic but does not waste the whole viewport. */
+.searchStage {
+  justify-content:center;
+  padding-top:24px;
+  padding-bottom:24px;
+}
+
+.searchCards {
+  margin-bottom:2px;
+}
+
+.cancelSearch {
+  max-width:520px;
+  margin-top:18px !important;
+}
+
+/* Bottom nav is a slim HUD rail, not a fifth content panel. */
+.bottomNav {
+  width:min(calc(100% - 28px),540px);
+  padding:3px;
+  bottom:max(8px, env(safe-area-inset-bottom));
+  border-radius:3px;
+}
+
+.bottomNav button {
+  min-height:42px;
+  font-size:10px;
+}
+
+.bottomNav button.active::after {
+  bottom:2px;
+  height:2px;
+}
+
+/* Give content back the space saved by the slimmer HUD. */
+.lobbyApp {
+  padding-bottom:calc(64px + max(env(safe-area-inset-bottom), var(--tg-content-safe-area-inset-bottom, 0px)));
+}
+
+@media (max-height:760px) {
+  .waitingTable {
+    height:clamp(235px,36vh,310px);
+  }
+
+  .contentPage {
+    padding-top:11px;
+    padding-bottom:11px;
+  }
+
+  .historyList,
+  .leaderboardList,
+  .shopGrid.innerScroll {
+    max-height:42vh;
+  }
+}
