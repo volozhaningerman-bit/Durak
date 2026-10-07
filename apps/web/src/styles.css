@@ -4620,3 +4620,18 @@ input[type="range"]::-moz-range-thumb {
   width:100%;
   height:100%;
 }
+
+
+.turnInfo.activeHint {
+  color:var(--text);
+}
+
+.turnInfo.activeHint::before {
+  content:"";
+  display:inline-block;
+  width:5px;
+  height:5px;
+  margin:0 6px 1px 0;
+  background:var(--accent);
+  transform:rotate(45deg);
+}
