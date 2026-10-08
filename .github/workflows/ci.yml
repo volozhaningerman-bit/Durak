@@ -33,4 +33,8 @@ jobs:
           done
           grep -q '"ok":true' /tmp/health.json
           curl -fsS http://127.0.0.1:3100/ | grep -q 'Durak RPG'
-          WEBAPP_URL=http://127.0.0.1:3100 QA_MATCH_SMOKE=1 npm run smoke
+          if ! WEBAPP_URL=http://127.0.0.1:3100 QA_MATCH_SMOKE=1 npm run smoke; then
+            echo "---- server log ----"
+            cat /tmp/durak-server.log || true
+            exit 1
+          fi
