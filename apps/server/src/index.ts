@@ -1071,7 +1071,8 @@ function scheduleDisconnectForfeit(session: Session) {
 
     const member = room.members.find((entry) => entry.seat === seat);
     const stillDisconnected =
-      member?.playerId === session.playerId &&
+      member !== undefined &&
+      member.playerId === session.playerId &&
       (!sessions.has(member.socket) || member.socket.readyState !== WebSocket.OPEN);
 
     if (stillDisconnected) {
