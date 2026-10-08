@@ -3,7 +3,7 @@ import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS
 } from "./rules.js";
-import { simulateQaMatch } from "./qaBot.js";
+import { simulateQaMatch, type QaBotStyle } from "./qaBot.js";
 import type { GameSettings } from "./types.js";
 
 function seededRandom(seed: number): () => number {
@@ -20,12 +20,14 @@ function seededRandom(seed: number): () => number {
 function settingsFor(
   mode: "classic" | "rpg",
   playerCount: GameSettings["playerCount"],
-  variant: GameSettings["variant"] = "throw-in"
+  variant: GameSettings["variant"] = "throw-in",
+  throwInPolicy: GameSettings["throwInPolicy"] = "all"
 ): GameSettings {
   if (mode === "rpg") {
     return {
       ...DEFAULT_RPG_SETTINGS,
       playerCount,
+      throwInPolicy,
       ranked: false
     };
   }
@@ -34,38 +36,80 @@ function settingsFor(
     ...DEFAULT_CLASSIC_SETTINGS,
     playerCount,
     variant,
+    throwInPolicy,
     ranked: false
   };
 }
 
 describe("QA bot full-match simulation", () => {
   const playerCounts: GameSettings["playerCount"][] = [2, 3, 4, 5, 6];
+  const styles: QaBotStyle[] = [
+    "balanced",
+    "random",
+    "aggressive",
+    "transfer-heavy",
+    "take-heavy"
+  ];
+  const policies: GameSettings["throwInPolicy"][] = ["all", "neighbors"];
 
   for (const playerCount of playerCounts) {
     for (const variant of ["throw-in", "transfer"] as const) {
-      it(`finishes classic ${variant} with ${playerCount} players across seeds`, () => {
-        for (let seed = 1; seed <= 12; seed += 1) {
-          const result = simulateQaMatch(
-            settingsFor("classic", playerCount, variant),
-            { random: seededRandom(seed), maxActions: 2500, id: `classic-${variant}-${playerCount}-${seed}` }
-          );
-          expect(result.state.phase).toBe("finished");
-          expect(result.actions).toBeLessThan(2500);
-          expect(result.state.draw || result.state.loserSeat !== undefined).toBe(true);
+      for (const throwInPolicy of policies) {
+        it(`fuzzes classic ${variant}/${throwInPolicy} with ${playerCount} players`, () => {
+          for (const style of styles) {
+            for (let seed = 1; seed <= 16; seed += 1) {
+              const result = simulateQaMatch(
+                settingsFor("classic", playerCount, variant, throwInPolicy),
+                {
+                  random: seededRandom(
+                    seed +
+                      playerCount * 10_000 +
+                      styles.indexOf(style) * 1_000 +
+                      (variant === "transfer" ? 100 : 0) +
+                      (throwInPolicy === "neighbors" ? 10 : 0)
+                  ),
+                  maxActions: 2500,
+                  id: `classic-${variant}-${throwInPolicy}-${playerCount}-${style}-${seed}`,
+                  style
+                }
+              );
+              expect(result.state.phase).toBe("finished");
+              expect(result.actions).toBeLessThan(2500);
+              expect(
+                result.state.draw || result.state.loserSeat !== undefined
+              ).toBe(true);
+            }
+          }
+        });
+      }
+    }
+
+    for (const throwInPolicy of policies) {
+      it(`fuzzes RPG/${throwInPolicy} with ${playerCount} players`, () => {
+        for (const style of styles) {
+          for (let seed = 101; seed <= 116; seed += 1) {
+            const result = simulateQaMatch(
+              settingsFor("rpg", playerCount, "transfer", throwInPolicy),
+              {
+                random: seededRandom(
+                  seed +
+                    playerCount * 10_000 +
+                    styles.indexOf(style) * 1_000 +
+                    (throwInPolicy === "neighbors" ? 10 : 0)
+                ),
+                maxActions: 2500,
+                id: `rpg-${throwInPolicy}-${playerCount}-${style}-${seed}`,
+                style
+              }
+            );
+            expect(result.state.phase).toBe("finished");
+            expect(result.actions).toBeLessThan(2500);
+            expect(
+              result.state.draw || result.state.loserSeat !== undefined
+            ).toBe(true);
+          }
         }
       });
     }
-
-    it(`finishes RPG with ${playerCount} players across seeds`, () => {
-      for (let seed = 101; seed <= 112; seed += 1) {
-        const result = simulateQaMatch(
-          settingsFor("rpg", playerCount),
-          { random: seededRandom(seed), maxActions: 2500, id: `rpg-${playerCount}-${seed}` }
-        );
-        expect(result.state.phase).toBe("finished");
-        expect(result.actions).toBeLessThan(2500);
-        expect(result.state.draw || result.state.loserSeat !== undefined).toBe(true);
-      }
-    });
   }
 });
