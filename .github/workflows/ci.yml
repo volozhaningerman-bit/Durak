@@ -22,7 +22,7 @@ jobs:
       - run: docker build -t durak-rpg:ci .
       - name: Smoke test production server
         run: |
-          PORT=3100 npm start > /tmp/durak-server.log 2>&1 &
+          PORT=3100 QA_BOT_DELAY_MS=120 npm start > /tmp/durak-server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           for i in $(seq 1 20); do
@@ -33,3 +33,4 @@ jobs:
           done
           grep -q '"ok":true' /tmp/health.json
           curl -fsS http://127.0.0.1:3100/ | grep -q 'Durak RPG'
+          WEBAPP_URL=http://127.0.0.1:3100 QA_MATCH_SMOKE=1 npm run smoke
