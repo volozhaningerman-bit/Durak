@@ -106,18 +106,40 @@ function finishIfComplete(state: GameState): boolean {
   return true;
 }
 
+function hasAttackCard(player: PlayerState): boolean {
+  return player.hand.some((card) => card.kind === "standard");
+}
+
+function nextAttackCapableSeat(
+  state: GameState,
+  fromSeat: number
+): number | undefined {
+  const count = state.players.length;
+
+  for (let step = 0; step < count; step += 1) {
+    const seat =
+      ((fromSeat + step * state.direction) % count + count) % count;
+    const player = state.players.find((entry) => entry.seat === seat);
+    if (player && !player.finished && hasAttackCard(player)) return seat;
+  }
+
+  return undefined;
+}
+
 function startRound(state: GameState, attackerSeat: number): GameState {
   if (finishIfComplete(state)) return state;
 
-  let attacker = playerBySeat(state, attackerSeat);
-  if (attacker.finished) {
-    const next = nextActiveSeat(state, attackerSeat, state.direction);
-    if (next === undefined) {
-      finishIfComplete(state);
-      return state;
-    }
-    attacker = playerBySeat(state, next);
+  // The RPG Joker is defense-only. When the deck is empty, a player can be
+  // left with only the Joker and therefore cannot legally open a round.
+  // Keep that player active (they can still defend and dispose of the Joker),
+  // but pass attack priority to the next player who has a standard card.
+  const capableSeat = nextAttackCapableSeat(state, attackerSeat);
+  if (capableSeat === undefined) {
+    finishIfComplete(state);
+    return state;
   }
+
+  const attacker = playerBySeat(state, capableSeat);
 
   const defenderSeat = nextActiveSeat(state, attacker.seat, state.direction);
   if (defenderSeat === undefined) {
