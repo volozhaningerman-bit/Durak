@@ -69,6 +69,7 @@ interface GameView {
   settings: GameSettings;
   phase: "awaiting-trump" | "attacking" | "defending" | "throwing" | "finished";
   privateMatch: boolean;
+  qaMatch?: boolean;
   rematchAvailable: boolean;
   rematchReadySeats: number[];
   players: GameViewPlayer[];
@@ -467,7 +468,8 @@ const errorMessages: Record<string, string> = {
   INVITE_FAILED: "Не удалось отправить приглашение",
   RECENT_PLAYERS_LOAD_FAILED: "Не удалось загрузить недавних игроков",
   REMATCH_UNAVAILABLE: "Рематч недоступен: один из игроков уже покинул стол",
-  REMATCH_RESULT_PENDING: "Сохраняем результат партии — рематч станет доступен сразу после этого"
+  REMATCH_RESULT_PENDING: "Сохраняем результат партии — рематч станет доступен сразу после этого",
+  QA_BOT_STALLED: "QA-бот не нашёл допустимый ход — состояние сохранено для проверки"
 };
 
 function readableError(code?: string): string {
@@ -828,15 +830,17 @@ export function App() {
             }
             setActionPending(false);
             setGame(message.state);
-            rememberRecentPlayers(
-              message.state.players
-                .filter((player) => player.seat !== message.state!.self.seat)
-                .map((player) => ({
-                  name: player.name,
-                  username: player.username,
-                  photoUrl: player.photoUrl
-                }))
-            );
+            if (!message.state.qaMatch) {
+              rememberRecentPlayers(
+                message.state.players
+                  .filter((player) => player.seat !== message.state!.self.seat)
+                  .map((player) => ({
+                    name: player.name,
+                    username: player.username,
+                    photoUrl: player.photoUrl
+                  }))
+              );
+            }
             setQueueing(false);
             setPrivateLobby(null);
             setSelectedAttackId(null);
@@ -896,6 +900,29 @@ export function App() {
       return;
     }
     socket.send(JSON.stringify(payload));
+  }
+
+  function startQaBotMatch(scenario: QaScenarioId) {
+    const qaSettings: GameSettings =
+      scenario === "rpg" || scenario === "result"
+        ? {
+            ...DEFAULT_RPG_SETTINGS,
+            playerCount: scenario === "result" ? 6 : 4,
+            ranked: false,
+            gameplayItemsEnabled: false
+          }
+        : {
+            ...DEFAULT_CLASSIC_SETTINGS,
+            playerCount:
+              scenario === "6p" ? 6 : scenario === "4p" ? 4 : 2,
+            variant: scenario === "6p" ? "transfer" : "throw-in",
+            ranked: false,
+            gameplayItemsEnabled: false
+          };
+
+    setQaMode(false);
+    setError(null);
+    send({ type: "start_qa_bot_match", settings: qaSettings });
   }
 
   function updateSettings(patch: Partial<GameSettings>) {
@@ -1096,12 +1123,12 @@ export function App() {
     if (!backButton) return;
 
     const handleBack = () => {
-      if (game?.phase === "finished") {
+      if (game?.phase === "finished" || game?.qaMatch) {
         leaveRoom();
       }
     };
 
-    const shouldShow = game?.phase === "finished";
+    const shouldShow = game?.phase === "finished" || game?.qaMatch === true;
     if (shouldShow) {
       backButton.show();
       backButton.onClick(handleBack);
@@ -1112,13 +1139,15 @@ export function App() {
     return () => {
       backButton.offClick(handleBack);
     };
-  }, [activeTab, game?.phase]);
+  }, [activeTab, game?.phase, game?.qaMatch]);
 
   if (qaMode) {
     return (
       <QaHarness
         theme={theme}
         setTheme={setTheme}
+        connection={connection}
+        onStartBotMatch={startQaBotMatch}
         onExit={() => setQaMode(false)}
       />
     );
@@ -1841,6 +1870,8 @@ function Header(props: {
 function QaHarness(props: {
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
+  connection: ConnectionState;
+  onStartBotMatch: (scenario: QaScenarioId) => void;
   onExit: () => void;
 }) {
   const [scenario, setScenario] = useState<QaScenarioId>("2p");
@@ -1913,6 +1944,13 @@ function QaHarness(props: {
                 </button>
               ))}
             </div>
+            <button
+              className="qaLiveStart"
+              disabled={props.connection !== "online"}
+              onClick={() => props.onStartBotMatch(scenario)}
+            >
+              {props.connection === "online" ? "ИГРАТЬ С QA" : "ПОДКЛЮЧЕНИЕ…"}
+            </button>
             <button className="qaExit" onClick={props.onExit}>ВЫЙТИ</button>
           </div>
         )}
@@ -2294,6 +2332,12 @@ function GameScreen(props: {
         subtitle={myClass ? `Твой класс: ${myClass}` : "Классическая партия"}
         connection={props.connection}
       />
+
+      {game.qaMatch && (
+        <button className="qaLiveExit" onClick={props.onLeaveRoom}>
+          QA ×
+        </button>
+      )}
 
       {props.connection !== "online" && (
         <div className="reconnectNotice">
