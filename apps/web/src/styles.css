@@ -5619,6 +5619,43 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* Live QA match controls. */
+.qaLiveStart {
+  min-height:32px;
+  border:1px solid rgba(212,173,100,.5);
+  border-radius:3px;
+  background:rgba(212,173,100,.12);
+  color:#f0cf89;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+
+.qaLiveStart:disabled {
+  opacity:.5;
+}
+
+.qaLiveExit {
+  position:fixed;
+  z-index:70;
+  top:max(
+    92px,
+    calc(var(--tg-content-safe-area-inset-top, 0px) + 54px)
+  );
+  right:max(8px, env(safe-area-inset-right));
+  min-width:40px;
+  min-height:28px;
+  padding:0 8px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:3px;
+  background:rgba(14,15,17,.72);
+  color:#bfc2c8;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.08em;
+  backdrop-filter:blur(10px);
+}
+
 /* ===== Private rematch result controls ===== */
 .rematchStatus {
   width:min(100%,260px);
