@@ -137,9 +137,26 @@ async function checkQaBotMatch() {
   const socket = createSocket();
 
   await new Promise((resolve, reject) => {
+    let lastState;
+    let lastMessageType = "none";
     const timer = setTimeout(() => {
       socket.terminate();
-      reject(new Error("QA match smoke timeout"));
+      reject(
+        new Error(
+          `QA match smoke timeout: lastMessage=${lastMessageType} state=${JSON.stringify(
+            lastState
+              ? {
+                  phase: lastState.phase,
+                  turnSeat: lastState.turnSeat,
+                  selfSeat: lastState.self?.seat,
+                  hand: lastState.self?.hand?.map((card) => card.id),
+                  table: lastState.table,
+                  deckCount: lastState.deckCount
+                }
+              : null
+          )}`
+        )
+      );
     }, 45_000);
 
     let authenticated = false;
@@ -158,6 +175,8 @@ async function checkQaBotMatch() {
     socket.on("message", (data) => {
       try {
         const message = JSON.parse(data.toString());
+        lastMessageType = message.type ?? "unknown";
+        if (message.state) lastState = message.state;
 
         if (message.type === "connected" && !authenticated) {
           if (message.requiresAuth) {
