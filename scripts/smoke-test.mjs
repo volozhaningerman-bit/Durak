@@ -133,8 +133,9 @@ function chooseSmokeAction(state) {
   return undefined;
 }
 
-async function checkQaBotMatch() {
+async function checkQaBotMatch(mode) {
   const socket = createSocket();
+  const isRpg = mode === "rpg";
 
   await new Promise((resolve, reject) => {
     let lastState;
@@ -193,9 +194,9 @@ async function checkQaBotMatch() {
             JSON.stringify({
               type: "start_qa_bot_match",
               settings: {
-                mode: "classic",
+                mode: isRpg ? "rpg" : "classic",
                 playerCount: 2,
-                variant: "throw-in",
+                variant: isRpg ? "transfer" : "throw-in",
                 throwInPolicy: "all",
                 handSize: 6,
                 ranked: true,
@@ -270,7 +271,9 @@ async function checkQaBotMatch() {
           clearTimeout(timer);
           socket.send(JSON.stringify({ type: "leave_room" }));
           socket.close();
-          console.log(`OK QA bot match (${actions} human actions)`);
+          console.log(
+            `OK QA bot ${mode} match (${actions} human actions)`
+          );
           resolve();
         }
       } catch (error) {
@@ -291,7 +294,10 @@ try {
       typeof value?.databaseConfigured === "boolean"
   );
   await checkWebSocket();
-  if (runQaMatch) await checkQaBotMatch();
+  if (runQaMatch) {
+    await checkQaBotMatch("classic");
+    await checkQaBotMatch("rpg");
+  }
   console.log("Smoke test passed");
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
