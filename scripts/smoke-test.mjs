@@ -25,27 +25,12 @@ async function checkHttp(path, validate) {
   console.log(`OK ${path}`);
 }
 
-function openSocket() {
-  return new Promise((resolve, reject) => {
-    const socket = new WebSocket(wsUrl, { origin: baseUrl });
-    const timer = setTimeout(() => {
-      socket.terminate();
-      reject(new Error("WebSocket connect timeout"));
-    }, 5000);
-
-    socket.on("open", () => {
-      clearTimeout(timer);
-      resolve(socket);
-    });
-    socket.on("error", (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-  });
+function createSocket() {
+  return new WebSocket(wsUrl, { origin: baseUrl });
 }
 
 async function checkWebSocket() {
-  const socket = await openSocket();
+  const socket = createSocket();
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       socket.terminate();
@@ -149,7 +134,7 @@ function chooseSmokeAction(state) {
 }
 
 async function checkQaBotMatch() {
-  const socket = await openSocket();
+  const socket = createSocket();
 
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
