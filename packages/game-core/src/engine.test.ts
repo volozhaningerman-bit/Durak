@@ -491,6 +491,41 @@ describe("match engine", () => {
     expect(game.lastRoundOutcome).toBe("discard");
   });
 
+  it("skips a Joker-only player when choosing the next attacker", () => {
+    let game = state({
+      settings: { ...DEFAULT_RPG_SETTINGS, playerCount: 3 },
+      phase: "defending",
+      players: [
+        p(0, []),
+        p(1, [c("9", "diamonds")]),
+        {
+          ...p(2, []),
+          classId: "joker",
+          hand: [{ id: "joker-p2", kind: "joker" }],
+          ability: { wildTransfersLeft: 0, jokerAvailable: true }
+        }
+      ],
+      deck: [],
+      table: [{ attack: c("8", "clubs") }],
+      attackerSeat: 0,
+      defenderSeat: 1,
+      turnSeat: 1,
+      roundAttackLimit: 1
+    });
+
+    game = applyGameAction(game, {
+      type: "take",
+      playerSeat: 1
+    });
+
+    expect(game.phase).toBe("attacking");
+    expect(game.attackerSeat).toBe(1);
+    expect(game.defenderSeat).toBe(2);
+    expect(game.turnSeat).toBe(1);
+    expect(game.players[2].finished).toBe(false);
+    expect(game.players[2].hand).toEqual([{ id: "joker-p2", kind: "joker" }]);
+  });
+
   it("rejects transfer after the defender has already covered a card", () => {
     const game = state({
       settings: { ...DEFAULT_RPG_SETTINGS, playerCount: 3 },
