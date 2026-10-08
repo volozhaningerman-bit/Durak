@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import {
   applyGameAction,
+  chooseQaBotAction,
   createGame,
   type GameAction,
   type GameSettings,
@@ -106,6 +107,7 @@ type ClientMessage =
   | { type: "get_history"; limit?: number }
   | { type: "get_recent_players"; limit?: number }
   | { type: "invite_recent_player"; contactId: string; code: string }
+  | { type: "start_qa_bot_match"; settings: unknown }
   | { type: "game_action"; action: ClientGameAction };
 
 interface Session {
@@ -135,6 +137,9 @@ interface Room {
   progressApplied: boolean;
   progressPersisted: boolean;
   privateMatch: boolean;
+  qaMatch: boolean;
+  qaBotNames: Map<number, string>;
+  qaBotTimer?: ReturnType<typeof setTimeout>;
   rematchReadySeats: Set<number>;
   disconnectTimers: Map<number, ReturnType<typeof setTimeout>>;
 }
@@ -397,7 +402,7 @@ function gameViewForSeat(room: Room, seat: number) {
   if (!self) throw new Error("PLAYER_NOT_FOUND");
 
   const publicPlayer = (player: GameState["players"][number]) => {
-    const member = room.members[player.seat];
+    const member = room.members.find((entry) => entry.seat === player.seat);
     const user = member?.telegramUser;
     return {
       seat: player.seat,
@@ -405,13 +410,16 @@ function gameViewForSeat(room: Room, seat: number) {
       handCount: player.hand.length,
       finished: player.finished,
       place: player.place,
-      name: user?.first_name ?? `Игрок ${player.seat + 1}`,
+      name:
+        user?.first_name ??
+        room.qaBotNames.get(player.seat) ??
+        `Игрок ${player.seat + 1}`,
       username: user?.username,
       photoUrl: user?.photo_url
     };
   };
 
-  const selfMember = room.members[seat];
+  const selfMember = room.members.find((entry) => entry.seat === seat);
   const selfUser = selfMember?.telegramUser;
 
   const rematchMembersPresent =
@@ -428,7 +436,9 @@ function gameViewForSeat(room: Room, seat: number) {
     settings: game.settings,
     phase: game.phase,
     privateMatch: room.privateMatch,
+    qaMatch: room.qaMatch,
     rematchAvailable:
+      !room.qaMatch &&
       room.privateMatch &&
       game.phase === "finished" &&
       room.progressPersisted &&
@@ -514,12 +524,143 @@ function createRoom(
     progressApplied: false,
     progressPersisted: false,
     privateMatch: options.privateMatch === true,
+    qaMatch: false,
+    qaBotNames: new Map(),
     rematchReadySeats: new Set(),
     disconnectTimers: new Map()
   };
 
   rooms.set(roomId, room);
   return room;
+}
+
+const QA_BOT_NAMES = ["Шулер", "Лис", "Ворон", "Козырь", "Туз"];
+const qaBotDelayMs = Math.max(120, Number(process.env.QA_BOT_DELAY_MS || 360));
+
+function roomHasConnectedHuman(room: Room): boolean {
+  return room.members.some(
+    (member) =>
+      member.roomId === room.id &&
+      member.socket.readyState === WebSocket.OPEN &&
+      sessions.has(member.socket)
+  );
+}
+
+function scheduleQaBotTurn(room: Room) {
+  if (!room.qaMatch || room.qaBotTimer || room.game.phase === "finished") return;
+  if (!roomHasConnectedHuman(room)) return;
+
+  const turnSeat = room.game.turnSeat;
+  if (
+    turnSeat === undefined ||
+    room.members.some((member) => member.seat === turnSeat)
+  ) {
+    return;
+  }
+
+  room.qaBotTimer = setTimeout(() => {
+    room.qaBotTimer = undefined;
+    if (!rooms.has(room.id) || room.game.phase === "finished") return;
+    if (!roomHasConnectedHuman(room)) return;
+
+    const seat = room.game.turnSeat;
+    if (
+      seat === undefined ||
+      room.members.some((member) => member.seat === seat)
+    ) {
+      return;
+    }
+
+    const action = chooseQaBotAction(room.game, seat, secureRandom);
+    if (!action) {
+      console.error(
+        `QA bot stalled in room ${room.id}: phase=${room.game.phase} seat=${seat}`
+      );
+      for (const member of room.members) {
+        send(member.socket, { type: "game_error", code: "QA_BOT_STALLED" });
+      }
+      return;
+    }
+
+    try {
+      room.game = applyGameAction(room.game, action);
+      broadcastRoom(room);
+
+      if (room.game.phase === "finished") {
+        void applyRoomProgress(room);
+        return;
+      }
+
+      scheduleQaBotTurn(room);
+    } catch (error) {
+      console.error("QA bot action failed", error);
+      for (const member of room.members) {
+        send(member.socket, { type: "game_error", code: "QA_BOT_STALLED" });
+      }
+    }
+  }, qaBotDelayMs);
+}
+
+function createQaBotRoom(session: Session, input: unknown) {
+  if (!session.authenticated || !session.playerId) {
+    send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+  if (session.roomId) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_ROOM" });
+    return;
+  }
+  if (session.privateLobbyCode) {
+    send(session.socket, { type: "error", code: "ALREADY_IN_PRIVATE_ROOM" });
+    return;
+  }
+
+  const normalized = normalizeSettings(input);
+  if (!normalized) {
+    send(session.socket, { type: "error", code: "INVALID_SETTINGS" });
+    return;
+  }
+
+  const settings: GameSettings = {
+    ...normalized,
+    ranked: false,
+    gameplayItemsEnabled: false
+  };
+  const roomId = randomUUID();
+  const playerIds = [
+    session.playerId,
+    ...Array.from(
+      { length: settings.playerCount - 1 },
+      (_, index) => `qa-bot:${roomId}:${index + 1}`
+    )
+  ];
+
+  session.queuedSettings = undefined;
+  session.queuedAt = undefined;
+  session.roomId = roomId;
+  session.seat = 0;
+
+  const qaBotNames = new Map<number, string>();
+  for (let seat = 1; seat < settings.playerCount; seat += 1) {
+    qaBotNames.set(seat, `QA · ${QA_BOT_NAMES[(seat - 1) % QA_BOT_NAMES.length]}`);
+  }
+
+  const room: Room = {
+    id: roomId,
+    members: [session],
+    game: createGame(playerIds, settings, { id: roomId, random: secureRandom }),
+    progressApplied: false,
+    progressPersisted: false,
+    privateMatch: false,
+    qaMatch: true,
+    qaBotNames,
+    rematchReadySeats: new Set(),
+    disconnectTimers: new Map()
+  };
+
+  rooms.set(roomId, room);
+  broadcastRoom(room, "match_found");
+  scheduleQaBotTurn(room);
 }
 
 function tryMatchmake() {
@@ -769,6 +910,12 @@ function toServerAction(action: ClientGameAction, seat: number): GameAction {
 async function applyRoomProgress(room: Room) {
   if (room.progressApplied || room.game.phase !== "finished") return;
 
+  if (room.qaMatch) {
+    room.progressApplied = true;
+    room.progressPersisted = true;
+    return;
+  }
+
   room.progressApplied = true;
 
   try {
@@ -859,6 +1006,8 @@ async function handleGameAction(session: Session, action: ClientGameAction) {
 
     if (room.game.phase === "finished") {
       await applyRoomProgress(room);
+    } else {
+      scheduleQaBotTurn(room);
     }
   } catch (error) {
     send(session.socket, {
@@ -908,6 +1057,11 @@ function scheduleDisconnectForfeit(session: Session) {
   const room = rooms.get(session.roomId);
   if (!room || room.game.phase === "finished") return;
 
+  if (room.qaMatch && room.qaBotTimer) {
+    clearTimeout(room.qaBotTimer);
+    room.qaBotTimer = undefined;
+  }
+
   const seat = session.seat;
   const existing = room.disconnectTimers.get(seat);
   if (existing) clearTimeout(existing);
@@ -915,9 +1069,9 @@ function scheduleDisconnectForfeit(session: Session) {
   const timer = setTimeout(() => {
     room.disconnectTimers.delete(seat);
 
-    const member = room.members[seat];
+    const member = room.members.find((entry) => entry.seat === seat);
     const stillDisconnected =
-      member.playerId === session.playerId &&
+      member?.playerId === session.playerId &&
       (!sessions.has(member.socket) || member.socket.readyState !== WebSocket.OPEN);
 
     if (stillDisconnected) {
@@ -990,6 +1144,16 @@ function leaveFinishedRoom(session: Session) {
 
   const room = rooms.get(session.roomId);
   if (!room) {
+    session.roomId = undefined;
+    session.seat = undefined;
+    send(session.socket, { type: "room_left" });
+    return;
+  }
+
+  if (room.qaMatch) {
+    if (room.qaBotTimer) clearTimeout(room.qaBotTimer);
+    room.qaBotTimer = undefined;
+    rooms.delete(room.id);
     session.roomId = undefined;
     session.seat = undefined;
     send(session.socket, { type: "room_left" });
@@ -1347,6 +1511,7 @@ async function authenticateSession(session: Session, initData: string) {
         roomId: restoredRoom.id,
         state: gameViewForSeat(restoredRoom, session.seat)
       });
+      scheduleQaBotTurn(restoredRoom);
     } else if (restoredPrivateLobby && privateLobbies.has(restoredPrivateLobby.code)) {
       send(
         session.socket,
@@ -1493,6 +1658,11 @@ wss.on("connection", (socket, request) => {
       return;
     }
 
+    if (message.type === "start_qa_bot_match") {
+      createQaBotRoom(session, message.settings);
+      return;
+    }
+
     if (message.type === "game_action") {
       void handleGameAction(session, message.action);
     }
@@ -1584,6 +1754,7 @@ async function shutdown() {
   clearInterval(heartbeat);
   clearInterval(privateLobbyCleanup);
   for (const room of rooms.values()) {
+    if (room.qaBotTimer) clearTimeout(room.qaBotTimer);
     for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
   }
   for (const lobby of privateLobbies.values()) {
