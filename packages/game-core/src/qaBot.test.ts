@@ -112,4 +112,52 @@ describe("QA bot full-match simulation", () => {
       });
     }
   }
+
+  it("exercises every unique RPG mechanic in deterministic fuzz coverage", () => {
+    const totals = {
+      trumpChoices: 0,
+      wildTransfers: 0,
+      reverseTransfers: 0,
+      jokerDefenses: 0,
+      fiveLimitStates: 0,
+      firstThrowerTurns: 0
+    };
+
+    const coverageStyles: QaBotStyle[] = [
+      "balanced",
+      "random",
+      "transfer-heavy",
+      "aggressive",
+      "take-heavy"
+    ];
+
+    for (let seed = 1; seed <= 160; seed += 1) {
+      const style = coverageStyles[(seed - 1) % coverageStyles.length];
+      const result = simulateQaMatch(
+        settingsFor(
+          "rpg",
+          6,
+          "transfer",
+          seed % 2 === 0 ? "all" : "neighbors"
+        ),
+        {
+          random: seededRandom(900_000 + seed),
+          maxActions: 2500,
+          id: `rpg-coverage-${seed}`,
+          style
+        }
+      );
+
+      for (const key of Object.keys(totals) as Array<keyof typeof totals>) {
+        totals[key] += result.stats[key];
+      }
+    }
+
+    expect(totals.trumpChoices).toBeGreaterThan(0);
+    expect(totals.wildTransfers).toBeGreaterThan(0);
+    expect(totals.reverseTransfers).toBeGreaterThan(0);
+    expect(totals.jokerDefenses).toBeGreaterThan(0);
+    expect(totals.fiveLimitStates).toBeGreaterThan(0);
+    expect(totals.firstThrowerTurns).toBeGreaterThan(0);
+  });
 });
