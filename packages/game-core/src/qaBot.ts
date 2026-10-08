@@ -335,10 +335,86 @@ export function assertQaStateInvariants(state: GameState): void {
   }
 }
 
+export interface QaSimulationStats {
+  trumpChoices: number;
+  wildTransfers: number;
+  reverseTransfers: number;
+  jokerDefenses: number;
+  fiveLimitStates: number;
+  firstThrowerTurns: number;
+}
+
 export interface QaSimulationResult {
   state: GameState;
   actions: number;
   trace: GameAction[];
+  stats: QaSimulationStats;
+}
+
+function createQaSimulationStats(): QaSimulationStats {
+  return {
+    trumpChoices: 0,
+    wildTransfers: 0,
+    reverseTransfers: 0,
+    jokerDefenses: 0,
+    fiveLimitStates: 0,
+    firstThrowerTurns: 0
+  };
+}
+
+function recordQaCoverage(
+  state: GameState,
+  action: GameAction,
+  stats: QaSimulationStats
+): void {
+  const actor = state.players.find((player) => player.seat === action.playerSeat);
+  const defender = state.players.find(
+    (player) => player.seat === state.defenderSeat
+  );
+
+  if (state.phase === "defending" && defender?.classId === "five-limit") {
+    stats.fiveLimitStates += 1;
+  }
+  if (
+    state.phase === "throwing" &&
+    actor?.classId === "first-thrower" &&
+    state.turnSeat === actor.seat
+  ) {
+    stats.firstThrowerTurns += 1;
+  }
+
+  if (action.type === "choose_trump") {
+    stats.trumpChoices += 1;
+    return;
+  }
+
+  if (action.type === "defend" && actor?.classId === "joker") {
+    const card = actor.hand.find((entry) => entry.id === action.cardId);
+    if (card?.kind === "joker") stats.jokerDefenses += 1;
+    return;
+  }
+
+  if (action.type !== "transfer" || !actor) return;
+
+  if (actor.classId === "reverse-transfer" && action.reverse === true) {
+    stats.reverseTransfers += 1;
+  }
+
+  if (actor.classId === "wild-transfer") {
+    const card = actor.hand.find((entry) => entry.id === action.cardId);
+    const attackRanks = state.table
+      .map((pair) => pair.attack)
+      .filter((entry): entry is StandardCard => entry.kind === "standard")
+      .map((entry) => entry.rank);
+    const standardTransfer =
+      card?.kind === "standard" &&
+      attackRanks.length > 0 &&
+      attackRanks.every((rank) => rank === card.rank);
+
+    if (card?.kind === "standard" && !standardTransfer) {
+      stats.wildTransfers += 1;
+    }
+  }
 }
 
 export function simulateQaMatch(
@@ -355,6 +431,7 @@ export function simulateQaMatch(
   const maxActions = options.maxActions ?? 2500;
   const style = options.style ?? "balanced";
   const trace: GameAction[] = [];
+  const stats = createQaSimulationStats();
   let state = createGame(
     Array.from({ length: settings.playerCount }, (_, index) => `qa:${index}`),
     settings,
@@ -364,7 +441,7 @@ export function simulateQaMatch(
   if (options.assertInvariants !== false) assertQaStateInvariants(state);
 
   for (let actions = 0; actions < maxActions; actions += 1) {
-    if (state.phase === "finished") return { state, actions, trace };
+    if (state.phase === "finished") return { state, actions, trace, stats };
 
     const seat = state.turnSeat;
     if (seat === undefined) {
@@ -379,6 +456,7 @@ export function simulateQaMatch(
     }
 
     trace.push(action);
+    recordQaCoverage(state, action, stats);
     state = applyGameAction(state, action);
 
     if (options.assertInvariants !== false) {
