@@ -8389,3 +8389,64 @@ input[type="range"]::-moz-range-thumb {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
+
+
+/* Audit fix: every lobby tab owns its scroll area; body stays locked for Telegram. */
+.lobbyApp .screenBody {
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.lobbyApp .tabPage {
+  min-height: 0 !important;
+}
+
+.lobbyApp .playPage,
+.lobbyApp .contentPage,
+.lobbyApp .privateLobbyStage {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.lobbyApp .playPage::-webkit-scrollbar,
+.lobbyApp .contentPage::-webkit-scrollbar,
+.lobbyApp .privateLobbyStage::-webkit-scrollbar {
+  display: none;
+}
+
+.lobbyApp .playPage {
+  height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding-bottom: 78px !important;
+}
+
+.lobbyApp .tabPage.contentPage {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding-bottom: 82px !important;
+}
+
+.lobbyApp .privateLobbyStage {
+  max-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding-bottom: 82px !important;
+}
+
+.lobbyApp .searchStage {
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+@media (max-height: 720px) {
+  .lobbyApp .playPage,
+  .lobbyApp .tabPage.contentPage,
+  .lobbyApp .privateLobbyStage {
+    padding-bottom: 72px !important;
+  }
+}
