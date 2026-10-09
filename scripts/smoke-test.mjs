@@ -95,20 +95,10 @@ function chooseSmokeAction(state) {
       };
     }
 
-    if (state.settings.variant === "transfer") {
-      const attackRanks = state.table
-        .map((pair) => pair.attack)
-        .filter((card) => card.kind === "standard")
-        .map((card) => card.rank);
-      const transfer = state.self.hand.find(
-        (card) =>
-          card.kind === "standard" &&
-          attackRanks.length > 0 &&
-          attackRanks.every((rank) => rank === card.rank)
-      );
-      if (transfer) return { type: "transfer", cardId: transfer.id };
-    }
-
+    // The smoke client intentionally avoids transfers here. Transfer legality
+    // depends on the next defender's capacity/class and is exhaustively fuzzed
+    // in game-core. The live WebSocket smoke should remain deterministic:
+    // defend when possible, otherwise take.
     return { type: "take" };
   }
 
