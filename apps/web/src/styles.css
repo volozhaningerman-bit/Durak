@@ -8198,3 +8198,74 @@ input[type="range"]::-moz-range-thumb {
     padding: 7px !important;
   }
 }
+
+
+/* V3 legacy override cleanup — prevent old cut-card geometry from leaking through. */
+.lobbyApp .findGame,
+.lobbyApp .inviteMain,
+.lobbyApp .secondaryGameButton,
+.lobbyApp .privateCodeActions button {
+  clip-path: none !important;
+  text-shadow: none !important;
+}
+
+.lobbyApp .findGame::after,
+.lobbyApp .inviteMain::after {
+  display: none !important;
+  content: none !important;
+}
+
+.lobbyApp .modeHero {
+  flex: 0 0 auto !important;
+  flex-basis: auto !important;
+}
+
+.lobbyApp .compactSettings,
+.lobbyApp .recentBlock,
+.lobbyApp .lobbyIdentityRail,
+.lobbyApp .modeChooser {
+  flex: 0 0 auto !important;
+}
+
+.lobbyApp .screenBody {
+  overflow: visible !important;
+}
+
+.lobbyApp .playPage {
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lobbyApp .playPage::-webkit-scrollbar {
+  display: none;
+}
+
+.lobbyApp .tabPage.contentPage {
+  height: auto !important;
+  max-height: none !important;
+  align-self: stretch !important;
+  overflow: visible;
+}
+
+.lobbyApp .historyList,
+.lobbyApp .leaderboardList {
+  max-height: min(46vh, 420px) !important;
+}
+
+@media (max-height: 720px) {
+  .lobbyApp .modeHero {
+    flex-basis: auto !important;
+    min-height: 145px !important;
+  }
+
+  .lobbyApp .modeHero p {
+    display: block !important;
+  }
+
+  .lobbyApp .heroMarks {
+    display: flex !important;
+  }
+}
