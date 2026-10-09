@@ -17,6 +17,6 @@
     "smoke": "node scripts/smoke-test.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   }
 }
