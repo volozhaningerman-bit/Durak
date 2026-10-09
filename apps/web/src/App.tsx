@@ -1791,6 +1791,7 @@ function BootScreen(props: {
 }) {
   return (
     <main className="bootScreen" data-theme={props.theme}>
+      <div className="bootBackdrop" aria-hidden="true"><i /><i /><i /></div>
       <div className="bootMark" aria-hidden="true">
         <span className="bootCard bootCardLeft">
           <CardFace card={{ id: "boot-6", kind: "standard", suit: "spades", rank: "6" }} mode="classic" />
@@ -1801,8 +1802,8 @@ function BootScreen(props: {
         </span>
       </div>
       <div className="bootWordmark">
-        <b>DURAK</b>
-        <span>RPG</span>
+        <small>КАРТОЧНАЯ ИГРА</small>
+        <div><b>DURAK</b><span>RPG</span></div>
       </div>
       <div className="bootStatus">
         <div className="bootProgress" aria-hidden="true"><i /><i /><i /></div>
@@ -1831,15 +1832,17 @@ function Header(props: {
   onBrandTap?: () => void;
 }) {
   return (
-    <header className="topbar">
-      <div className="headerCopy">
-        <strong
-          className={`brand ${props.onBrandTap ? "brandInteractive" : ""}`}
-          onClick={props.onBrandTap}
-        >
-          DURAK <span>RPG</span>
-        </strong>
-        <div className="subtitle">
+    <header className="topbar appHeader">
+      <div className="brandLockup">
+        <span className="brandSealMini" aria-hidden="true">Д</span>
+        <div className="headerCopy">
+          <strong
+            className={`brand ${props.onBrandTap ? "brandInteractive" : ""}`}
+            onClick={props.onBrandTap}
+          >
+            DURAK <span>RPG</span>
+          </strong>
+          <div className="subtitle">
           <span className="subtitleText">{props.subtitle}</span>
           {props.connection && (
             <span
@@ -1860,6 +1863,7 @@ function Header(props: {
               }
             />
           )}
+          </div>
         </div>
       </div>
       <div className="headerActions">
