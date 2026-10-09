@@ -436,7 +436,9 @@ function playAttack(state: GameState, playerSeat: number, cardId: string): GameS
   next.table.push({ attack: card });
 
   if (next.defenderTaking) {
-    if (next.table.length >= next.roundAttackLimit) return settleTake(next);
+    // Even when this card reaches the round attack limit, keep the entire
+    // table visible. The round is settled only after eligible throwers
+    // explicitly confirm it with Pass.
     return enterThrowing(next, playerSeat);
   }
 
