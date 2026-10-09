@@ -2313,7 +2313,12 @@ function GameScreen(props: {
         game.table.length < game.roundAttackLimit
       );
     }
-    if (game.phase === "defending") return true;
+    if (game.phase === "defending") {
+      const canDefendAnyOpenCard = game.table.some(
+        (pair) => !pair.defense && canBeat(pair.attack, card, game.trumpSuits)
+      );
+      return canDefendAnyOpenCard || canCardTransfer(card);
+    }
     return false;
   }
 
