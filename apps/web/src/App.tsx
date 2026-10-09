@@ -567,7 +567,7 @@ export function App() {
   const settings = mode === "classic" ? classic : rpg;
 
   useEffect(() => {
-    const background = theme === "dark" ? "#101113" : "#f2f0ea";
+    const background = theme === "dark" ? "#06110d" : "#edf2e9";
     const telegram = window.Telegram?.WebApp;
 
     try {
