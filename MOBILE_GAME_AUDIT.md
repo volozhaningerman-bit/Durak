@@ -170,3 +170,42 @@ Reviewed the full Oct 7 mobile screenshot sequence against the current `main` br
 ### Code-health debt
 - 🟡 `apps/web/src/styles.css` still contains many historical screenshot-correction layers. The cascade is stable after this pass, but it should be consolidated after the next real-device visual approval rather than during active visual iteration.
 - 🟡 `apps/server/src/index.ts` remains monolithic. Split matchmaking/private-lobby/Telegram integration after the real two-device flow is proven, to avoid refactoring unvalidated behavior.
+
+
+## Full production audit — 2026-10-09
+
+Reviewed the current mobile UI, the live Render workspace, the authoritative engine, WebSocket smoke path and production deploy configuration.
+
+### Fixed in this audit
+- ✅ Live Render frontend/backend mismatch removed. The static app and backend now both use `durak-rpg-test.onrender.com` for the authoritative API/WebSocket endpoint.
+- ✅ The backend was upgraded from the Oct 7 deploy to current `main`; database initialization and Telegram bot setup complete successfully in fresh production logs.
+- ✅ Render blueprint now matches the actual live Node service instead of describing a Docker runtime.
+- ✅ Node is pinned to the 22 LTS line instead of an open-ended `>=22` range.
+- ✅ Duplicate Telegram top-safe-area reservation removed from the lobby shell; the header is now the only owner of the top content inset.
+- ✅ Bottom navigation legacy translation bug fixed; all four tabs remain on-screen.
+- ✅ Play/profile/rating/shop/private-room screens have explicit iPhone scroll containers while the Telegram root remains locked.
+- ✅ The covered/taken table stays visible through the attack limit and is settled only after explicit `Pass`.
+- ✅ Defense drag now enables only cards that can legally defend or transfer.
+- ✅ Transfer drop zones account for direction, reverse transfer, target hand capacity and the five-card defender class limit before being shown.
+- ✅ Result and trump-selection states were brought into the same rounded green/gold visual system as the match table.
+- ✅ Empty action-row space is collapsed in attack/result/trump phases so the table gains vertical room.
+- ✅ Server QA-bot matches are production-gated and restricted to an explicit Telegram username allow-list.
+- ✅ Live QA smoke was made deterministic after it correctly exposed an invalid test-client transfer attempt.
+
+### Production evidence
+- ✅ Fresh backend log contains `Database ready`.
+- ✅ Fresh backend log contains `Durak RPG server listening on :10000`.
+- ✅ Fresh backend log contains `Telegram bot configured @DurakRPG_bot`.
+- ✅ Production dependency audit used by CI (`npm audit --omit=dev --audit-level=high`) passes. Render's remaining audit warnings are in the development toolchain rather than runtime dependencies.
+
+### Remaining real-device checks
+- 🟡 Final match layout with 2, 4 and 6 players after the new full-screen table redesign.
+- 🟡 Drag/drop feel on a physical iPhone: finger offset, drop-target size and accidental-scroll resistance.
+- 🟡 Long hands (10–15 cards) after suit/rank sorting and density compression.
+- 🟡 Light-theme contrast in an actual match, especially gold controls over the green table.
+- 🟡 30–120 second background/foreground restore on iOS.
+- 🟡 Private lobby reconnect/rematch with two real Telegram accounts.
+
+### Code-health follow-up
+- 🟡 `apps/web/src/styles.css` has grown to more than 8k lines and contains many historical override layers. This has already caused real regressions (bottom-nav transform, duplicate safe-area padding). Once the new layout is visually approved on-device, consolidate the authoritative lobby/match styles into a clean stylesheet instead of adding more override layers.
+- 🟡 `apps/web/src/App.tsx` and `apps/server/src/index.ts` are still too large for comfortable maintenance. Split them only after the current gameplay/UI behavior is visually signed off so the refactor does not obscure product regressions.
