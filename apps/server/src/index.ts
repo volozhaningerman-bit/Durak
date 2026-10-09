@@ -1852,6 +1852,7 @@ if (process.env.BOT_TOKEN) {
 
 async function shutdown() {
   clearInterval(heartbeat);
+  clearInterval(roomCleanup);
   clearInterval(privateLobbyCleanup);
   for (const room of rooms.values()) {
     if (room.qaBotTimer) clearTimeout(room.qaBotTimer);
@@ -1860,7 +1861,9 @@ async function shutdown() {
   for (const lobby of privateLobbies.values()) {
     for (const timer of lobby.disconnectTimers.values()) clearTimeout(timer);
   }
+  rooms.clear();
   privateLobbies.clear();
+  inviteCooldowns.clear();
   wss.close();
   await profileStore.close();
   server.close(() => process.exit(0));
