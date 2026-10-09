@@ -5704,3 +5704,846 @@ input[type="range"]::-moz-range-thumb {
     grid-template-columns:1fr;
   }
 }
+
+
+/* ==========================================================================
+   MATCH V2 — full-screen table, touch-first controls
+   ========================================================================== */
+
+.gameApp {
+  --match-gold: #d6ad58;
+  --match-gold-soft: rgba(214, 173, 88, .28);
+  --match-emerald: #37b778;
+  --match-felt: #063d2a;
+  --match-felt-deep: #03291d;
+  position: relative;
+  display: grid;
+  grid-template-rows:
+    52px
+    clamp(92px, 15vh, 132px)
+    minmax(0, 1fr)
+    30px
+    48px
+    clamp(142px, 24vh, 210px);
+  gap: 4px;
+  width: 100%;
+  height: var(--tg-viewport-stable-height, 100dvh);
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  max-height: var(--tg-viewport-stable-height, 100dvh);
+  padding:
+    max(4px, var(--tg-content-safe-area-inset-top, 0px))
+    max(7px, var(--tg-content-safe-area-inset-right, 0px))
+    max(4px, var(--tg-content-safe-area-inset-bottom, 0px))
+    max(7px, var(--tg-content-safe-area-inset-left, 0px));
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(35, 151, 99, .09), transparent 33%),
+    linear-gradient(180deg, #07140f 0%, #07100d 100%);
+}
+
+.gameApp[data-theme="light"] {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(53, 145, 92, .08), transparent 33%),
+    linear-gradient(180deg, #e9e4d7 0%, #ded8ca 100%);
+}
+
+.gameApp .matchHud {
+  grid-row: 1;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 2px 9px 3px;
+  border-bottom: 1px solid rgba(214, 173, 88, .16);
+}
+
+.gameApp .matchHudBrand {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.gameApp .matchHudBrand > strong {
+  color: #f2efe7;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(16px, 4.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1;
+}
+
+.gameApp .matchHudBrand > strong span {
+  color: var(--match-gold);
+}
+
+.gameApp .matchHudBrand small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: rgba(239, 239, 232, .62);
+  font-size: 9px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.gameApp[data-theme="light"] .matchHudBrand > strong {
+  color: #172019;
+}
+
+.gameApp[data-theme="light"] .matchHudBrand small {
+  color: rgba(23, 32, 25, .62);
+}
+
+.gameApp .matchHudBrand .connectionDot {
+  position: static;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+}
+
+.gameApp .matchHudStats {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gameApp .matchHudStats > span {
+  display: grid;
+  min-width: 44px;
+  padding: 4px 7px;
+  border: 1px solid rgba(214, 173, 88, .14);
+  border-radius: 10px;
+  background: rgba(5, 24, 17, .54);
+  text-align: center;
+}
+
+.gameApp[data-theme="light"] .matchHudStats > span {
+  background: rgba(255, 255, 255, .38);
+}
+
+.gameApp .matchHudStats small {
+  color: rgba(238, 238, 232, .44);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.gameApp[data-theme="light"] .matchHudStats small {
+  color: rgba(26, 34, 28, .46);
+}
+
+.gameApp .matchHudStats b {
+  color: var(--match-gold);
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.gameApp .classAbilityChip {
+  position: absolute;
+  z-index: 22;
+  top: calc(max(4px, var(--tg-content-safe-area-inset-top, 0px)) + 45px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 46%;
+  padding: 4px 8px;
+  border: 1px solid rgba(214, 173, 88, .22);
+  border-radius: 999px;
+  background: rgba(5, 28, 20, .86);
+  color: #ead9ac;
+  font-size: 8px;
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+
+.gameApp[data-theme="light"] .classAbilityChip {
+  background: rgba(242, 238, 225, .9);
+  color: #705724;
+}
+
+.gameApp .classAbilityChip i {
+  color: var(--match-gold);
+  font-style: normal;
+}
+
+.gameApp .classAbilityChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameApp .classAbilityChip b {
+  color: var(--match-emerald);
+}
+
+.gameApp .opponents {
+  grid-row: 2;
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  gap: 0;
+  width: 100%;
+  min-height: 0;
+  padding: 4px 5vw 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.gameApp .opponent {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-width: 56px;
+  max-width: 78px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: transform .24s ease, opacity .24s ease, filter .24s ease;
+}
+
+.gameApp .opponent .avatar {
+  position: relative;
+  z-index: 3;
+  width: clamp(34px, 9.6vw, 44px);
+  height: clamp(34px, 9.6vw, 44px);
+  margin: 8px 0 2px;
+  border: 2px solid rgba(214, 173, 88, .48);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+}
+
+.gameApp .opponent.turn .avatar {
+  border-color: #f2c968;
+  box-shadow:
+    0 0 0 3px rgba(214, 173, 88, .12),
+    0 7px 18px rgba(0, 0, 0, .3);
+}
+
+.gameApp .opponent strong {
+  z-index: 3;
+  max-width: 76px;
+  overflow: hidden;
+  color: #f5f2ea;
+  font-size: 10px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameApp[data-theme="light"] .opponent strong {
+  color: #1c241e;
+}
+
+.gameApp .opponent > span {
+  z-index: 3;
+  color: rgba(244, 241, 232, .62);
+  font-size: 8px;
+}
+
+.gameApp[data-theme="light"] .opponent > span {
+  color: rgba(25, 33, 27, .62);
+}
+
+.gameApp .opponentClass {
+  z-index: 3;
+  max-width: 76px;
+  margin-top: 1px;
+  color: rgba(214, 173, 88, .78);
+  font-size: 6px;
+  white-space: nowrap;
+}
+
+.gameApp .opponentCards {
+  position: absolute;
+  z-index: 1;
+  top: 21px;
+  left: 50%;
+  width: 72px;
+  height: 42px;
+  transform: translateX(-50%);
+}
+
+.gameApp .opponentCards i {
+  position: absolute;
+  width: 31px;
+  height: 43px;
+  transform-origin: 50% 90%;
+  filter: brightness(.82);
+}
+
+.gameApp .opponentCards i:nth-child(1) {
+  left: 7px;
+  transform: rotate(-18deg);
+}
+
+.gameApp .opponentCards i:nth-child(2) {
+  left: 21px;
+  transform: rotate(0);
+}
+
+.gameApp .opponentCards i:nth-child(3) {
+  left: 35px;
+  transform: rotate(18deg);
+}
+
+.gameApp .opponents:has(> .opponent:nth-child(1):last-child) .opponent {
+  transform: translateY(0);
+}
+
+.gameApp .opponents:has(> .opponent:nth-child(2):last-child) .opponent:first-child {
+  transform: translateY(14px) rotate(-5deg);
+}
+.gameApp .opponents:has(> .opponent:nth-child(2):last-child) .opponent:last-child {
+  transform: translateY(14px) rotate(5deg);
+}
+
+.gameApp .opponents:has(> .opponent:nth-child(3):last-child) .opponent:first-child {
+  transform: translateY(22px) rotate(-7deg);
+}
+.gameApp .opponents:has(> .opponent:nth-child(3):last-child) .opponent:nth-child(2) {
+  transform: translateY(0);
+}
+.gameApp .opponents:has(> .opponent:nth-child(3):last-child) .opponent:last-child {
+  transform: translateY(22px) rotate(7deg);
+}
+
+.gameApp .opponents:has(> .opponent:nth-child(4):last-child) .opponent:first-child,
+.gameApp .opponents:has(> .opponent:nth-child(4):last-child) .opponent:last-child {
+  transform: translateY(26px);
+}
+.gameApp .opponents:has(> .opponent:nth-child(4):last-child) .opponent:nth-child(2),
+.gameApp .opponents:has(> .opponent:nth-child(4):last-child) .opponent:nth-child(3) {
+  transform: translateY(7px);
+}
+
+.gameApp .opponents:has(> .opponent:nth-child(5):last-child) .opponent:first-child,
+.gameApp .opponents:has(> .opponent:nth-child(5):last-child) .opponent:last-child {
+  transform: translateY(29px) scale(.9);
+}
+.gameApp .opponents:has(> .opponent:nth-child(5):last-child) .opponent:nth-child(2),
+.gameApp .opponents:has(> .opponent:nth-child(5):last-child) .opponent:nth-child(4) {
+  transform: translateY(13px) scale(.94);
+}
+.gameApp .opponents:has(> .opponent:nth-child(5):last-child) .opponent:nth-child(3) {
+  transform: translateY(0);
+}
+
+.gameApp .tableArea {
+  grid-row: 3;
+  position: relative;
+  z-index: 3;
+  min-height: 0;
+  margin: -3px 0 0;
+  padding: 44px 64px 18px;
+  overflow: hidden;
+  border: 1px solid rgba(214, 173, 88, .22);
+  border-radius: 28px 28px 22px 22px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(77, 189, 126, .14), transparent 36%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.013) 0 2px, transparent 2px 7px),
+    linear-gradient(155deg, var(--match-felt) 0%, var(--match-felt-deep) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .025),
+    inset 0 18px 42px rgba(0, 0, 0, .2),
+    0 8px 32px rgba(0, 0, 0, .18);
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.gameApp .tableArea::before {
+  content: "♠";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 46%;
+  color: rgba(214, 173, 88, .06);
+  font-family: Georgia, serif;
+  font-size: min(28vw, 128px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.gameApp .tableArea.dropAttackActive {
+  border-color: rgba(69, 206, 136, .62);
+  box-shadow:
+    inset 0 0 0 2px rgba(69, 206, 136, .14),
+    inset 0 18px 42px rgba(0, 0, 0, .18),
+    0 0 28px rgba(69, 206, 136, .16);
+}
+
+.gameApp .tablePhaseBadge {
+  position: absolute;
+  z-index: 8;
+  top: 9px;
+  left: 50%;
+  min-width: 106px;
+  padding: 5px 12px;
+  border: 1px solid rgba(214, 173, 88, .19);
+  border-radius: 999px;
+  background: rgba(2, 29, 20, .76);
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
+}
+
+.gameApp .tablePhaseBadge small {
+  display: none;
+}
+
+.gameApp .tablePhaseBadge b {
+  color: rgba(245, 241, 229, .72);
+  font-size: 8px;
+  letter-spacing: .11em;
+}
+
+.gameApp .tablePhaseBadge.mine {
+  border-color: rgba(214, 173, 88, .44);
+}
+
+.gameApp .tablePhaseBadge.mine b {
+  color: #f0c867;
+}
+
+.gameApp .deckPile,
+.gameApp .discardPile {
+  top: 49%;
+  width: 48px;
+  height: 70px;
+}
+
+.gameApp .deckPile {
+  left: 12px;
+  right: auto;
+}
+
+.gameApp .discardPile {
+  right: 12px;
+  left: auto;
+}
+
+.gameApp .deckPile em,
+.gameApp .discardPile em {
+  bottom: -24px;
+  min-width: 32px;
+  padding: 3px 6px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  background: rgba(0,0,0,.35);
+  color: rgba(255,255,255,.76);
+  font-size: 8px;
+}
+
+.gameApp .tablePairs {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(52px, 74px));
+  align-content: center;
+  justify-content: center;
+  gap: 10px 12px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.gameApp .tablePair {
+  width: clamp(54px, 15vw, 74px);
+  height: clamp(80px, 21vw, 106px);
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  box-shadow: none;
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.gameApp .tablePair.selected:not(:has(.defenseCard)) {
+  outline: 1px solid rgba(214, 173, 88, .34);
+  outline-offset: 4px;
+}
+
+.gameApp .tablePair.dropDefenseActive {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 13px rgba(70, 213, 140, .48));
+}
+
+.gameApp .tablePair .cardFace,
+.gameApp .attackCardSlot,
+.gameApp .defenseCard {
+  width: 100%;
+  height: 100%;
+}
+
+.gameApp .defenseCard {
+  left: 25%;
+  top: 24%;
+}
+
+.gameApp .emptyTable {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(235, 235, 225, .34);
+  font-size: 11px;
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+
+.gameApp .transferDropArea {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  bottom: 11px;
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.gameApp .transferDropTarget {
+  min-width: 112px;
+  padding: 7px 11px 6px;
+  border: 1px dashed rgba(214, 173, 88, .48);
+  border-radius: 12px;
+  background: rgba(10, 43, 31, .8);
+  color: #e2c57f;
+  text-align: center;
+  box-shadow: inset 0 0 18px rgba(214, 173, 88, .05);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.gameApp .transferDropTarget > span {
+  margin-right: 4px;
+  color: #f1cd73;
+}
+
+.gameApp .transferDropTarget b {
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.gameApp .transferDropTarget small {
+  display: block;
+  margin-top: 2px;
+  color: rgba(236, 228, 206, .48);
+  font-size: 6px;
+}
+
+.gameApp .transferDropTarget.reverse {
+  min-width: 66px;
+}
+
+.gameApp .transferDropTarget.active {
+  transform: scale(1.07);
+  border-color: #64d69a;
+  background: rgba(19, 91, 58, .9);
+  box-shadow: 0 0 20px rgba(64, 214, 154, .24);
+}
+
+.gameApp .turnInfo {
+  grid-row: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin: 0;
+  padding: 1px 8px;
+  border: 0;
+  background: transparent;
+  color: rgba(238, 237, 231, .52);
+  font-size: 8px;
+  text-align: center;
+}
+
+.gameApp[data-theme="light"] .turnInfo {
+  color: rgba(28, 34, 29, .58);
+}
+
+.gameApp .turnInfo.activeHint {
+  color: rgba(235, 207, 137, .82);
+}
+
+.gameApp .contextActionDock {
+  grid-row: 5;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 2px 0 4px;
+}
+
+.gameApp .contextAction {
+  width: min(72vw, 260px);
+  height: 40px;
+  border: 1px solid rgba(214, 173, 88, .36);
+  border-radius: 14px;
+  background: rgba(5, 38, 27, .84);
+  color: #f2efe7;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+}
+
+.gameApp .contextAction.take {
+  border-color: rgba(211, 102, 83, .42);
+  background: linear-gradient(180deg, rgba(118, 40, 34, .86), rgba(72, 23, 21, .92));
+  color: #ffd8d0;
+}
+
+.gameApp .contextAction.pass {
+  border-color: rgba(214, 173, 88, .46);
+  background: linear-gradient(180deg, rgba(82, 63, 22, .88), rgba(47, 36, 15, .94));
+  color: #f4d684;
+}
+
+.gameApp .contextAction:disabled {
+  opacity: .46;
+}
+
+.gameApp .myHand {
+  grid-row: 6;
+  position: relative;
+  z-index: 15;
+  display: flex;
+  align-items: flex-end;
+  width: calc(100% + 14px);
+  min-height: 0;
+  margin: 0 -7px -4px;
+  padding: 0 3px max(3px, var(--tg-content-safe-area-inset-bottom, 0px));
+  overflow: visible;
+  border: 0;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(2, 12, 9, .28) 20%, rgba(2, 12, 9, .82) 100%);
+  box-shadow: none;
+}
+
+.gameApp[data-theme="light"] .myHand {
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(214, 207, 190, .3) 20%, rgba(210, 202, 182, .9) 100%);
+}
+
+.gameApp .handHeader {
+  display: none;
+}
+
+.gameApp .handCards {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 7px 4px 0;
+  overflow: visible;
+  touch-action: none;
+}
+
+.gameApp .handCard {
+  position: relative;
+  flex: 0 0 clamp(58px, 17vw, 76px);
+  width: clamp(58px, 17vw, 76px);
+  height: clamp(88px, 25vw, 112px);
+  margin: 0 0 0 calc(-1 * clamp(26px, 8vw, 38px));
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transform-origin: 50% 100%;
+  transition:
+    transform .16s ease,
+    filter .16s ease,
+    opacity .12s ease,
+    margin .16s ease;
+}
+
+.gameApp .handCard:first-child {
+  margin-left: 0;
+}
+
+.gameApp .handCard.suitStart:not(:first-child) {
+  margin-left: calc(-1 * clamp(17px, 5.5vw, 26px));
+}
+
+.gameApp .handCard:nth-child(odd) {
+  transform: translateY(2px) rotate(-1.2deg);
+}
+
+.gameApp .handCard:nth-child(even) {
+  transform: translateY(0) rotate(1.2deg);
+}
+
+.gameApp .handCard:not(:disabled):active,
+.gameApp .handCard.selected {
+  z-index: 10;
+  transform: translateY(-12px) scale(1.045);
+  filter: drop-shadow(0 12px 13px rgba(0,0,0,.28));
+}
+
+.gameApp .handCard.dragging {
+  opacity: .22;
+}
+
+.gameApp .handCard:disabled {
+  opacity: .5;
+  filter: saturate(.62);
+}
+
+.gameApp .handCard .cardFace {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.2);
+}
+
+.gameApp .dragCardGhost {
+  position: fixed;
+  z-index: 300;
+  width: clamp(64px, 18vw, 82px);
+  height: clamp(96px, 27vw, 120px);
+  pointer-events: none;
+  transform: translate(-50%, -72%) rotate(-3deg) scale(1.04);
+  filter:
+    drop-shadow(0 18px 18px rgba(0,0,0,.38))
+    drop-shadow(0 0 9px rgba(214,173,88,.22));
+}
+
+.gameApp .dragCardGhost .cardFace {
+  width: 100%;
+  height: 100%;
+}
+
+.gameApp .gameError,
+.gameApp .reconnectNotice {
+  position: absolute;
+  z-index: 80;
+  top: calc(max(4px, var(--tg-content-safe-area-inset-top, 0px)) + 57px);
+  left: 50%;
+  width: min(calc(100% - 24px), 420px);
+  margin: 0;
+  transform: translateX(-50%);
+}
+
+.gameApp .qaLiveExit {
+  top: calc(max(4px, var(--tg-content-safe-area-inset-top, 0px)) + 55px);
+}
+
+@media (max-height: 720px) {
+  .gameApp {
+    grid-template-rows:
+      45px
+      80px
+      minmax(0, 1fr)
+      24px
+      42px
+      132px;
+    gap: 2px;
+  }
+
+  .gameApp .matchHud {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .gameApp .opponent .avatar {
+    width: 31px;
+    height: 31px;
+    margin-top: 5px;
+  }
+
+  .gameApp .opponentCards {
+    top: 16px;
+    transform: translateX(-50%) scale(.86);
+  }
+
+  .gameApp .opponent strong {
+    font-size: 8px;
+  }
+
+  .gameApp .opponent > span,
+  .gameApp .opponentClass {
+    font-size: 6px;
+  }
+
+  .gameApp .tableArea {
+    padding-top: 36px;
+    padding-bottom: 10px;
+    border-radius: 22px;
+  }
+
+  .gameApp .tablePairs {
+    grid-template-columns: repeat(3, minmax(48px, 64px));
+    gap: 7px 9px;
+  }
+
+  .gameApp .tablePair {
+    width: clamp(50px, 14vw, 64px);
+    height: clamp(74px, 20vw, 92px);
+  }
+
+  .gameApp .transferDropArea {
+    bottom: 5px;
+  }
+
+  .gameApp .transferDropTarget {
+    min-width: 96px;
+    padding: 5px 8px;
+  }
+
+  .gameApp .transferDropTarget small {
+    display: none;
+  }
+
+  .gameApp .handCard {
+    flex-basis: clamp(53px, 16vw, 66px);
+    width: clamp(53px, 16vw, 66px);
+    height: clamp(80px, 24vw, 98px);
+    margin-left: calc(-1 * clamp(24px, 7.6vw, 34px));
+  }
+
+  .gameApp .handCard.suitStart:not(:first-child) {
+    margin-left: calc(-1 * clamp(15px, 5vw, 22px));
+  }
+}
+
+@media (max-width: 370px) {
+  .gameApp .matchHudStats > span {
+    min-width: 38px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .gameApp .opponents {
+    padding-left: 2vw;
+    padding-right: 2vw;
+  }
+
+  .gameApp .tableArea {
+    padding-left: 54px;
+    padding-right: 54px;
+  }
+
+  .gameApp .deckPile {
+    left: 7px;
+  }
+
+  .gameApp .discardPile {
+    right: 7px;
+  }
+
+  .gameApp .contextAction {
+    width: 78vw;
+  }
+}
