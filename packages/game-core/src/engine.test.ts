@@ -220,6 +220,16 @@ describe("match engine", () => {
       cardId: "clubs-7"
     });
 
+    expect(game.phase).toBe("throwing");
+    expect(game.turnSeat).toBe(0);
+    expect(game.table).toHaveLength(1);
+    expect(game.discard).toHaveLength(0);
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
+    });
+
     expect(game.phase).toBe("finished");
     expect(game.loserSeat).toBe(1);
     expect(game.lastRoundOutcome).toBe("discard");
@@ -227,7 +237,7 @@ describe("match engine", () => {
   });
 
 
-  it("marks an immediate two-player take so the client can animate it correctly", () => {
+  it("keeps a taken table visible until the attacker passes", () => {
     let game = state({
       players: [
         p(0, [c("6", "clubs"), c("8", "spades")]),
@@ -245,6 +255,16 @@ describe("match engine", () => {
     game = applyGameAction(game, {
       type: "take",
       playerSeat: 1
+    });
+
+    expect(game.phase).toBe("throwing");
+    expect(game.turnSeat).toBe(0);
+    expect(game.table).toHaveLength(1);
+    expect(game.players[1].hand.map((card) => card.id)).not.toContain("clubs-6");
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
     });
 
     expect(game.table).toHaveLength(0);
@@ -275,12 +295,26 @@ describe("match engine", () => {
     });
 
     expect(game.phase).toBe("throwing");
+    expect(game.turnSeat).toBe(0);
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
+    });
     expect(game.turnSeat).toBe(2);
 
     game = applyGameAction(game, {
       type: "attack",
       playerSeat: 2,
       cardId: "hearts-6"
+    });
+
+    expect(game.table).toHaveLength(2);
+    expect(game.players[1].hand.map((card) => card.id)).not.toContain("clubs-6");
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 2
     });
 
     expect(game.players[1].hand.map((card) => card.id)).toContain("clubs-6");
@@ -452,6 +486,15 @@ describe("match engine", () => {
       playerSeat: 1
     });
 
+    expect(game.phase).toBe("throwing");
+
+    for (let safety = 0; safety < 4 && game.phase === "throwing"; safety += 1) {
+      game = applyGameAction(game, {
+        type: "pass_throw_in",
+        playerSeat: game.turnSeat!
+      });
+    }
+
     expect(game.players[1].hand.some((card) => card.kind === "joker")).toBe(true);
     expect(game.players[1].ability.jokerAvailable).toBe(true);
     expect(game.discard.some((card) => card.kind === "joker")).toBe(false);
@@ -566,6 +609,13 @@ describe("match engine", () => {
       type: "take",
       playerSeat: 1
     });
+
+    while (game.phase === "throwing") {
+      game = applyGameAction(game, {
+        type: "pass_throw_in",
+        playerSeat: game.turnSeat!
+      });
+    }
 
     expect(game.phase).toBe("attacking");
     expect(game.attackerSeat).toBe(1);
