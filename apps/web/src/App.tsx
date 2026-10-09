@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import {
   DEFAULT_CLASSIC_SETTINGS,
   DEFAULT_RPG_SETTINGS,
@@ -1961,6 +1961,31 @@ function QaHarness(props: {
   );
 }
 
+const handSuitOrder: Suit[] = ["spades", "hearts", "clubs", "diamonds"];
+const handRankOrder: Record<Extract<Card, { kind: "standard" }>["rank"], number> = {
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10,
+  J: 11,
+  Q: 12,
+  K: 13,
+  A: 14
+};
+
+function sortHandCards(cards: Card[]): Card[] {
+  return [...cards].sort((a, b) => {
+    if (a.kind === "joker") return b.kind === "joker" ? 0 : 1;
+    if (b.kind === "joker") return -1;
+
+    const suitDifference =
+      handSuitOrder.indexOf(a.suit) - handSuitOrder.indexOf(b.suit);
+    if (suitDifference !== 0) return suitDifference;
+    return handRankOrder[a.rank] - handRankOrder[b.rank];
+  });
+}
+
 function GameScreen(props: {
   game: GameView;
   connection: ConnectionState;
@@ -2009,6 +2034,14 @@ function GameScreen(props: {
   const rematchReadySeats = game.rematchReadySeats ?? [];
   const rematchReady = rematchReadySeats.includes(game.self.seat);
   const rematchReadyCount = rematchReadySeats.length;
+  const sortedHand = useMemo(() => sortHandCards(game.self.hand), [game.self.hand]);
+  const [dragCard, setDragCard] = useState<{
+    cardId: string;
+    pointerId: number;
+    x: number;
+    y: number;
+    target: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (props.connection !== "online") {
@@ -2232,6 +2265,32 @@ function GameScreen(props: {
     Boolean(selectedCard && openAttack) &&
     canBeat(openAttack!.attack, selectedCard!, game.trumpSuits);
 
+  function canCardTransfer(card: Card): boolean {
+    if (
+      !isMyTurn ||
+      controlsDisabled ||
+      game.phase !== "defending" ||
+      game.settings.variant !== "transfer" ||
+      !transferStillAllowed ||
+      card.kind !== "standard"
+    ) {
+      return false;
+    }
+
+    const matchesRank =
+      attackRanks.length > 0 &&
+      attackRanks.every((rank) => rank === card.rank);
+    const usesWild =
+      game.self.classId === "wild-transfer" &&
+      game.self.ability.wildTransfersLeft > 0;
+    return matchesRank || usesWild;
+  }
+
+  const transferDropVisible =
+    game.phase === "defending" &&
+    isMyTurn &&
+    sortedHand.some((card) => canCardTransfer(card));
+
   function cardPlayable(card: Card): boolean {
     if (!isMyTurn || controlsDisabled) return false;
     if (game.phase === "attacking") return card.kind === "standard";
@@ -2246,38 +2305,104 @@ function GameScreen(props: {
     return false;
   }
 
-  function clickHandCard(card: Card) {
-    if (!isMyTurn) return;
+  function dropTargetAt(x: number, y: number): string | null {
+    const element = document
+      .elementsFromPoint(x, y)
+      .find((candidate) => (candidate as HTMLElement).dataset.dropTarget);
+    return (element as HTMLElement | undefined)?.dataset.dropTarget ?? null;
+  }
 
-    if (game.phase === "attacking" || game.phase === "throwing") {
-      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("light");
+  function beginCardDrag(card: Card, event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!cardPlayable(card)) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    props.setSelectedHandId(card.id);
+    setDragCard({
+      cardId: card.id,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      target: dropTargetAt(event.clientX, event.clientY)
+    });
+    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
+  }
+
+  function moveCardDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!dragCard || dragCard.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    setDragCard((current) =>
+      current
+        ? {
+            ...current,
+            x: event.clientX,
+            y: event.clientY,
+            target: dropTargetAt(event.clientX, event.clientY)
+          }
+        : current
+    );
+  }
+
+  function finishCardDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!dragCard || dragCard.pointerId !== event.pointerId) return;
+    event.preventDefault();
+
+    const card = game.self.hand.find((entry) => entry.id === dragCard.cardId);
+    const target = dropTargetAt(event.clientX, event.clientY) ?? dragCard.target;
+    setDragCard(null);
+    props.setSelectedHandId(null);
+    if (!card || !target) return;
+
+    if (
+      target === "attack" &&
+      (game.phase === "attacking" || game.phase === "throwing") &&
+      cardPlayable(card)
+    ) {
       props.onAction({ type: "attack", cardId: card.id });
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("light");
       return;
     }
 
-    if (game.phase === "defending") {
-      window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
-      props.setSelectedHandId(card.id);
+    if (target.startsWith("defend:") && game.phase === "defending") {
+      const attackCardId = target.slice("defend:".length);
+      const pair = game.table.find(
+        (entry) => entry.attack.id === attackCardId && !entry.defense
+      );
+      if (pair && canBeat(pair.attack, card, game.trumpSuits)) {
+        props.onAction({
+          type: "defend",
+          attackCardId,
+          cardId: card.id
+        });
+        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("medium");
+        return;
+      }
     }
+
+    if (
+      (target === "transfer" || target === "transfer-reverse") &&
+      canCardTransfer(card)
+    ) {
+      props.onAction({
+        type: "transfer",
+        cardId: card.id,
+        reverse: target === "transfer-reverse"
+      });
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("rigid");
+      return;
+    }
+
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("error");
   }
 
-  function defend() {
-    if (!props.selectedHandId || !openAttack) return;
-    props.onAction({
-      type: "defend",
-      attackCardId: openAttack.attack.id,
-      cardId: props.selectedHandId
-    });
+  function cancelCardDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!dragCard || dragCard.pointerId !== event.pointerId) return;
+    setDragCard(null);
+    props.setSelectedHandId(null);
   }
 
-  function transfer(reverse = false) {
-    if (!props.selectedHandId) return;
-    props.onAction({
-      type: "transfer",
-      cardId: props.selectedHandId,
-      reverse
-    });
-  }
+  const draggedCard = dragCard
+    ? game.self.hand.find((card) => card.id === dragCard.cardId)
+    : undefined;
 
   const turnPlayer = game.players.find((player) => player.seat === game.turnSeat);
   const phaseLabel =
@@ -2308,18 +2433,12 @@ function GameScreen(props: {
         : game.phase === "awaiting-trump"
           ? "Выбери одну козырную масть"
           : game.phase === "attacking"
-            ? "Нажми карту — она сразу пойдёт на стол"
+            ? "Перетащи карту из руки на стол"
             : game.phase === "throwing"
-              ? "Подкинуть можно ранг со стола. Или нажми «Пас»"
-              : !props.selectedHandId
-                ? "Выбери карту в руке — затем отбей, переведи или возьми"
-                : canSelectedDefend && canSelectedTransfer
-                  ? "Карта выбрана: можно отбить или перевести"
-                  : canSelectedDefend
-                    ? "Карта подходит — нажми «Отбить»"
-                    : canSelectedTransfer
-                      ? "Карта подходит для перевода"
-                      : "Эта карта не подходит — выбери другую или возьми";
+              ? "Перетащи подходящую карту на стол или нажми «Пас»"
+              : transferDropVisible
+                ? "Перетащи карту на атаку, чтобы отбиться, или в область перевода"
+                : "Перетащи карту на атакующую карту или нажми «Беру»";
 
   return (
     <main
@@ -2328,12 +2447,21 @@ function GameScreen(props: {
       data-mode={game.settings.mode}
       data-motion={motion.cleared?.kind}
     >
-      <Header
-        theme={props.theme}
-        setTheme={props.setTheme}
-        subtitle={myClass ? `Твой класс: ${myClass}` : "Классическая партия"}
-        connection={props.connection}
-      />
+      <header className="matchHud">
+        <div className="matchHudBrand">
+          <strong>DURAK <span>RPG</span></strong>
+          <small>
+            <i className={`connectionDot ${props.connection}`} />
+            {game.settings.mode === "rpg" ? myClass ?? "RPG" : "Классика"}
+            <b>•</b>
+            козырь {game.trumpSuits[0] ? suitSymbol[game.trumpSuits[0]] : "?"}
+          </small>
+        </div>
+        <div className="matchHudStats">
+          <span><small>КОЛОДА</small><b>{game.deckCount}</b></span>
+          <span><small>СТОЛ</small><b>{game.table.length}/{game.roundAttackLimit || "—"}</b></span>
+        </div>
+      </header>
 
       {game.qaMatch && (
         <button className="qaLiveExit" onClick={props.onLeaveRoom}>
@@ -2343,33 +2471,21 @@ function GameScreen(props: {
 
       {props.connection !== "online" && (
         <div className="reconnectNotice">
-          Соединение потеряно. Пытаемся вернуть тебя в эту же партию…
+          Соединение потеряно. Возвращаем тебя за стол…
         </div>
       )}
 
       {myClassDescription && (
-        <section className="classAbilityBar">
-          <i className="classSeal" aria-hidden="true">
+        <div className="classAbilityChip" title={myClassDescription}>
+          <i aria-hidden="true">
             {game.self.classId ? rpgClassSigil[game.self.classId] : "✦"}
           </i>
-          <div className="classAbilityText">
-            <b>{myClass}</b>
-            <span>{myClassDescription}</span>
-          </div>
+          <span>{myClass}</span>
           {game.self.classId === "wild-transfer" && (
-            <em>Осталось особых переводов: {game.self.ability.wildTransfersLeft}</em>
+            <b>×{game.self.ability.wildTransfersLeft}</b>
           )}
-        </section>
+        </div>
       )}
-
-      <section className="gameMeta">
-        <span>Колода <b>{game.deckCount}</b></span>
-        <span>
-          Козырь <b>{game.trumpSuits[0] ? suitSymbol[game.trumpSuits[0]] : "?"}</b>
-        </span>
-        <span>Ход <b>{game.direction === 1 ? "→" : "←"}</b></span>
-        <span>На столе <b>{game.table.length}/{game.roundAttackLimit || "—"}</b></span>
-      </section>
 
       <section className="opponents">
         {game.players
@@ -2406,7 +2522,19 @@ function GameScreen(props: {
           ))}
       </section>
 
-      <section className={`tableArea ${game.defenderTaking ? "defenderTaking" : ""}`}>
+      <section
+        className={[
+          "tableArea",
+          game.defenderTaking ? "defenderTaking" : "",
+          dragCard ? "dragActive" : "",
+          dragCard?.target === "attack" ? "dropAttackActive" : ""
+        ].join(" ")}
+        data-drop-target={
+          isMyTurn && (game.phase === "attacking" || game.phase === "throwing")
+            ? "attack"
+            : undefined
+        }
+      >
         <div className={`tablePhaseBadge ${isMyTurn ? "mine" : ""}`}>
           <small>{phaseLabel}</small>
           <b>
@@ -2417,6 +2545,28 @@ function GameScreen(props: {
                 : turnPlayer?.name ?? `Игрок #${(game.turnSeat ?? 0) + 1}`}
           </b>
         </div>
+
+        {transferDropVisible && (
+          <div className="transferDropArea">
+            <div
+              className={`transferDropTarget ${dragCard?.target === "transfer" ? "active" : ""}`}
+              data-drop-target="transfer"
+            >
+              <span>⇢</span>
+              <b>ПЕРЕВЕСТИ</b>
+              <small>Положи карту сюда</small>
+            </div>
+            {game.self.classId === "reverse-transfer" && (
+              <div
+                className={`transferDropTarget reverse ${dragCard?.target === "transfer-reverse" ? "active" : ""}`}
+                data-drop-target="transfer-reverse"
+              >
+                <span>↶</span>
+                <b>РЕВЕРС</b>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={`deckPile ${motion.deckPulse ? "pulseDraw" : ""}`} aria-label={`Колода: ${game.deckCount}`}>
           <span className="pileCard backOne"><CardBack mode={game.settings.mode} compact /></span>
@@ -2601,8 +2751,14 @@ function GameScreen(props: {
                   : `Атакующая карта ${cardAriaLabel(pair.attack)}`}
                 className={[
                   "tablePair",
-                  !pair.defense && openAttack?.attack.id === pair.attack.id ? "selected" : ""
+                  !pair.defense && openAttack?.attack.id === pair.attack.id ? "selected" : "",
+                  !pair.defense && dragCard?.target === `defend:${pair.attack.id}` ? "dropDefenseActive" : ""
                 ].join(" ")}
+                data-drop-target={
+                  !pair.defense && game.phase === "defending" && isMyTurn
+                    ? `defend:${pair.attack.id}`
+                    : undefined
+                }
                 onClick={() => {
                   if (!pair.defense && game.phase === "defending" && isMyTurn) {
                     props.setSelectedAttackId(pair.attack.id);
@@ -2643,30 +2799,19 @@ function GameScreen(props: {
         {turnHint}
       </section>
 
-      {game.phase === "defending" && isMyTurn && (
-        <section className="gameActions">
-          <button className="primaryAction" disabled={controlsDisabled || !canSelectedDefend} onClick={defend}>
-            Отбить
+      {isMyTurn && (game.phase === "defending" || game.phase === "throwing") && (
+        <section className="contextActionDock">
+          <button
+            className={`contextAction ${game.phase === "defending" ? "take" : "pass"}`}
+            disabled={controlsDisabled}
+            onClick={() =>
+              props.onAction({
+                type: game.phase === "defending" ? "take" : "pass_throw_in"
+              })
+            }
+          >
+            {game.phase === "defending" ? "Беру" : "Пас"}
           </button>
-          {game.settings.variant === "transfer" && (
-            <button className="transferAction" disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(false)}>
-              Перевести
-            </button>
-          )}
-          {game.self.classId === "reverse-transfer" && (
-            <button className="reverseAction" disabled={controlsDisabled || !canSelectedTransfer} onClick={() => transfer(true)}>
-              Развернуть
-            </button>
-          )}
-          <button className="dangerAction" disabled={controlsDisabled} onClick={() => props.onAction({ type: "take" })}>
-            Взять
-          </button>
-        </section>
-      )}
-
-      {game.phase === "throwing" && isMyTurn && (
-        <section className="gameActions single">
-          <button className="passAction" disabled={controlsDisabled} onClick={() => props.onAction({ type: "pass_throw_in" })}>Пас</button>
         </section>
       )}
 
@@ -2692,31 +2837,59 @@ function GameScreen(props: {
           )}
         </div>
         <div className="handCards">
-          {game.self.hand.map((card) => (
-            <button
-              key={card.id}
-              aria-label={cardAriaLabel(card)}
-              aria-pressed={card.id === props.selectedHandId}
-              className={[
-                "handCard",
-                card.id === props.selectedHandId ? "selected" : "",
-                isRed(card) ? "red" : "",
-                motion.hand[card.id] ? `motion-${motion.hand[card.id]}` : ""
-              ].join(" ")}
-              style={{
-                "--motion-index": Math.max(0, handMotionOrder.indexOf(card.id))
-              } as CSSProperties}
-              onClick={() => clickHandCard(card)}
-              disabled={
-                game.phase === "finished" ||
-                game.phase === "awaiting-trump" ||
-                !cardPlayable(card)
-              }
-            >
-              <CardFace card={card} mode={game.settings.mode} />
-            </button>
-          ))}
+          {sortedHand.map((card, index) => {
+            const previous = sortedHand[index - 1];
+            const startsSuit =
+              card.kind === "standard" &&
+              (!previous ||
+                previous.kind === "joker" ||
+                previous.suit !== card.suit);
+
+            return (
+              <button
+                key={card.id}
+                aria-label={`${cardAriaLabel(card)}. Перетащи карту на стол`}
+                aria-pressed={card.id === props.selectedHandId}
+                className={[
+                  "handCard",
+                  card.id === props.selectedHandId ? "selected" : "",
+                  dragCard?.cardId === card.id ? "dragging" : "",
+                  startsSuit ? "suitStart" : "",
+                  isRed(card) ? "red" : "",
+                  motion.hand[card.id] ? `motion-${motion.hand[card.id]}` : ""
+                ].join(" ")}
+                style={{
+                  "--motion-index": Math.max(0, handMotionOrder.indexOf(card.id)),
+                  "--hand-index": index
+                } as CSSProperties}
+                onPointerDown={(event) => beginCardDrag(card, event)}
+                onPointerMove={moveCardDrag}
+                onPointerUp={finishCardDrag}
+                onPointerCancel={cancelCardDrag}
+                disabled={
+                  game.phase === "finished" ||
+                  game.phase === "awaiting-trump" ||
+                  !cardPlayable(card)
+                }
+              >
+                <CardFace card={card} mode={game.settings.mode} />
+              </button>
+            );
+          })}
         </div>
+
+        {draggedCard && dragCard && (
+          <div
+            className="dragCardGhost"
+            style={{
+              left: dragCard.x,
+              top: dragCard.y
+            }}
+            aria-hidden="true"
+          >
+            <CardFace card={draggedCard} mode={game.settings.mode} />
+          </div>
+        )}
       </section>
     </main>
   );
