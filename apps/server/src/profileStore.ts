@@ -198,7 +198,12 @@ export class PostgresProfileStore implements ProfileStore {
   private readonly pool: Pool;
 
   constructor(connectionString: string) {
-    this.pool = new Pool({ connectionString });
+    this.pool = new Pool({
+      connectionString,
+      connectionTimeoutMillis: 7_000,
+      idleTimeoutMillis: 30_000,
+      max: 10
+    });
   }
 
   async init(): Promise<void> {
