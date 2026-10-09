@@ -8624,3 +8624,33 @@ input[type="range"]::-moz-range-thumb {
     font-size: 20px;
   }
 }
+
+
+/* Audit: 13+ card hands after Take must still fit inside an iPhone viewport. */
+.gameApp .handCards.veryDense .handCard {
+  flex-basis: clamp(50px, 14.2vw, 60px);
+  width: clamp(50px, 14.2vw, 60px);
+  height: clamp(78px, 22vw, 96px);
+  margin-left: calc(-1 * clamp(35px, 10.3vw, 44px));
+}
+
+.gameApp .handCards.veryDense .handCard.suitStart:not(:first-child) {
+  margin-left: calc(-1 * clamp(30px, 8.7vw, 38px));
+}
+
+.gameApp .handCards.veryDense .handCard:first-child {
+  margin-left: 0;
+}
+
+@media (max-width: 370px) {
+  .gameApp .handCards.veryDense .handCard {
+    flex-basis: 48px;
+    width: 48px;
+    height: 74px;
+    margin-left: -35px;
+  }
+
+  .gameApp .handCards.veryDense .handCard.suitStart:not(:first-child) {
+    margin-left: -30px;
+  }
+}
