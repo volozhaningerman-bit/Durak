@@ -261,12 +261,35 @@ async function configureTelegramIntegration(): Promise<void> {
   const me = await telegramApi<{ username?: string }>("getMe", {});
   botUsername = me?.username;
 
+  const expectedWebhookUrl =
+    `${resolvedServerUrl.replace(/\/$/, "")}/telegram/webhook`;
+
   await telegramApi("setWebhook", {
-    url: `${resolvedServerUrl.replace(/\/$/, "")}/telegram/webhook`,
+    url: expectedWebhookUrl,
     secret_token: webhookSecret,
     allowed_updates: ["message"],
     drop_pending_updates: false
   });
+
+  const webhookInfo = await telegramApi<{
+    url?: string;
+    pending_update_count?: number;
+    last_error_message?: string;
+  }>("getWebhookInfo", {});
+
+  if (webhookInfo?.url !== expectedWebhookUrl) {
+    throw new Error(
+      `TELEGRAM_WEBHOOK_MISMATCH:${webhookInfo?.url ?? "missing"}`
+    );
+  }
+  if (webhookInfo.last_error_message) {
+    console.warn(
+      `Telegram webhook reports previous error: ${webhookInfo.last_error_message}`
+    );
+  }
+  console.log(
+    `Telegram webhook verified ${expectedWebhookUrl} (pending=${webhookInfo.pending_update_count ?? 0})`
+  );
 
   await telegramApi("setChatMenuButton", {
     menu_button: {
