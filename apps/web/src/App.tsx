@@ -2904,7 +2904,13 @@ function GameScreen(props: {
         <div
           className={[
             "handCards",
-            sortedHand.length >= 10 ? "dense" : sortedHand.length >= 7 ? "compact" : "spread"
+            sortedHand.length >= 13
+              ? "veryDense"
+              : sortedHand.length >= 10
+                ? "dense"
+                : sortedHand.length >= 7
+                  ? "compact"
+                  : "spread"
           ].join(" ")}
         >
           {sortedHand.map((card, index) => {
