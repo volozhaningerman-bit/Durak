@@ -474,7 +474,14 @@ describe("match engine", () => {
 
     expect(game.players[1].ability.jokerAvailable).toBe(false);
     expect(game.phase).toBe("throwing");
+    expect(game.turnSeat).toBe(0);
 
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
+    });
+
+    expect(game.turnSeat).toBe(2);
     game = applyGameAction(game, {
       type: "attack",
       playerSeat: 2,
