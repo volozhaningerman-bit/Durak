@@ -8381,3 +8381,11 @@ input[type="range"]::-moz-range-thumb {
     min-height: 48px !important;
   }
 }
+
+
+/* Audit fix: the app shell used to reserve Telegram top chrome twice.
+   The header owns the safe-area now; the shell itself must not add 76px. */
+.lobbyApp {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
