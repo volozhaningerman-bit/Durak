@@ -66,7 +66,38 @@ const privateLobbyTtlMs = Math.max(
 );
 const profileStore = createProfileStore(process.env.DATABASE_URL);
 let botUsername: string | undefined;
+let databaseReady = false;
+let databaseInitPromise: Promise<void> | undefined;
 const app = express();
+
+function initializeDatabase(): Promise<void> {
+  if (databaseReady) return Promise.resolve();
+  if (databaseInitPromise) return databaseInitPromise;
+
+  databaseInitPromise = profileStore
+    .init()
+    .then(() => {
+      databaseReady = true;
+      console.log("Database ready");
+    })
+    .catch((error) => {
+      databaseReady = false;
+      databaseInitPromise = undefined;
+      throw error;
+    });
+
+  return databaseInitPromise;
+}
+
+async function ensureDatabaseReady(): Promise<void> {
+  if (databaseReady) return;
+  try {
+    await initializeDatabase();
+  } catch (error) {
+    console.error("Database unavailable", error);
+    throw new Error("DATABASE_UNAVAILABLE");
+  }
+}
 
 app.use((req, res, next) => {
   if (resolvedWebAppUrl) {
@@ -180,7 +211,8 @@ app.get("/health", (_req, res) => {
     service: "durak-rpg-server",
     connections: sessions.size,
     rooms: rooms.size,
-    privateLobbies: privateLobbies.size
+    privateLobbies: privateLobbies.size,
+    databaseReady
   });
 });
 
@@ -188,6 +220,7 @@ app.get("/api/config", (_req, res) => {
   res.json({
     telegramConfigured: Boolean(process.env.BOT_TOKEN),
     databaseConfigured: Boolean(process.env.DATABASE_URL),
+    databaseReady,
     botUsername
   });
 });
@@ -1439,6 +1472,7 @@ async function authenticateSession(session: Session, initData: string) {
       return;
     }
 
+    await ensureDatabaseReady();
     session.authenticated = true;
     session.playerId = `dev:${session.id}`;
     await profileStore.upsertIdentity(session.playerId, {
@@ -1457,6 +1491,8 @@ async function authenticateSession(session: Session, initData: string) {
   try {
     const result = validateTelegramInitData(initData, botToken);
     const playerId = `tg:${result.user.id}`;
+
+    await ensureDatabaseReady();
 
     const duplicate = [...sessions.values()].find(
       (other) =>
@@ -1733,10 +1769,12 @@ const privateLobbyCleanup = setInterval(() => {
 
 privateLobbyCleanup.unref();
 
-await profileStore.init();
-
 server.listen(port, () => {
   console.log(`Durak RPG server listening on :${port}`);
+});
+
+void initializeDatabase().catch((error) => {
+  console.error("Initial database connection failed; will retry on auth", error);
 });
 
 if (process.env.BOT_TOKEN) {
