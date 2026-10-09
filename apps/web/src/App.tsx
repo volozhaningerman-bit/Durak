@@ -2844,7 +2844,12 @@ function GameScreen(props: {
             <small>↝ {game.self.ability.wildTransfersLeft}</small>
           )}
         </div>
-        <div className="handCards">
+        <div
+          className={[
+            "handCards",
+            sortedHand.length >= 10 ? "dense" : sortedHand.length >= 7 ? "compact" : "spread"
+          ].join(" ")}
+        >
           {sortedHand.map((card, index) => {
             const previous = sortedHand[index - 1];
             const startsSuit =
