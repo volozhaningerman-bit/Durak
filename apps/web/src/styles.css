@@ -7136,3 +7136,1065 @@ input[type="range"]::-moz-range-thumb {
     margin-left: calc(-1 * clamp(29px, 8.8vw, 38px));
   }
 }
+
+
+/* ==========================================================================
+   APP SHELL V3 — hard reset of legacy geometry + one visual system everywhere
+   ========================================================================== */
+
+.lobbyApp .modeHero,
+.lobbyApp .compactSettings,
+.lobbyApp .contentPage,
+.lobbyApp .searchStage,
+.lobbyApp .privateLobbyStage,
+.lobbyApp .waitingTable,
+.lobbyApp .ratingRuleCard,
+.lobbyApp .recentBlock,
+.lobbyApp .lobbyIdentityRail,
+.lobbyApp .playerPassport,
+.lobbyApp .deckShelf article,
+.lobbyApp .shopTicket,
+.lobbyApp .leaderboardRow {
+  clip-path: none !important;
+}
+
+.lobbyApp,
+.bootScreen {
+  --ui-bg: #06110d;
+  --ui-bg-2: #0a1712;
+  --ui-surface: rgba(12, 31, 23, .84);
+  --ui-surface-2: rgba(17, 39, 29, .92);
+  --ui-line: rgba(215, 176, 92, .18);
+  --ui-line-strong: rgba(215, 176, 92, .34);
+  --ui-text: #f1f2ec;
+  --ui-muted: rgba(231, 236, 229, .56);
+  --ui-green: #41bc7b;
+  --ui-gold: #d9b15d;
+  --ui-red: #d4675c;
+}
+
+.lobbyApp[data-theme="light"],
+.bootScreen[data-theme="light"] {
+  --ui-bg: #dfe7dc;
+  --ui-bg-2: #edf2e9;
+  --ui-surface: rgba(248, 250, 245, .78);
+  --ui-surface-2: rgba(255, 255, 252, .92);
+  --ui-line: rgba(35, 86, 58, .14);
+  --ui-line-strong: rgba(35, 86, 58, .26);
+  --ui-text: #17251d;
+  --ui-muted: rgba(23, 37, 29, .56);
+  --ui-green: #277b50;
+  --ui-gold: #9e7228;
+  --ui-red: #a34d45;
+}
+
+.lobbyApp {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(65, 188, 123, .12), transparent 28%),
+    radial-gradient(circle at 88% 10%, rgba(217, 177, 93, .07), transparent 24%),
+    linear-gradient(180deg, var(--ui-bg) 0%, var(--ui-bg-2) 100%) !important;
+  color: var(--ui-text);
+}
+
+.lobbyApp[data-theme="light"] {
+  background:
+    radial-gradient(circle at 12% 2%, rgba(48, 130, 84, .10), transparent 27%),
+    radial-gradient(circle at 90% 14%, rgba(158, 114, 40, .06), transparent 22%),
+    linear-gradient(180deg, #edf2e9 0%, #dfe7dc 100%) !important;
+}
+
+/* Header */
+.lobbyApp .appHeader {
+  position: relative;
+  z-index: 40;
+  width: min(100%, 680px);
+  min-height: 74px;
+  margin: 0 auto !important;
+  padding:
+    max(10px, var(--tg-content-safe-area-inset-top, 0px))
+    14px
+    8px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.lobbyApp .brandLockup {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.lobbyApp .brandSealMini {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.05), transparent 45%),
+    linear-gradient(145deg, rgba(32, 91, 61, .9), rgba(10, 38, 27, .94));
+  color: var(--ui-gold);
+  font: 700 19px Georgia, serif;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    0 8px 20px rgba(0,0,0,.15);
+}
+
+.lobbyApp[data-theme="light"] .brandSealMini {
+  background: linear-gradient(145deg, #2f7f56, #1e6845);
+  color: #fff3cf;
+}
+
+.lobbyApp .headerCopy {
+  min-width: 0;
+}
+
+.lobbyApp .brand {
+  color: var(--ui-text) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 850;
+  letter-spacing: .12em !important;
+}
+
+.lobbyApp .brand span {
+  color: var(--ui-gold) !important;
+}
+
+.lobbyApp .subtitle {
+  margin-top: 3px !important;
+  color: var(--ui-muted) !important;
+  font-size: 9px !important;
+  letter-spacing: .01em;
+}
+
+.lobbyApp .themeToggle {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 12px !important;
+  background: var(--ui-surface) !important;
+  color: var(--ui-gold) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+
+/* Main content rail */
+.lobbyApp .screenBody {
+  width: min(100%, 680px) !important;
+  margin: 0 auto !important;
+  padding: 0 12px 92px !important;
+}
+
+.lobbyApp .tabPage {
+  width: 100%;
+}
+
+.lobbyApp .playPage {
+  gap: 12px !important;
+}
+
+/* Player identity */
+.lobbyApp .lobbyIdentityRail {
+  display: grid;
+  grid-template-columns: 52px minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 76px !important;
+  padding: 10px 12px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(135deg, rgba(65, 188, 123, .07), transparent 48%),
+    var(--ui-surface-2) !important;
+  box-shadow:
+    0 12px 26px rgba(0,0,0,.10),
+    inset 0 1px 0 rgba(255,255,255,.03) !important;
+}
+
+.lobbyApp .lobbyAvatar {
+  width: 48px !important;
+  height: 48px !important;
+  border: 1px solid var(--ui-line-strong) !important;
+  border-radius: 15px !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp .lobbyIdentity {
+  min-width: 0;
+}
+
+.lobbyApp .lobbyIdentity small,
+.lobbyApp .lobbyRating small,
+.lobbyApp .lobbyMiniStat small {
+  color: var(--ui-muted) !important;
+  font-size: 7px !important;
+  font-weight: 800;
+  letter-spacing: .12em !important;
+}
+
+.lobbyApp .lobbyIdentity b {
+  color: var(--ui-text) !important;
+  font-size: 15px !important;
+  font-weight: 800;
+}
+
+.lobbyApp .lobbyIdentity span {
+  color: var(--ui-muted) !important;
+  font-size: 9px !important;
+}
+
+.lobbyApp .lobbyRating {
+  min-width: 58px;
+  padding-left: 10px;
+  border-left: 1px solid var(--ui-line);
+}
+
+.lobbyApp .lobbyRating strong {
+  color: var(--ui-gold) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 21px !important;
+  font-weight: 850;
+}
+
+.lobbyApp .lobbyMiniStat {
+  min-width: 34px;
+}
+
+.lobbyApp .lobbyIdentityRail .lobbyMiniStat:last-child {
+  display: none;
+}
+
+/* Mode switch */
+.lobbyApp .modeChooser,
+.lobbyApp .modeSwitch {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 4px !important;
+  min-height: 56px !important;
+  padding: 4px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 18px !important;
+  background: var(--ui-surface) !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp .modeChooser button,
+.lobbyApp .modeSwitch button {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 46px !important;
+  padding: 0 12px !important;
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  color: var(--ui-muted) !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp .modeChooser button.active,
+.lobbyApp .modeSwitch button.active {
+  border-color: rgba(65,188,123,.34) !important;
+  background:
+    linear-gradient(180deg, rgba(53, 153, 99, .96), rgba(31, 111, 70, .96)) !important;
+  color: #f7fff9 !important;
+  box-shadow: 0 7px 18px rgba(21, 102, 63, .15) !important;
+}
+
+.lobbyApp[data-mode="rpg"] .modeChooser button.active,
+.lobbyApp[data-mode="rpg"] .modeSwitch button.active {
+  border-color: rgba(217,177,93,.42) !important;
+  background:
+    linear-gradient(180deg, #c89843, #9b6928) !important;
+  color: #181208 !important;
+}
+
+.lobbyApp .modeChoiceSigil {
+  width: auto !important;
+  height: auto !important;
+  color: currentColor;
+  font-size: 17px !important;
+}
+
+.lobbyApp .modeChoiceCopy {
+  display: flex !important;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.lobbyApp .modeChoiceCopy b {
+  font-size: 13px !important;
+}
+
+.lobbyApp .modeChoiceCopy small {
+  display: inline !important;
+  opacity: .62;
+  font-size: 7px !important;
+}
+
+.lobbyApp .modeChoiceState {
+  display: none !important;
+}
+
+/* Hero */
+.lobbyApp .modeHero {
+  min-height: 190px !important;
+  padding: 30px 76px 22px !important;
+  border: 1px solid rgba(65,188,123,.22) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 50% 31%, rgba(83, 220, 147, .16), transparent 33%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.014) 0 2px, transparent 2px 9px),
+    linear-gradient(145deg, #0a442f, #06261b) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 16px 34px rgba(0,0,0,.10) !important;
+}
+
+.lobbyApp .modeHero.rpg {
+  border-color: rgba(217,177,93,.26) !important;
+  background:
+    radial-gradient(circle at 50% 31%, rgba(217,177,93,.13), transparent 33%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 9px),
+    linear-gradient(145deg, #352817, #18130d) !important;
+}
+
+.lobbyApp[data-theme="light"] .modeHero {
+  color: #f5f2e8;
+}
+
+.lobbyApp .modeHero .crest {
+  width: 54px !important;
+  height: 54px !important;
+  border: 1px solid rgba(217,177,93,.28) !important;
+  border-radius: 50% !important;
+  background: rgba(5, 27, 20, .72) !important;
+  color: var(--ui-gold) !important;
+}
+
+.lobbyApp .modeHero h1 {
+  margin: 9px 0 5px !important;
+  color: #f5f3ec !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: clamp(24px, 6vw, 31px) !important;
+  font-weight: 850 !important;
+  letter-spacing: -.035em !important;
+}
+
+.lobbyApp .modeHero p {
+  color: rgba(243, 242, 235, .68) !important;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+.lobbyApp .modeHero .modeEyebrow {
+  color: #78dba6 !important;
+  font-size: 7px !important;
+  font-weight: 800;
+  letter-spacing: .23em !important;
+}
+
+.lobbyApp .modeHero.rpg .modeEyebrow {
+  color: #e4be6d !important;
+}
+
+.lobbyApp .heroMarks {
+  opacity: .26 !important;
+}
+
+/* Settings */
+.lobbyApp .compactSettings {
+  display: grid;
+  gap: 8px;
+  padding: 10px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 22px !important;
+  background: var(--ui-surface) !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp .settingRow,
+.lobbyApp .rpgRuleCard {
+  padding: 9px !important;
+  border: 1px solid rgba(215,176,92,.10) !important;
+  border-radius: 15px !important;
+  background: rgba(255,255,255,.015) !important;
+}
+
+.lobbyApp[data-theme="light"] .settingRow,
+.lobbyApp[data-theme="light"] .rpgRuleCard {
+  background: rgba(255,255,255,.30) !important;
+}
+
+.lobbyApp .settingTitle {
+  margin-bottom: 7px;
+}
+
+.lobbyApp .settingTitle span {
+  color: var(--ui-muted) !important;
+  font-size: 8px !important;
+  font-weight: 700;
+}
+
+.lobbyApp .settingTitle b {
+  color: var(--ui-text) !important;
+  font-size: 9px !important;
+}
+
+.lobbyApp .segmented {
+  padding: 3px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 12px !important;
+  background: rgba(0,0,0,.12) !important;
+}
+
+.lobbyApp[data-theme="light"] .segmented {
+  background: rgba(21, 75, 49, .045) !important;
+}
+
+.lobbyApp .segmented button {
+  min-height: 36px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: var(--ui-muted) !important;
+  font-size: 9px !important;
+}
+
+.lobbyApp .segmented button.active {
+  background: #2d8f5d !important;
+  color: #f7fff9 !important;
+}
+
+.lobbyApp[data-mode="rpg"] .segmented button.active {
+  background: #b37d30 !important;
+  color: #171008 !important;
+}
+
+.lobbyApp .settingHint {
+  color: var(--ui-muted) !important;
+  font-size: 7px !important;
+}
+
+/* CTAs */
+.lobbyApp .primaryActions {
+  gap: 7px !important;
+}
+
+.lobbyApp .findGame {
+  min-height: 54px !important;
+  border: 1px solid rgba(113, 223, 163, .28) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #39a96f, #237c51) !important;
+  color: #f8fff9 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+  box-shadow: 0 10px 22px rgba(23, 108, 66, .16) !important;
+}
+
+.lobbyApp[data-mode="rpg"] .findGame {
+  border-color: rgba(226,190,112,.34) !important;
+  background: linear-gradient(180deg, #c79642, #966529) !important;
+  color: #171008 !important;
+  box-shadow: 0 10px 22px rgba(122, 79, 28, .14) !important;
+}
+
+.lobbyApp .secondaryGameButton,
+.lobbyApp .compactJoin input,
+.lobbyApp .privateCodeActions button {
+  min-height: 44px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.025) !important;
+  color: var(--ui-text) !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp[data-theme="light"] .secondaryGameButton,
+.lobbyApp[data-theme="light"] .compactJoin input,
+.lobbyApp[data-theme="light"] .privateCodeActions button {
+  background: rgba(255,255,255,.42) !important;
+}
+
+/* Search */
+.lobbyApp .searchStage {
+  min-height: calc(var(--tg-viewport-stable-height, 100dvh) - 170px) !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center !important;
+  padding: 26px 18px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(65,188,123,.12), transparent 32%),
+    var(--ui-surface) !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp .searchStage h2 {
+  margin: 10px 0 5px;
+  color: var(--ui-text);
+  font-size: 25px;
+  font-weight: 850;
+  letter-spacing: -.03em;
+}
+
+.lobbyApp .searchStage p {
+  max-width: 340px;
+  color: var(--ui-muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+.lobbyApp .searchDots {
+  margin-top: 12px;
+}
+
+.lobbyApp .searchDots i {
+  width: 22px !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: var(--ui-green) !important;
+}
+
+/* Private room */
+.lobbyApp .privateLobbyStage {
+  padding: 12px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 24px !important;
+  background: var(--ui-surface) !important;
+}
+
+.lobbyApp .privateLobbyHead {
+  padding: 2px 3px 9px;
+}
+
+.lobbyApp .privateLobbyTitle > span {
+  color: var(--ui-green) !important;
+  font-size: 7px !important;
+  letter-spacing: .17em;
+}
+
+.lobbyApp .privateLobbyStage.rpg .privateLobbyTitle > span {
+  color: var(--ui-gold) !important;
+}
+
+.lobbyApp .privateLobbyTitle strong {
+  color: var(--ui-text) !important;
+  font-size: 21px !important;
+}
+
+.lobbyApp .privateLobbyTitle small,
+.lobbyApp .privateSeatCounter small,
+.lobbyApp .privateCodeLabel small {
+  color: var(--ui-muted) !important;
+}
+
+.lobbyApp .privateSeatCounter b,
+.lobbyApp .privateCodeLabel strong {
+  color: var(--ui-gold) !important;
+}
+
+.lobbyApp .privateCodePanel {
+  padding: 9px 10px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.018) !important;
+}
+
+.lobbyApp .waitingTable,
+.lobbyApp .privateLobbyStage.classic .waitingTable,
+.lobbyApp .privateLobbyStage.rpg .waitingTable,
+.lobbyApp[data-theme="light"] .privateLobbyStage.classic .waitingTable,
+.lobbyApp[data-theme="light"] .privateLobbyStage.rpg .waitingTable {
+  height: clamp(250px, 38vh, 370px) !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(70, 201, 132, .12), transparent 36%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 8px),
+    linear-gradient(155deg, #0b3e2c, #06261b) !important;
+}
+
+.lobbyApp .privateLobbyStage.rpg .waitingTable,
+.lobbyApp[data-theme="light"] .privateLobbyStage.rpg .waitingTable {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(215,176,92,.10), transparent 36%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.010) 0 2px, transparent 2px 8px),
+    linear-gradient(155deg, #302416, #19130d) !important;
+}
+
+.lobbyApp .waitingSeat {
+  border-radius: 15px !important;
+}
+
+.lobbyApp .waitingSeat .avatar {
+  border-color: var(--ui-line-strong) !important;
+}
+
+.lobbyApp .waitingSeat b {
+  color: #f0f2ec !important;
+}
+
+.lobbyApp .waitingSeat small {
+  color: rgba(238,242,234,.50) !important;
+}
+
+/* Shared content pages */
+.lobbyApp .contentPage {
+  min-height: calc(var(--tg-viewport-stable-height, 100dvh) - 174px) !important;
+  padding: 14px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 24px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.012), transparent 32%),
+    var(--ui-surface) !important;
+  box-shadow: none !important;
+}
+
+.lobbyApp .pageHead {
+  min-height: 70px;
+  align-items: flex-start;
+  padding: 2px 1px 12px !important;
+  border-bottom: 1px solid var(--ui-line) !important;
+}
+
+.lobbyApp .pageHead > div > span {
+  color: var(--ui-green) !important;
+  font-size: 7px !important;
+  font-weight: 850;
+  letter-spacing: .18em !important;
+}
+
+.lobbyApp .pageHead h2 {
+  margin-top: 5px !important;
+  color: var(--ui-text) !important;
+  font-size: 26px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.035em;
+}
+
+.lobbyApp .pageHead > strong {
+  color: var(--ui-gold) !important;
+  font-size: 26px !important;
+  font-weight: 850;
+}
+
+/* Profile */
+.lobbyApp .playerPassport {
+  margin-top: 10px !important;
+  padding: 11px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(135deg, rgba(65,188,123,.055), transparent 48%),
+    rgba(255,255,255,.018) !important;
+}
+
+.lobbyApp .passportAvatar {
+  border: 1px solid var(--ui-line-strong) !important;
+  border-radius: 15px !important;
+}
+
+.lobbyApp .passportName small,
+.lobbyApp .passportLevel small,
+.lobbyApp .profileGrid span {
+  color: var(--ui-muted) !important;
+}
+
+.lobbyApp .passportName b,
+.lobbyApp .profileGrid b,
+.lobbyApp .contentPage h3 {
+  color: var(--ui-text) !important;
+}
+
+.lobbyApp .passportLevel strong {
+  color: var(--ui-green) !important;
+}
+
+.lobbyApp .profileGrid {
+  gap: 7px !important;
+  margin-top: 9px !important;
+}
+
+.lobbyApp .profileGrid > div {
+  min-height: 64px;
+  padding: 9px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 15px !important;
+  background: rgba(255,255,255,.018) !important;
+}
+
+.lobbyApp[data-theme="light"] .profileGrid > div {
+  background: rgba(255,255,255,.28) !important;
+}
+
+.lobbyApp .historyRow {
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.015) !important;
+}
+
+/* Rating */
+.lobbyApp .ratingRuleCard {
+  margin-top: 10px;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 16px !important;
+  background: rgba(217,177,93,.045) !important;
+}
+
+.lobbyApp .ratingRuleCard summary {
+  min-height: 48px !important;
+  padding: 10px 12px !important;
+}
+
+.lobbyApp .ratingRuleCard summary > span {
+  color: var(--ui-text) !important;
+}
+
+.lobbyApp .ratingRuleCard summary > b {
+  color: var(--ui-gold) !important;
+}
+
+.lobbyApp .leaderboardList {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.lobbyApp .leaderboardRow {
+  min-height: 58px !important;
+  padding: 9px 11px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 15px !important;
+  background: rgba(255,255,255,.018) !important;
+}
+
+.lobbyApp .leaderboardRow.self {
+  border-color: rgba(217,177,93,.34) !important;
+  background:
+    linear-gradient(90deg, rgba(217,177,93,.08), transparent) !important;
+}
+
+.lobbyApp .leaderboardRow b {
+  color: var(--ui-muted) !important;
+}
+
+.lobbyApp .leaderboardRow span {
+  color: var(--ui-text) !important;
+  font-weight: 750;
+}
+
+.lobbyApp .leaderboardRow strong {
+  color: var(--ui-gold) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 850;
+}
+
+/* Shop */
+.lobbyApp .deckShelf {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lobbyApp .deckShelf article,
+.lobbyApp .shopTicket {
+  padding: 10px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.018) !important;
+}
+
+.lobbyApp[data-theme="light"] .deckShelf article,
+.lobbyApp[data-theme="light"] .shopTicket {
+  background: rgba(255,255,255,.31) !important;
+}
+
+.lobbyApp .deckShelf small,
+.lobbyApp .shopTicket small {
+  color: var(--ui-green) !important;
+}
+
+.lobbyApp .deckShelf strong,
+.lobbyApp .shopTicket strong {
+  color: var(--ui-text) !important;
+}
+
+.lobbyApp .deckShelf span,
+.lobbyApp .shopTicket p,
+.lobbyApp .tabMuted {
+  color: var(--ui-muted) !important;
+}
+
+.lobbyApp .shopGlyph {
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,.02) !important;
+  color: var(--ui-gold) !important;
+}
+
+/* Recent players */
+.lobbyApp .recentBlock {
+  padding: 9px 10px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 18px !important;
+  background: var(--ui-surface) !important;
+}
+
+.lobbyApp .recentHead span {
+  color: var(--ui-text) !important;
+}
+
+.lobbyApp .recentHead small,
+.lobbyApp .recentPlayer small {
+  color: var(--ui-muted) !important;
+}
+
+.lobbyApp .recentPlayer {
+  color: var(--ui-text) !important;
+}
+
+/* Bottom navigation */
+.lobbyApp .bottomNav {
+  left: max(10px, var(--tg-content-safe-area-inset-left, 0px)) !important;
+  right: max(10px, var(--tg-content-safe-area-inset-right, 0px)) !important;
+  bottom: max(7px, var(--tg-content-safe-area-inset-bottom, 0px)) !important;
+  width: min(calc(100% - 20px), 660px) !important;
+  min-height: 64px !important;
+  padding: 4px !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: 20px !important;
+  background: color-mix(in srgb, var(--ui-surface-2) 94%, transparent) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.16) !important;
+  backdrop-filter: blur(18px);
+}
+
+.lobbyApp .bottomNav button {
+  min-height: 54px !important;
+  border: 0 !important;
+  border-radius: 15px !important;
+  background: transparent !important;
+  color: var(--ui-muted) !important;
+}
+
+.lobbyApp .bottomNav button i {
+  font-size: 16px !important;
+}
+
+.lobbyApp .bottomNav button span {
+  font-size: 8px !important;
+  font-weight: 700;
+}
+
+.lobbyApp .bottomNav button.active {
+  background: rgba(65,188,123,.075) !important;
+  color: var(--ui-text) !important;
+}
+
+.lobbyApp[data-mode="rpg"] .bottomNav button.active {
+  background: rgba(217,177,93,.075) !important;
+}
+
+.lobbyApp .bottomNav button.active i {
+  color: var(--ui-green) !important;
+}
+
+.lobbyApp[data-mode="rpg"] .bottomNav button.active i {
+  color: var(--ui-gold) !important;
+}
+
+/* Loading screen now uses the exact same identity. */
+.bootScreen {
+  position: relative;
+  isolation: isolate;
+  display: grid !important;
+  grid-template-rows: 1fr auto auto 1fr !important;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  padding:
+    max(76px, var(--tg-content-safe-area-inset-top, 0px))
+    22px
+    max(30px, var(--tg-content-safe-area-inset-bottom, 0px)) !important;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(65,188,123,.12), transparent 26%),
+    linear-gradient(180deg, var(--ui-bg), var(--ui-bg-2)) !important;
+  color: var(--ui-text) !important;
+}
+
+.bootScreen .bootBackdrop {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bootScreen .bootBackdrop i {
+  position: absolute;
+  width: 190px;
+  height: 260px;
+  border: 1px solid var(--ui-line);
+  border-radius: 26px;
+  opacity: .15;
+  transform: rotate(22deg);
+}
+
+.bootScreen .bootBackdrop i:nth-child(1) {
+  top: 8%;
+  left: -120px;
+}
+
+.bootScreen .bootBackdrop i:nth-child(2) {
+  right: -125px;
+  top: 24%;
+  transform: rotate(-18deg);
+}
+
+.bootScreen .bootBackdrop i:nth-child(3) {
+  left: 42%;
+  bottom: -180px;
+  transform: rotate(4deg);
+}
+
+.bootScreen .bootMark {
+  align-self: end;
+  width: 190px !important;
+  height: 148px !important;
+  filter: drop-shadow(0 20px 28px rgba(0,0,0,.20));
+}
+
+.bootScreen .bootSeal {
+  border-color: var(--ui-line-strong) !important;
+  background: var(--ui-surface-2) !important;
+  color: var(--ui-gold) !important;
+}
+
+.bootScreen .bootWordmark {
+  display: grid;
+  gap: 6px;
+  margin-top: 18px;
+  text-align: center;
+}
+
+.bootScreen .bootWordmark small {
+  color: var(--ui-muted);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .26em;
+}
+
+.bootScreen .bootWordmark > div {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 29px;
+  letter-spacing: .14em;
+}
+
+.bootScreen .bootWordmark b {
+  color: var(--ui-text) !important;
+}
+
+.bootScreen .bootWordmark span {
+  color: var(--ui-gold) !important;
+}
+
+.bootScreen .bootStatus {
+  margin-top: 34px !important;
+}
+
+.bootScreen .bootStatus strong {
+  color: var(--ui-text) !important;
+  font-size: 16px !important;
+}
+
+.bootScreen .bootStatus small {
+  max-width: 330px;
+  color: var(--ui-muted) !important;
+  font-size: 9px !important;
+}
+
+.bootScreen .bootProgress i {
+  background: var(--ui-green) !important;
+}
+
+/* Real phone compaction */
+@media (max-width: 430px) {
+  .lobbyApp .screenBody {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .lobbyApp .lobbyIdentityRail {
+    grid-template-columns: 48px minmax(0,1fr) auto auto;
+    gap: 8px;
+  }
+
+  .lobbyApp .lobbyRating {
+    min-width: 52px;
+  }
+
+  .lobbyApp .modeHero {
+    padding-left: 68px !important;
+    padding-right: 68px !important;
+  }
+
+  .lobbyApp .modeChoiceCopy small {
+    display: none !important;
+  }
+
+  .lobbyApp .contentPage {
+    padding: 12px !important;
+  }
+}
+
+@media (max-height: 720px) {
+  .lobbyApp .appHeader {
+    min-height: 62px;
+    padding-top: 6px !important;
+  }
+
+  .lobbyApp .brandSealMini {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .lobbyApp .lobbyIdentityRail {
+    min-height: 62px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+  }
+
+  .lobbyApp .lobbyAvatar {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .lobbyApp .modeHero {
+    min-height: 145px !important;
+    padding-top: 18px !important;
+    padding-bottom: 16px !important;
+  }
+
+  .lobbyApp .compactSettings {
+    padding: 8px !important;
+  }
+
+  .lobbyApp .settingRow,
+  .lobbyApp .rpgRuleCard {
+    padding: 7px !important;
+  }
+}
