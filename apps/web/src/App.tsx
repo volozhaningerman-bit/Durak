@@ -1766,10 +1766,18 @@ export function App() {
       </section>
 
       <nav className="bottomNav">
-        <button className={activeTab === "play" ? "active" : ""} onClick={() => openTab("play")}>Играть</button>
-        <button className={activeTab === "profile" ? "active" : ""} onClick={() => openTab("profile")}>Профиль</button>
-        <button className={activeTab === "rating" ? "active" : ""} onClick={() => openTab("rating")}>Рейтинг</button>
-        <button className={activeTab === "shop" ? "active" : ""} onClick={() => openTab("shop")}>Магазин</button>
+        <button className={activeTab === "play" ? "active" : ""} onClick={() => openTab("play")}>
+          <i aria-hidden="true">⌂</i><span>Играть</span>
+        </button>
+        <button className={activeTab === "profile" ? "active" : ""} onClick={() => openTab("profile")}>
+          <i aria-hidden="true">♙</i><span>Профиль</span>
+        </button>
+        <button className={activeTab === "rating" ? "active" : ""} onClick={() => openTab("rating")}>
+          <i aria-hidden="true">♜</i><span>Рейтинг</span>
+        </button>
+        <button className={activeTab === "shop" ? "active" : ""} onClick={() => openTab("shop")}>
+          <i aria-hidden="true">◇</i><span>Магазин</span>
+        </button>
       </nav>
     </main>
   );
