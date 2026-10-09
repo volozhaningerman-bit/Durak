@@ -10,9 +10,11 @@ services:
 
   - type: web
     name: durak-rpg-test
-    runtime: docker
+    runtime: node
     plan: free
     region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
