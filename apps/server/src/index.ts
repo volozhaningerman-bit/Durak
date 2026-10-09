@@ -171,6 +171,7 @@ interface Room {
   qaMatch: boolean;
   qaBotNames: Map<number, string>;
   qaBotTimer?: ReturnType<typeof setTimeout>;
+  finishedAt?: number;
   rematchReadySeats: Set<number>;
   disconnectTimers: Map<number, ReturnType<typeof setTimeout>>;
 }
@@ -620,6 +621,7 @@ function scheduleQaBotTurn(room: Room) {
       broadcastRoom(room);
 
       if (room.game.phase === "finished") {
+        room.finishedAt ??= Date.now();
         void applyRoomProgress(room);
         return;
       }
@@ -1058,6 +1060,7 @@ async function handleGameAction(session: Session, action: ClientGameAction) {
     broadcastRoom(room);
 
     if (room.game.phase === "finished") {
+      room.finishedAt ??= Date.now();
       await applyRoomProgress(room);
     } else {
       scheduleQaBotTurn(room);
@@ -1082,6 +1085,7 @@ function finishRoomByForfeit(room: Room, loserSeat: number) {
     }
   }
 
+  room.finishedAt = Date.now();
   room.game = {
     ...room.game,
     phase: "finished",
@@ -1767,6 +1771,43 @@ const heartbeat = setInterval(() => {
 }, 20_000);
 
 heartbeat.unref();
+
+const ROOM_FINISHED_TTL_MS = Math.max(
+  60_000,
+  Number(process.env.ROOM_FINISHED_TTL_MS || 15 * 60_000)
+);
+const INVITE_COOLDOWN_RETENTION_MS = 5 * 60_000;
+
+function cleanupFinishedRooms(now = Date.now()) {
+  for (const [roomId, room] of rooms) {
+    if (room.game.phase !== "finished") continue;
+    const finishedAt = room.finishedAt ?? now;
+    room.finishedAt = finishedAt;
+    if (now - finishedAt < ROOM_FINISHED_TTL_MS) continue;
+
+    if (room.qaBotTimer) clearTimeout(room.qaBotTimer);
+    for (const timer of room.disconnectTimers.values()) clearTimeout(timer);
+    room.disconnectTimers.clear();
+
+    for (const member of room.members) {
+      if (member.roomId === roomId) {
+        member.roomId = undefined;
+        member.seat = undefined;
+        send(member.socket, { type: "room_left" });
+      }
+    }
+    rooms.delete(roomId);
+  }
+
+  for (const [key, sentAt] of inviteCooldowns) {
+    if (now - sentAt > INVITE_COOLDOWN_RETENTION_MS) {
+      inviteCooldowns.delete(key);
+    }
+  }
+}
+
+const roomCleanup = setInterval(() => cleanupFinishedRooms(), 60_000);
+roomCleanup.unref();
 
 const privateLobbyCleanup = setInterval(() => {
   const cutoff = Date.now() - privateLobbyTtlMs;
