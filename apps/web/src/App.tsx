@@ -469,7 +469,8 @@ const errorMessages: Record<string, string> = {
   RECENT_PLAYERS_LOAD_FAILED: "Не удалось загрузить недавних игроков",
   REMATCH_UNAVAILABLE: "Рематч недоступен: один из игроков уже покинул стол",
   REMATCH_RESULT_PENDING: "Сохраняем результат партии — рематч станет доступен сразу после этого",
-  QA_BOT_STALLED: "QA-бот не нашёл допустимый ход — состояние сохранено для проверки"
+  QA_BOT_STALLED: "QA-бот не нашёл допустимый ход — состояние сохранено для проверки",
+  DATABASE_UNAVAILABLE: "База данных просыпается. Переподключаемся…"
 };
 
 function readableError(code?: string): string {
@@ -756,8 +757,9 @@ export function App() {
           }
 
           if (message.type === "auth_error") {
-            authBlocked = true;
-            setInitialReady(true);
+            const transientDatabaseError = message.code === "DATABASE_UNAVAILABLE";
+            authBlocked = !transientDatabaseError;
+            setInitialReady(!transientDatabaseError);
             setConnection("offline");
             setError(readableError(message.code));
             socket.close();
