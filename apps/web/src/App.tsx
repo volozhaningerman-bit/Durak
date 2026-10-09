@@ -493,9 +493,17 @@ function playersLabel(count: number): string {
   return `${count} ${word}`;
 }
 
-const backendOrigin = (import.meta.env.VITE_BACKEND_ORIGIN as string | undefined)
+const configuredBackendOrigin = (
+  import.meta.env.VITE_BACKEND_ORIGIN as string | undefined
+)
   ?.trim()
   .replace(/\/$/, "");
+
+const backendOrigin =
+  configuredBackendOrigin ||
+  (window.location.hostname === "durak-rpg-app.onrender.com"
+    ? "https://durak-rpg-test.onrender.com"
+    : undefined);
 
 function apiUrl(path: string): string {
   return backendOrigin ? `${backendOrigin}${path}` : path;
