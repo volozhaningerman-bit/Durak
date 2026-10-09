@@ -265,10 +265,12 @@ function settleTake(state: GameState): GameState {
 }
 
 function findNextThrower(state: GameState, afterSeat?: number): number | undefined {
+  // A completed defense must remain visible until every eligible thrower has
+  // explicitly finished the round with "Pass". Do not skip a player just
+  // because they currently have no throwable card: that player still owns
+  // the confirmation that moves the covered table to the discard pile.
   const order = getThrowInOrder(state).filter(
-    (seat) =>
-      !state.throwInPassedSeats.includes(seat) &&
-      hasThrowableCard(state, seat)
+    (seat) => !state.throwInPassedSeats.includes(seat)
   );
   if (order.length === 0) return undefined;
   if (afterSeat === undefined) return order[0];
@@ -285,10 +287,6 @@ function findNextThrower(state: GameState, afterSeat?: number): number | undefin
 }
 
 function enterThrowing(state: GameState, afterSeat?: number): GameState {
-  if (state.table.length >= state.roundAttackLimit) {
-    return state.defenderTaking ? settleTake(state) : settleSuccessfulDefense(state);
-  }
-
   const next = findNextThrower(state, afterSeat);
   if (next === undefined) {
     return state.defenderTaking ? settleTake(state) : settleSuccessfulDefense(state);
