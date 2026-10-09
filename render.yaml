@@ -33,6 +33,10 @@ services:
         value: "60000"
       - key: PRIVATE_LOBBY_TTL_MS
         value: "3600000"
+      - key: QA_BOTS_ENABLED
+        value: "false"
+      - key: QA_ALLOWED_USERNAMES
+        sync: false
 
 databases:
   - name: durak-rpg-db
