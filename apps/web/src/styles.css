@@ -6547,3 +6547,546 @@ input[type="range"]::-moz-range-thumb {
     width: 78vw;
   }
 }
+
+
+/* ==========================================================================
+   APP SHELL V2 — cohesive premium lobby / profile / rating / shop
+   ========================================================================== */
+
+.lobbyApp {
+  --shell-ink: #eef1ea;
+  --shell-muted: rgba(228, 234, 226, .58);
+  --shell-panel: rgba(8, 29, 21, .76);
+  --shell-panel-strong: rgba(8, 31, 22, .93);
+  --shell-line: rgba(202, 171, 103, .18);
+  --shell-gold: #d5ad58;
+  --shell-green: #3fba79;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  background:
+    radial-gradient(circle at 50% 12%, rgba(38, 137, 88, .14), transparent 27%),
+    linear-gradient(180deg, #07140f 0%, #08100d 100%);
+  color: var(--shell-ink);
+}
+
+.lobbyApp[data-theme="light"] {
+  --shell-ink: #1f261f;
+  --shell-muted: rgba(34, 43, 35, .58);
+  --shell-panel: rgba(247, 244, 234, .8);
+  --shell-panel-strong: rgba(248, 245, 236, .95);
+  --shell-line: rgba(105, 87, 45, .16);
+  background:
+    radial-gradient(circle at 50% 10%, rgba(51, 145, 91, .08), transparent 29%),
+    linear-gradient(180deg, #ebe7db 0%, #e1dccf 100%);
+}
+
+.lobbyApp .topbar {
+  min-height: 66px;
+  padding: 10px 14px 7px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lobbyApp .brand {
+  color: var(--shell-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(21px, 5.4vw, 28px);
+  letter-spacing: .08em;
+}
+
+.lobbyApp .brand span {
+  color: var(--shell-gold);
+}
+
+.lobbyApp .subtitle {
+  margin-top: 4px;
+  color: var(--shell-muted);
+  font-size: 10px;
+}
+
+.lobbyApp .themeToggle {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--shell-line);
+  border-radius: 50%;
+  background: var(--shell-panel);
+  color: var(--shell-gold);
+  box-shadow: none;
+}
+
+.lobbyApp .themeToggle b {
+  display: none;
+}
+
+.lobbyApp .themeToggle span {
+  font-size: 16px;
+}
+
+.lobbyApp .screenBody {
+  width: min(100%, 640px);
+  margin: 0 auto;
+  padding: 0 10px 86px;
+}
+
+.lobbyApp .playPage {
+  gap: 10px;
+}
+
+.lobbyApp .lobbyIdentityRail {
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--shell-line);
+  border-radius: 19px;
+  background:
+    linear-gradient(135deg, rgba(69, 181, 119, .055), transparent 44%),
+    var(--shell-panel-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 10px 28px rgba(0,0,0,.12);
+}
+
+.lobbyApp .lobbyAvatar {
+  width: 47px;
+  height: 47px;
+  border: 2px solid rgba(213, 173, 88, .54);
+  box-shadow: 0 0 0 3px rgba(213, 173, 88, .06);
+}
+
+.lobbyApp .lobbyIdentity small,
+.lobbyApp .lobbyRating small,
+.lobbyApp .lobbyMiniStat small {
+  color: var(--shell-muted);
+  letter-spacing: .12em;
+}
+
+.lobbyApp .lobbyIdentity b {
+  color: var(--shell-ink);
+  font-size: 16px;
+}
+
+.lobbyApp .lobbyIdentity span {
+  color: var(--shell-muted);
+  font-size: 9px;
+}
+
+.lobbyApp .lobbyRating strong {
+  color: var(--shell-green);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+}
+
+.lobbyApp[data-mode="rpg"] .lobbyRating strong {
+  color: var(--shell-gold);
+}
+
+.lobbyApp .modeChooser {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 58px;
+  padding: 4px;
+  border: 1px solid var(--shell-line);
+  border-radius: 20px;
+  background: var(--shell-panel);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+.lobbyApp .modeChooser button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--shell-muted);
+  box-shadow: none;
+}
+
+.lobbyApp .modeChooser button.active {
+  border-color: rgba(213, 173, 88, .66);
+  background:
+    linear-gradient(180deg, rgba(41, 153, 94, .86), rgba(13, 91, 54, .9));
+  color: #fff7df;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.045),
+    0 5px 18px rgba(26, 122, 72, .16);
+}
+
+.lobbyApp[data-mode="rpg"] .modeChooser button.active {
+  background:
+    linear-gradient(180deg, rgba(184, 133, 50, .94), rgba(128, 84, 25, .94));
+  color: #fff8e9;
+}
+
+.lobbyApp .modeChoiceSigil {
+  font-size: 19px;
+}
+
+.lobbyApp .modeChoiceCopy {
+  display: block;
+}
+
+.lobbyApp .modeChoiceCopy b {
+  font-size: 15px;
+}
+
+.lobbyApp .modeChoiceCopy small,
+.lobbyApp .modeChoiceState {
+  display: none;
+}
+
+.lobbyApp .modeHero {
+  min-height: 182px;
+  padding: 28px 74px 20px;
+  overflow: hidden;
+  border: 1px solid var(--shell-line);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(66, 193, 122, .12), transparent 34%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 7px),
+    linear-gradient(145deg, #0a3b29, #062a1d);
+  color: #f4f1e8;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -30px 60px rgba(0,0,0,.14);
+}
+
+.lobbyApp .modeHero.rpg {
+  background:
+    radial-gradient(circle at 50% 36%, rgba(212, 169, 83, .11), transparent 34%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 7px),
+    linear-gradient(145deg, #2c2416, #17130d);
+}
+
+.lobbyApp .modeHero .modeEyebrow {
+  color: #71d29f;
+  font-size: 8px;
+  letter-spacing: .24em;
+}
+
+.lobbyApp .modeHero.rpg .modeEyebrow {
+  color: #e0b864;
+}
+
+.lobbyApp .modeHero h1 {
+  margin: 9px 0 5px;
+  color: #f4f1e8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(24px, 6vw, 33px);
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.lobbyApp .modeHero p {
+  max-width: 310px;
+  margin: 0 auto;
+  color: rgba(242, 239, 230, .68);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.lobbyApp .modeHero .playingCard {
+  opacity: .97;
+  filter: drop-shadow(0 10px 11px rgba(0,0,0,.28));
+}
+
+.lobbyApp .modeHero .crest {
+  border-color: rgba(213, 173, 88, .32);
+  background: rgba(5, 33, 23, .74);
+  color: var(--shell-gold);
+}
+
+.lobbyApp .heroMarks {
+  opacity: .34;
+}
+
+.lobbyApp .compactSettings {
+  padding: 9px;
+  border: 1px solid var(--shell-line);
+  border-radius: 22px;
+  background: var(--shell-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.018),
+    0 12px 30px rgba(0,0,0,.08);
+}
+
+.lobbyApp .settingRow {
+  border-color: rgba(213, 173, 88, .12);
+}
+
+.lobbyApp .settingRow > header span,
+.lobbyApp .settingRow > header b,
+.lobbyApp .rpgRuleCard span,
+.lobbyApp .rpgRuleCard small {
+  color: var(--shell-muted);
+}
+
+.lobbyApp .settingRow > header b,
+.lobbyApp .rpgRuleCard b {
+  color: var(--shell-gold);
+}
+
+.lobbyApp .segmented {
+  padding: 3px;
+  border: 1px solid rgba(213, 173, 88, .14);
+  border-radius: 13px;
+  background: rgba(0, 0, 0, .11);
+}
+
+.lobbyApp[data-theme="light"] .segmented {
+  background: rgba(74, 61, 34, .045);
+}
+
+.lobbyApp .segmented button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--shell-muted);
+  font-weight: 700;
+}
+
+.lobbyApp .segmented button.active {
+  border-color: rgba(213, 173, 88, .4);
+  background: rgba(45, 150, 91, .87);
+  color: #f8fff9;
+  box-shadow: 0 4px 12px rgba(31, 126, 74, .12);
+}
+
+.lobbyApp[data-mode="rpg"] .segmented button.active {
+  background: rgba(184, 132, 50, .92);
+  color: #17130d;
+}
+
+.lobbyApp input[type="range"] {
+  accent-color: var(--shell-green);
+}
+
+.lobbyApp[data-mode="rpg"] input[type="range"] {
+  accent-color: var(--shell-gold);
+}
+
+.lobbyApp .findGame {
+  min-height: 54px;
+  border: 1px solid rgba(213, 173, 88, .66);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #2fa566, #187847);
+  color: #fff9e8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.045),
+    0 9px 22px rgba(24, 120, 71, .15);
+}
+
+.lobbyApp[data-mode="rpg"] .findGame {
+  background:
+    linear-gradient(180deg, #c4943f, #946626);
+  color: #18130b;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    0 9px 22px rgba(149, 99, 33, .13);
+}
+
+.lobbyApp .secondaryGameButton {
+  border-color: var(--shell-line);
+  border-radius: 17px;
+  background: rgba(0,0,0,.08);
+  color: var(--shell-ink);
+}
+
+.lobbyApp[data-theme="light"] .secondaryGameButton {
+  background: rgba(255,255,255,.28);
+}
+
+.lobbyApp .compactJoin input {
+  border-color: var(--shell-line);
+  border-radius: 14px;
+  background: rgba(0,0,0,.08);
+  color: var(--shell-ink);
+}
+
+.lobbyApp[data-theme="light"] .compactJoin input {
+  background: rgba(255,255,255,.34);
+}
+
+.lobbyApp .recentBlock,
+.lobbyApp .contentPage,
+.lobbyApp .privateLobbyStage {
+  border-color: var(--shell-line);
+  background: var(--shell-panel);
+  box-shadow: none;
+}
+
+.lobbyApp .contentPage {
+  border-radius: 23px;
+}
+
+.lobbyApp .pageHead {
+  border-color: rgba(213, 173, 88, .17);
+}
+
+.lobbyApp .pageHead > div > span {
+  color: var(--shell-green);
+}
+
+.lobbyApp[data-mode="rpg"] .pageHead > div > span,
+.lobbyApp[data-mode="rpg"] .pageHead > strong {
+  color: var(--shell-gold);
+}
+
+.lobbyApp .pageHead h2,
+.lobbyApp .playerPassport b,
+.lobbyApp .leaderboardRow span,
+.lobbyApp .shopTicket strong,
+.lobbyApp .deckShelf strong {
+  color: var(--shell-ink);
+}
+
+.lobbyApp .playerPassport,
+.lobbyApp .ratingRuleCard,
+.lobbyApp .leaderboardRow,
+.lobbyApp .deckShelf article,
+.lobbyApp .shopTicket {
+  border-color: var(--shell-line);
+  background: rgba(255,255,255,.018);
+}
+
+.lobbyApp[data-theme="light"] .playerPassport,
+.lobbyApp[data-theme="light"] .ratingRuleCard,
+.lobbyApp[data-theme="light"] .leaderboardRow,
+.lobbyApp[data-theme="light"] .deckShelf article,
+.lobbyApp[data-theme="light"] .shopTicket {
+  background: rgba(255,255,255,.3);
+}
+
+.lobbyApp .leaderboardRow.self {
+  border-left-color: var(--shell-gold);
+  background: rgba(213, 173, 88, .06);
+}
+
+.lobbyApp .leaderboardRow strong {
+  color: var(--shell-gold);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.lobbyApp .bottomNav {
+  position: fixed;
+  z-index: 30;
+  left: max(10px, var(--tg-content-safe-area-inset-left, 0px));
+  right: max(10px, var(--tg-content-safe-area-inset-right, 0px));
+  bottom: max(7px, var(--tg-content-safe-area-inset-bottom, 0px));
+  width: min(calc(100% - 20px), 620px);
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 4px;
+  border: 1px solid var(--shell-line);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--shell-panel-strong) 94%, transparent);
+  box-shadow: 0 8px 28px rgba(0,0,0,.13);
+  backdrop-filter: blur(18px);
+}
+
+.lobbyApp .bottomNav button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1px;
+  min-height: 54px;
+  border-radius: 17px;
+  color: var(--shell-muted);
+}
+
+.lobbyApp .bottomNav button i {
+  font-style: normal;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.lobbyApp .bottomNav button span {
+  font-size: 9px;
+}
+
+.lobbyApp .bottomNav button.active {
+  background: rgba(55, 183, 120, .07);
+  color: var(--shell-ink);
+}
+
+.lobbyApp[data-mode="rpg"] .bottomNav button.active {
+  background: rgba(213, 173, 88, .07);
+}
+
+.lobbyApp .bottomNav button.active i {
+  color: var(--shell-green);
+  filter: drop-shadow(0 0 8px rgba(55,183,120,.26));
+}
+
+.lobbyApp[data-mode="rpg"] .bottomNav button.active i {
+  color: var(--shell-gold);
+  filter: drop-shadow(0 0 8px rgba(213,173,88,.22));
+}
+
+.lobbyApp .bottomNav button.active::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 31%;
+  right: 31%;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--shell-green);
+}
+
+.lobbyApp[data-mode="rpg"] .bottomNav button.active::after {
+  background: var(--shell-gold);
+}
+
+@media (max-height: 760px) {
+  .lobbyApp .screenBody {
+    padding-bottom: 76px;
+  }
+
+  .lobbyApp .lobbyIdentityRail {
+    min-height: 62px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .lobbyApp .lobbyAvatar {
+    width: 41px;
+    height: 41px;
+  }
+
+  .lobbyApp .modeChooser {
+    min-height: 50px;
+  }
+
+  .lobbyApp .modeChooser button {
+    min-height: 42px;
+  }
+
+  .lobbyApp .modeHero {
+    min-height: 156px;
+    padding-top: 20px;
+    padding-bottom: 15px;
+  }
+
+  .lobbyApp .compactSettings {
+    padding: 7px;
+  }
+
+  .lobbyApp .bottomNav {
+    min-height: 58px;
+  }
+
+  .lobbyApp .bottomNav button {
+    min-height: 48px;
+  }
+}
