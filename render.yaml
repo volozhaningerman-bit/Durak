@@ -6,10 +6,10 @@ services:
     staticPublishPath: apps/web/dist
     envVars:
       - key: VITE_BACKEND_ORIGIN
-        value: https://durak-rpg.onrender.com
+        value: https://durak-rpg-test.onrender.com
 
   - type: web
-    name: durak-rpg
+    name: durak-rpg-test
     runtime: docker
     plan: free
     region: frankfurt
@@ -20,7 +20,7 @@ services:
       - key: WEBAPP_URL
         value: https://durak-rpg-app.onrender.com
       - key: SERVER_PUBLIC_URL
-        value: https://durak-rpg.onrender.com
+        value: https://durak-rpg-test.onrender.com
       - key: BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
