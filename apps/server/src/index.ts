@@ -634,9 +634,29 @@ function scheduleQaBotTurn(room: Room) {
   }, qaBotDelayMs);
 }
 
+function qaBotAccessAllowed(session: Session): boolean {
+  // Local/CI development can use QA freely. Production requires an explicit
+  // feature flag and a verified Telegram username allow-list.
+  if (!process.env.BOT_TOKEN || process.env.NODE_ENV !== "production") return true;
+  if (process.env.QA_BOTS_ENABLED !== "true") return false;
+
+  const allowedUsernames = new Set(
+    (process.env.QA_ALLOWED_USERNAMES || "")
+      .split(",")
+      .map((value) => value.trim().replace(/^@/, "").toLowerCase())
+      .filter(Boolean)
+  );
+  const username = session.telegramUser?.username?.toLowerCase();
+  return Boolean(username && allowedUsernames.has(username));
+}
+
 function createQaBotRoom(session: Session, input: unknown) {
   if (!session.authenticated || !session.playerId) {
     send(session.socket, { type: "error", code: "AUTH_REQUIRED" });
+    return;
+  }
+  if (!qaBotAccessAllowed(session)) {
+    send(session.socket, { type: "error", code: "QA_DISABLED" });
     return;
   }
   if (session.roomId) {
