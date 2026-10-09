@@ -272,6 +272,48 @@ describe("match engine", () => {
     expect(game.players[1].hand.map((card) => card.id)).toContain("clubs-6");
   });
 
+  it("keeps a taken table visible when the last allowed card is thrown", () => {
+    let game = state({
+      players: [
+        p(0, [c("6", "clubs"), c("6", "hearts")]),
+        p(1, [c("7", "spades"), c("9", "spades")])
+      ],
+      roundAttackLimit: 2
+    });
+
+    game = applyGameAction(game, {
+      type: "attack",
+      playerSeat: 0,
+      cardId: "clubs-6"
+    });
+
+    game = applyGameAction(game, {
+      type: "take",
+      playerSeat: 1
+    });
+
+    game = applyGameAction(game, {
+      type: "attack",
+      playerSeat: 0,
+      cardId: "hearts-6"
+    });
+
+    expect(game.phase).toBe("throwing");
+    expect(game.table).toHaveLength(2);
+    expect(game.players[1].hand.map((card) => card.id)).not.toContain("clubs-6");
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
+    });
+
+    expect(game.table).toHaveLength(0);
+    expect(game.lastRoundOutcome).toBe("take");
+    expect(game.players[1].hand.map((card) => card.id)).toEqual(
+      expect.arrayContaining(["clubs-6", "hearts-6"])
+    );
+  });
+
   it("lets other players throw matching cards after defender chooses to take", () => {
     let game = state({
       settings: { ...DEFAULT_CLASSIC_SETTINGS, playerCount: 3 },
