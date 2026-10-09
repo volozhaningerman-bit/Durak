@@ -487,8 +487,57 @@ describe("match engine", () => {
 
     expect(game.players[1].hand.some((card) => card.kind === "joker")).toBe(false);
     expect(game.players[1].ability.jokerAvailable).toBe(false);
+    expect(game.phase).toBe("throwing");
+    expect(game.table).toHaveLength(1);
+    expect(game.table[0].defense?.kind).toBe("joker");
+    expect(game.discard.some((card) => card.kind === "joker")).toBe(false);
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
+    });
+
     expect(game.discard.some((card) => card.kind === "joker")).toBe(true);
     expect(game.lastRoundOutcome).toBe("discard");
+  });
+
+  it("keeps a fully covered table visible until the thrower passes", () => {
+    let game = state({
+      phase: "defending",
+      players: [
+        p(0, [c("9", "diamonds")]),
+        p(1, [c("8", "clubs")])
+      ],
+      table: [{ attack: c("6", "clubs") }],
+      attackerSeat: 0,
+      defenderSeat: 1,
+      turnSeat: 1,
+      roundAttackLimit: 1
+    });
+
+    game = applyGameAction(game, {
+      type: "defend",
+      playerSeat: 1,
+      attackCardId: "clubs-6",
+      cardId: "clubs-8"
+    });
+
+    expect(game.phase).toBe("throwing");
+    expect(game.turnSeat).toBe(0);
+    expect(game.table).toHaveLength(1);
+    expect(game.table[0].attack.id).toBe("clubs-6");
+    expect(game.table[0].defense?.id).toBe("clubs-8");
+    expect(game.discard).toHaveLength(0);
+
+    game = applyGameAction(game, {
+      type: "pass_throw_in",
+      playerSeat: 0
+    });
+
+    expect(game.table).toHaveLength(0);
+    expect(game.discard.map((card) => card.id)).toEqual(
+      expect.arrayContaining(["clubs-6", "clubs-8"])
+    );
   });
 
   it("skips a Joker-only player when choosing the next attacker", () => {
