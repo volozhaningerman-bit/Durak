@@ -2277,7 +2277,17 @@ function GameScreen(props: {
     Boolean(selectedCard && openAttack) &&
     canBeat(openAttack!.attack, selectedCard!, game.trumpSuits);
 
-  function canCardTransfer(card: Card): boolean {
+  function nextActiveViewSeat(fromSeat: number, direction: 1 | -1): number | undefined {
+    const count = game.players.length;
+    for (let step = 1; step < count; step += 1) {
+      const seat = ((fromSeat + step * direction) % count + count) % count;
+      const player = game.players.find((entry) => entry.seat === seat);
+      if (player && !player.finished) return seat;
+    }
+    return undefined;
+  }
+
+  function canCardTransfer(card: Card, reverse = false): boolean {
     if (
       !isMyTurn ||
       controlsDisabled ||
@@ -2293,15 +2303,46 @@ function GameScreen(props: {
       attackRanks.length > 0 &&
       attackRanks.every((rank) => rank === card.rank);
     const usesWild =
+      game.settings.mode === "rpg" &&
       game.self.classId === "wild-transfer" &&
       game.self.ability.wildTransfersLeft > 0;
-    return matchesRank || usesWild;
+    if (!matchesRank && !usesWild) return false;
+
+    const useReverse =
+      reverse &&
+      game.settings.mode === "rpg" &&
+      game.self.classId === "reverse-transfer";
+    const nextDirection: 1 | -1 = useReverse
+      ? game.direction === 1
+        ? -1
+        : 1
+      : game.direction;
+    const nextDefenderSeat = nextActiveViewSeat(game.self.seat, nextDirection);
+    if (nextDefenderSeat === undefined) return false;
+
+    const nextDefender = game.players.find(
+      (player) => player.seat === nextDefenderSeat
+    );
+    if (!nextDefender) return false;
+
+    const classLimit =
+      game.settings.mode === "rpg" && nextDefender.classId === "five-limit"
+        ? 5
+        : 6;
+    const targetLimit = Math.min(classLimit, nextDefender.handCount);
+    return game.table.length + 1 <= targetLimit;
   }
 
-  const transferDropVisible =
+  const normalTransferVisible =
     game.phase === "defending" &&
     isMyTurn &&
-    sortedHand.some((card) => canCardTransfer(card));
+    sortedHand.some((card) => canCardTransfer(card, false));
+  const reverseTransferVisible =
+    game.phase === "defending" &&
+    isMyTurn &&
+    game.self.classId === "reverse-transfer" &&
+    sortedHand.some((card) => canCardTransfer(card, true));
+  const transferDropVisible = normalTransferVisible || reverseTransferVisible;
 
   function cardPlayable(card: Card): boolean {
     if (!isMyTurn || controlsDisabled) return false;
@@ -2317,7 +2358,11 @@ function GameScreen(props: {
       const canDefendAnyOpenCard = game.table.some(
         (pair) => !pair.defense && canBeat(pair.attack, card, game.trumpSuits)
       );
-      return canDefendAnyOpenCard || canCardTransfer(card);
+      return (
+        canDefendAnyOpenCard ||
+        canCardTransfer(card, false) ||
+        canCardTransfer(card, true)
+      );
     }
     return false;
   }
@@ -2397,7 +2442,7 @@ function GameScreen(props: {
 
     if (
       (target === "transfer" || target === "transfer-reverse") &&
-      canCardTransfer(card)
+      canCardTransfer(card, target === "transfer-reverse")
     ) {
       props.onAction({
         type: "transfer",
@@ -2565,15 +2610,17 @@ function GameScreen(props: {
 
         {transferDropVisible && (
           <div className="transferDropArea">
-            <div
-              className={`transferDropTarget ${dragCard?.target === "transfer" ? "active" : ""}`}
-              data-drop-target="transfer"
-            >
-              <span>⇢</span>
-              <b>ПЕРЕВЕСТИ</b>
-              <small>Положи карту сюда</small>
-            </div>
-            {game.self.classId === "reverse-transfer" && (
+            {normalTransferVisible && (
+              <div
+                className={`transferDropTarget ${dragCard?.target === "transfer" ? "active" : ""}`}
+                data-drop-target="transfer"
+              >
+                <span>⇢</span>
+                <b>ПЕРЕВЕСТИ</b>
+                <small>Положи карту сюда</small>
+              </div>
+            )}
+            {reverseTransferVisible && (
               <div
                 className={`transferDropTarget reverse ${dragCard?.target === "transfer-reverse" ? "active" : ""}`}
                 data-drop-target="transfer-reverse"
